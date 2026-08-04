@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 0.2.** (B0–B4 + 0.1 done 2026-08-04. Parser: strict serde over frontmatter + tail sections; unknown keys warn; dup-key/YAML/schema failures → `Invalid` rows w/ filename-recovered ID; corpus pinned — alpha+beta parse clean, alpha-broken yields exactly its 2 planted invalids.)
+**Position: next = 0.3.** (Through 0.2 done 2026-08-04. Parser pinned to corpus. IdGen: splitmix64 (no rand dep), Crockford-lowercase 4-char, `from_seed_str` hook for `MESHWORK_ID_SEED` (binary wires it at 0.4+), `mint_unique` re-rolls vs local files, loud exhaustion at 4096 draws.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -23,7 +23,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | id | item (MW refs) | verify |
 |---|---|---|
 | 0.1 ✓ | Task-file parser: strict serde model, frontmatter + `## log`/`## comments` tail sections, bullet+continuation comment format; unknown keys warn; parse failure → `invalid` row carrying filename-recovered ID (A1, A6, I2, K1) | `cargo test parse::` ✓ 2026-08-04 |
-| 0.2 | ID generation: `<alias>-<4-char base32>`, collision re-roll against local files; seedable RNG hook for tests (A4) | `cargo test id::` |
+| 0.2 ✓ | ID generation: `<alias>-<4-char base32>`, collision re-roll against local files; seedable RNG hook for tests (A4) | `cargo test id::` ✓ 2026-08-04 |
 | 0.3 | Ingestion → Arrow `MemTable`s → DataFusion `SessionContext`, five tables incl. `waived`, `ord`, `resolved`, child→parent edge direction (§3–4; C1) | `cargo test tables::` |
 | 0.4 | `init`: writes `meshwork/` layout, config.toml, `.gitattributes` (`tasks/*.md merge=union`), `.cache/.gitignore`; refuses outside a git repo (A3, I1) | `cargo test e2e::init_layout` |
 | 0.5 | `add` (all flags incl. `--verify`) + `show` (last-3 comments, `… and N more`) (A5, D2, E4, K4) | `cargo test e2e::add_show_roundtrip` |

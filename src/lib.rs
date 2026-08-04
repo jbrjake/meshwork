@@ -4,4 +4,5 @@
 //! testable lives here. Normative references: REQUIREMENTS-meshwork.md
 //! (`MW-*`) and DESIGN-meshwork.md (`§*`).
 
+pub mod id;
 pub mod parse;
