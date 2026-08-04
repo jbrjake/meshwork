@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 0.9.** (Through 0.8 done 2026-08-04. `ready` = normative §5 SQL (LIMIT at render for the marker), `q` raw with typed JSON cells, 20-row caps + `… and N more` + `--all`, golden machinery live: `assert_golden` + MESHWORK_BLESS=1 (the --bless flow) + ready-alpha.json committed. e2e split into include! part-files to hold the 500-line cap with flat `e2e::` names. TRACE: B6, C1, C3, D1, D2, J4 done — 37 planned remain.)
+**Position: next = 0.10.** (Through 0.9 done 2026-08-04. `src/lint.rs` engine (sorted findings, stable codes) + `lint --fix`: union-poison dup-keys repaired keep-first-value with a logged entry; duplicate IDs re-slugged — keeper = earliest (created, filename), inbound refs reported never rewritten blind; lint-broken.json golden committed. TRACE: A5, B2, B7, K3 done — 33 planned remain.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -30,7 +30,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | 0.6 ✓ | Transitions `start/block/drop/reopen` + log append; `block` demands `--reason` (E1, E3) | `cargo test e2e::transitions` ✓ 2026-08-04 |
 | 0.7 ✓ | `close`: runs `verify:` via `sh -c` from repo root, records exit+date, closes on 0 only; `--waive` writes `waived` (E2) | `cargo test e2e::close_gating` ✓ 2026-08-04 |
 | 0.8 ✓ | `ready` (normative SQL: needs clause + container clause) + `q` + `--json` everywhere, stable versioned shape (B6, C1, C3, D1, D2) | `cargo test e2e::ready_golden e2e::json_stable_shapes` ✓ 2026-08-04 |
-| 0.9 | `lint`: schema, needs/parent cycles, cross-repo parent, blocked-without-reason, duplicate IDs, duplicate frontmatter keys, dangling edges, missing verify (warn); `--fix`: re-slug fewer-inbound side + rewrite same-repo refs, repair duplicate keys (A4, A6, B2, B3, I2) | `cargo test e2e::lint_broken_corpus` |
+| 0.9 ✓ | `lint`: schema, needs/parent cycles, cross-repo parent, blocked-without-reason, duplicate IDs, duplicate frontmatter keys, dangling edges, missing verify (warn); `--fix`: re-slug fewer-inbound side + rewrite same-repo refs, repair duplicate keys (A4, A6, B2, B3, I2) | `cargo test e2e::lint_broken_corpus` ✓ 2026-08-04 |
 | 0.10 | Merge scenarios 1–3 (concurrent-worktrees, duplicate-id-merge, union-poison) (I1, I2, A4) | `cargo test e2e::merge_` |
 | 0.11 | Offline-everything scenario 5 (H5) | `cargo test e2e::offline_all` |
 | M0✓ | TRACE rows for A*, B1/B2/B6, C1/C3, D1/D2, E*, I*, K1/K4 flip `planned`→`done` | `./verify_meshwork.sh` |

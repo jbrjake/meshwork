@@ -68,4 +68,5 @@ fn add_id(repo: &Path, args: &[&str]) -> String {
 }
 
 include!("e2e_lifecycle.rs");
+include!("e2e_lint.rs");
 include!("e2e_query.rs");

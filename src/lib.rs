@@ -8,6 +8,7 @@ pub mod cli;
 pub mod clock;
 pub mod edit;
 pub mod id;
+pub mod lint;
 pub mod parse;
 pub mod store;
 pub mod tables;

@@ -8,15 +8,15 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-A2 | `tables::memtable_no_disk`, `e2e::cache_delete_safe` | planned |
 | MW-A3 | `e2e::init_layout` (nothing written outside repo, no hooks) | done |
 | MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id` | planned |
-| MW-A5 | `lint::description_size_warn`, `e2e::show_caps` | planned |
+| MW-A5 | `lint::description_size_warn`, `e2e::show_caps` | done |
 | MW-A6 | `parse::unknown_field_warns` | done |
 | MW-B1 | `tables::edge_kinds`, `e2e::dep_edit` | planned |
-| MW-B2 | `lint::cycle_needs`, `lint::cycle_parent` | planned |
+| MW-B2 | `lint::cycle_needs`, `lint::cycle_parent` | done |
 | MW-B3 | `e2e::crossrepo_resolution`, `lint::parent_crossrepo_error` | planned |
 | MW-B4 | `query::category_segment_prefix` | planned |
 | MW-B5 | `query::labels_orthogonal` | planned |
 | MW-B6 | `e2e::ready_golden` (container-exclusion + unresolved-blocks cases) | done |
-| MW-B7 | `lint::parent_rollup_warn` | planned |
+| MW-B7 | `lint::parent_rollup_warn` | done |
 | MW-B8 | `e2e::tree_why_blocked_golden` (5-deep chain, cosmetic level names) | planned |
 | MW-C1 | `e2e::raw_sql_tables` | done |
 | MW-C2 | `e2e::tree_why_blocked_golden` | planned |
@@ -36,7 +36,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-F3 | `lint::anchor_missing_warn` | planned |
 | MW-K1 | `e2e::comment_attach`, `parse::comment_format` | planned |
 | MW-K2 | `e2e::comment_attach` | planned |
-| MW-K3 | `lint::attachment_size_warn` | planned |
+| MW-K3 | `lint::attachment_size_warn` | done |
 | MW-K4 | `e2e::add_show_roundtrip` | done |
 | MW-G1 | `e2e::repo_self_contained` | planned |
 | MW-G2 | `e2e::registry_overrides` | planned |

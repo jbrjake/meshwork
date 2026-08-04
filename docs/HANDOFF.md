@@ -1,10 +1,10 @@
 # HANDOFF (≤2KB — pointer, not narrative; durable state lives in PLAN Position + TRACE + commits)
 
-**Done:** Through PLAN 0.8 (2026-08-04). `ready` runs DESIGN §5's normative SQL (DataFusion handles the correlated NOT EXISTS pair fine); LIMIT moved to render time because the `… and N more (use --all)` marker needs the true total. `q` = raw SQL, text table + typed JSON cells ({"columns","rows"}). Golden machinery live: `common::assert_golden` byte-compares `fixtures/golden/*`; regeneration ONLY via `MESHWORK_BLESS=1 cargo test` (implements the plan's `--bless`) + reviewed diff. `ready-alpha.json` committed (13 rows, hand-verified against corpus semantics). TRACE: B6, C1, C3, D1, D2, J4 → done (37 planned left).
+**Done:** Through PLAN 0.9 (2026-08-04). `src/lint.rs`: sorted/deduped findings with stable codes — errors: parse, duplicate-key, duplicate-id, cycle-needs/parent, parent-crossrepo, blocked-no-reason, dangling (needs/parent); warnings: unknown-key/schema, no-verify, dangling (soft kinds), description-size (>2KB), file-size (>64KB §15.5), attachment-missing/-size (>1MB), parent-rollup. `lint --fix` repairs ONLY mechanical damage: dup keys keep-first + logged repair entry; dup IDs re-slugged (keeper = earliest created then filename — content can't attribute inbound refs, so they're reported, never rewritten blind). lint-broken.json golden committed. TRACE: A5, B2, B7, K3 done (33 planned).
 
-**Decisions:** e2e tests live in include!'d part-files (e2e_lifecycle.rs, e2e_query.rs) so test paths stay flat `e2e::<name>` (TRACE/gate grep full paths) under the file caps. Note: cargo fmt does NOT format include! part-files — keep them tidy by hand. Single-repo `ready` still treats cross-repo needs as unresolved-blocking; PLAN 2.3 adds registry lookup and will re-bless ready-alpha.json (expected diff: az-x9b2 becomes ready).
+**Decisions:** lint exit 1 iff errors; warnings never block. Cross-repo needs/relates are skipped by single-repo lint (registry owns them, M2). Anchors check lands at 4.2 per plan.
 
-**Open threads:** none new.
+**Open threads:** MW-B3 waits on e2e::crossrepo_resolution (2.3); MW-I2 waits on e2e::merge_union_poison (0.10).
 
-**Next concrete step:** PLAN 0.9 — `lint`: schema, needs/parent cycles, cross-repo parent, blocked-without-reason, duplicate IDs, duplicate frontmatter keys, dangling edges, missing verify (warn); `--fix`: re-slug fewer-inbound side + rewrite same-repo refs, repair duplicate keys (A4, A6, B2, B3, I2).
-verify: `cargo test e2e::lint_broken_corpus` exits 0.
+**Next concrete step:** PLAN 0.10 — merge scenarios 1–3: concurrent-worktrees (union attr, both comments survive), duplicate-id-merge (seeded RNG forces collision; lint --fix re-slugs), union-poison (conflicting status lines → dup key → invalid row → --fix repairs) (I1, I2, A4).
+verify: `cargo test e2e::merge_` exits 0.

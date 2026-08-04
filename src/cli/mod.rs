@@ -5,6 +5,7 @@
 mod add;
 mod close;
 mod init;
+mod lint;
 mod query;
 mod show;
 mod transition;
@@ -45,6 +46,8 @@ enum Cmd {
     Ready(query::ReadyArgs),
     /// Raw SQL over tasks/edges/labels/comments/repos.
     Q(query::QArgs),
+    /// Structural checks; --fix repairs merge damage.
+    Lint(lint::LintArgs),
 }
 
 /// Repo root of an initialized store, or a user-facing error.
@@ -93,6 +96,7 @@ pub fn run() -> i32 {
         Cmd::Close(args) => close::run(args, cli.json),
         Cmd::Ready(args) => query::ready(args, cli.json),
         Cmd::Q(args) => query::q(args, cli.json),
+        Cmd::Lint(args) => lint::run(args, cli.json),
     };
     match result {
         Ok(()) => 0,

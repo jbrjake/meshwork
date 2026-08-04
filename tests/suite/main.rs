@@ -7,6 +7,7 @@ mod common;
 mod e2e;
 mod fixtures;
 mod id;
+mod lint;
 mod parse;
 mod stub_gh;
 mod tables;
