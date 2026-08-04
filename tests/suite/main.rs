@@ -5,4 +5,5 @@
 
 mod e2e;
 mod fixtures;
+mod parse;
 mod stub_gh;

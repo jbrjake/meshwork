@@ -1,10 +1,10 @@
 # HANDOFF (≤2KB — pointer, not narrative; durable state lives in PLAN Position + TRACE + commits)
 
-**Done:** Bootstrap complete, B0–B4 (2026-08-04). Corpus committed (DESIGN §13) + `fixtures::corpus_covers_features`. Stub `gh` at `tests/bin/gh`: records `$ argv` + `> stdin` lines to `$GH_STUB_CALLS` (required — exit 66 if a test didn't opt in), replays `tests/canned/<a>-<b>.json` (exit 64 if missing, `.exit` file overrides rc), and hard-refuses mutations — edit/close/delete/reopen/transfer/lock subcommands and non-GET/POST api methods exit 65 *after* recording (MW-H2 enforced at the boundary for the whole suite).
+**Done:** B0–B4 + 0.1 (2026-08-04). Crate is now lib + thin bin. `src/parse.rs`: strict serde frontmatter (Option<Vec> tolerates hand-edited empty keys), `## log`/`## comments` tail sections with two-space continuations, unknown keys warn (MW-A6), filename/id mismatch warns, textual dup-key scan runs *before* YAML so union-poison gets a precise diagnosis (MW-I1/I2), any hard failure → `ParsedTask::Invalid` with filename-recovered ID. `parse::corpus_parses_as_planted` pins parser↔corpus: alpha+beta all valid & warning-free, alpha-broken → exactly {ax-brk9, ax-un10} invalid. TRACE: MW-A6, MW-F1 → done.
 
-**Decisions:** DESIGN §15 + two corpus-derived: (1) `verify:` values ending in `::` must be YAML-quoted (trailing colon at EOL = mapping indicator); (2) doc anchors are heading slugs: `#§-budget-path` ↔ `## § budget path` (lowercase, spaces→dashes).
+**Decisions:** unit-tier tests live in the suite (tests/suite/<mod>.rs) so test paths match TRACE names exactly (`parse::x`, not `parse::tests::x` — gate §6 greps paths). DESIGN §2's normative example is embedded verbatim as the `roundtrip_hand_edited` input.
 
-**Open threads:** TRACE MW-J4 `planned` until golden byte-compare + `--bless` land (0.8). `tests/suite/fixtures.rs` at 510 lines (warn) — split if corpus checks grow.
+**Open threads:** MW-J4 planned until --bless lands (0.8); fixtures.rs 510 lines (warn).
 
-**Next concrete step:** PLAN 0.1 — task-file parser: strict serde model, frontmatter + `## log`/`## comments` tail sections, bullet+continuation comments; unknown keys warn; parse failure → `invalid` row with filename-recovered ID (A1, A6, I2, K1).
-verify: `cargo test parse::` exits 0.
+**Next concrete step:** PLAN 0.2 — ID generation: `<alias>-<4-char base32>`, collision re-roll against local files; seedable RNG hook for tests (A4).
+verify: `cargo test id::` exits 0.

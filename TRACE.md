@@ -9,7 +9,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-A3 | `e2e::init_layout` (nothing written outside repo, no hooks) | planned |
 | MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id` | planned |
 | MW-A5 | `lint::description_size_warn`, `e2e::show_caps` | planned |
-| MW-A6 | `parse::unknown_field_warns` | planned |
+| MW-A6 | `parse::unknown_field_warns` | done |
 | MW-B1 | `tables::edge_kinds`, `e2e::dep_edit` | planned |
 | MW-B2 | `lint::cycle_needs`, `lint::cycle_parent` | planned |
 | MW-B3 | `e2e::crossrepo_resolution`, `lint::parent_crossrepo_error` | planned |
@@ -31,7 +31,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-E2 | `e2e::close_gating`, `e2e::close_waive_recorded` | planned |
 | MW-E3 | `e2e::log_append_on_transitions` | planned |
 | MW-E4 | `e2e::discovered_from_edge` | planned |
-| MW-F1 | `parse::docs_links` | planned |
+| MW-F1 | `parse::docs_links` | done |
 | MW-F2 | `e2e::show_docs_excerpts` | planned |
 | MW-F3 | `lint::anchor_missing_warn` | planned |
 | MW-K1 | `e2e::comment_attach`, `parse::comment_format` | planned |
