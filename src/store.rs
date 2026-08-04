@@ -1,0 +1,146 @@
+//! Store discovery and loading (DESIGN §1, §3): a repo's `meshwork/` layout
+//! read into memory — config plus every task file parsed (never skipped;
+//! failures ride along as [`ParsedTask::Invalid`], MW-I2).
+
+use crate::parse::{parse_task_file, ParsedTask};
+use serde::Deserialize;
+use std::path::{Path, PathBuf};
+
+/// Errors loading a store. Parse failures are NOT here — they're data
+/// (invalid rows), not errors.
+#[derive(Debug, thiserror::Error)]
+pub enum StoreError {
+    /// The directory has no `meshwork/config.toml`.
+    #[error("not a meshwork store: {0} (missing meshwork/config.toml — run `meshwork init`)")]
+    NotAStore(PathBuf),
+    /// Filesystem failure walking the store.
+    #[error("reading store: {0}")]
+    Io(#[from] std::io::Error),
+    /// `config.toml` exists but does not parse.
+    #[error("bad config {path}: {message}")]
+    BadConfig {
+        /// Path to the offending config.toml.
+        path: PathBuf,
+        /// TOML parse error text.
+        message: String,
+    },
+}
+
+/// `meshwork/config.toml` (DESIGN §1). Unknown keys are ignored by serde —
+/// config is not the strict surface task files are.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Config {
+    /// Repo alias used as the ID prefix (`az` → `az-k7f3`).
+    pub alias: String,
+    /// Fallback comment author (MW-K1 chain: `--as` → env → this → error).
+    #[serde(default)]
+    pub default_author: Option<String>,
+    /// Cosmetic category-depth names (MW-B8); zero semantics.
+    #[serde(default)]
+    pub hierarchy: Option<Hierarchy>,
+    /// Mirror opt-in (MW-H1); absent = off.
+    #[serde(default)]
+    pub mirror: Option<bool>,
+}
+
+/// `[hierarchy]` table — display names only (MW-B8).
+#[derive(Debug, Clone, Deserialize)]
+pub struct Hierarchy {
+    /// Display names for category depths, outermost first.
+    #[serde(default)]
+    pub levels: Vec<String>,
+}
+
+/// One task file: name + parse outcome, in filename order.
+#[derive(Debug, Clone)]
+pub struct TaskEntry {
+    /// File name within `meshwork/tasks/`.
+    pub file_name: String,
+    /// Parse outcome (valid task or loud invalid).
+    pub parsed: ParsedTask,
+}
+
+/// A loaded repo store.
+#[derive(Debug, Clone)]
+pub struct RepoStore {
+    /// Registry name; defaults to the repo directory's name (DESIGN §4 gid
+    /// prefix — the portfolio registry uses the same default, MW-G2).
+    pub repo: String,
+    /// Repo root (the directory containing `meshwork/`).
+    pub root: PathBuf,
+    /// Parsed config.
+    pub config: Config,
+    /// Every `tasks/*.md`, filename-sorted.
+    pub entries: Vec<TaskEntry>,
+}
+
+impl RepoStore {
+    /// Global ID (`repo#id`) for a task ID in this store.
+    #[must_use]
+    pub fn gid(&self, id: &str) -> String {
+        format!("{}#{id}", self.repo)
+    }
+}
+
+/// Load a repo's store from its root directory.
+///
+/// # Errors
+/// [`StoreError::NotAStore`] when `meshwork/config.toml` is missing,
+/// [`StoreError::BadConfig`] when it doesn't parse, or I/O failures walking
+/// `meshwork/tasks/`. Task-file parse failures never error — they load as
+/// invalid entries (MW-I2).
+pub fn load_repo(root: &Path) -> Result<RepoStore, StoreError> {
+    let config_path = root.join("meshwork").join("config.toml");
+    let config_text = match std::fs::read_to_string(&config_path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(StoreError::NotAStore(root.to_path_buf()))
+        }
+        Err(e) => return Err(e.into()),
+    };
+    let config: Config = toml::from_str(&config_text).map_err(|e| StoreError::BadConfig {
+        path: config_path,
+        message: e.to_string(),
+    })?;
+
+    let repo = repo_name(root);
+    let tasks_dir = root.join("meshwork").join("tasks");
+    let mut entries = Vec::new();
+    match std::fs::read_dir(&tasks_dir) {
+        Ok(dir) => {
+            for entry in dir {
+                let entry = entry?;
+                let name = entry.file_name().to_string_lossy().into_owned();
+                let is_md = entry
+                    .path()
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("md"));
+                if is_md {
+                    entries.push(TaskEntry {
+                        parsed: parse_task_file(&entry.path()),
+                        file_name: name,
+                    });
+                }
+            }
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {} // fresh store
+        Err(e) => return Err(e.into()),
+    }
+    entries.sort_by(|a, b| a.file_name.cmp(&b.file_name));
+
+    Ok(RepoStore {
+        repo,
+        root: root.to_path_buf(),
+        config,
+        entries,
+    })
+}
+
+/// Registry name for a repo root: its directory name (canonicalized so `.`
+/// works), falling back to `repo`.
+fn repo_name(root: &Path) -> String {
+    let canonical = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+    canonical
+        .file_name()
+        .map_or_else(|| "repo".to_string(), |n| n.to_string_lossy().into_owned())
+}
