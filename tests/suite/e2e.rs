@@ -130,3 +130,214 @@ fn init_json_envelope() {
     assert_eq!(v["verb"], "init");
     assert!(v["data"]["created"].as_array().unwrap().len() >= 4);
 }
+
+fn init_store(repo: &Path) {
+    meshwork(repo).arg("init").assert().success();
+}
+
+fn stdout_of(assert: &assert_cmd::assert::Assert) -> String {
+    String::from_utf8(assert.get_output().stdout.clone()).unwrap()
+}
+
+/// PLAN 0.5 / MW-A1, E4, K4: `add` with every flag writes a well-formed
+/// file and prints the id; hand-edited comments round-trip through `show`,
+/// capped at last-3 with the `… and N more` marker.
+#[test]
+fn add_show_roundtrip() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let out = meshwork(&repo)
+        .args([
+            "add",
+            "Fix the spill cliff",
+            "--cat",
+            "engine/spill",
+            "--label",
+            "perf",
+            "--label",
+            "p0",
+            "--needs",
+            "wo-aaaa",
+            "--needs",
+            "beta#bz-c0r3",
+            "--parent",
+            "wo-cccc",
+            "--from",
+            "wo-bbbb",
+            "--verify",
+            "cargo test spill::",
+        ])
+        .assert()
+        .success();
+    let id = stdout_of(&out).lines().next().unwrap().to_string();
+    assert!(
+        id.starts_with("wo-") && id.len() == 7,
+        "add prints the id: {id}"
+    );
+
+    // File on disk, filename = <id>-<slug>.md, fields verbatim.
+    let path = repo.join(format!("meshwork/tasks/{id}-fix-the-spill-cliff.md"));
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains(&format!("id: {id}")), "{text}");
+    assert!(text.contains("status: open"));
+    assert!(text.contains("category: engine/spill"));
+    assert!(text.contains("labels: [perf, p0]"));
+    assert!(text.contains("needs: [wo-aaaa, beta#bz-c0r3]"));
+    assert!(text.contains("parent: wo-cccc"));
+    assert!(text.contains("discovered-from: wo-bbbb"));
+    assert!(
+        text.contains("verify: \"cargo test spill::\""),
+        "trailing :: needs YAML quoting: {text}"
+    );
+    assert!(text.contains("## log"));
+
+    // Hand-edit tolerance (MW-A1): append comments in an editor.
+    let mut edited = text.clone();
+    edited.push_str(
+        "\n## comments\n- 2026-08-04 [jon] one\n- 2026-08-04 [maya] two\n- 2026-08-04 [jon] three\n- 2026-08-04 [claude/f10a7561] four\n",
+    );
+    std::fs::write(&path, edited).unwrap();
+
+    // show: full task, last-3 comments + explicit more-marker (MW-K4/D2).
+    let shown = stdout_of(&meshwork(&repo).args(["show", &id]).assert().success());
+    assert!(shown.contains("Fix the spill cliff"));
+    assert!(shown.contains("open"));
+    assert!(shown.contains("engine/spill"));
+    assert!(shown.contains("four") && shown.contains("three") && shown.contains("two"));
+    assert!(!shown.contains("[jon] one"), "oldest comment capped away");
+    assert!(shown.contains("… and 1 more"), "marker missing:\n{shown}");
+
+    // --comments renders everything.
+    let all = stdout_of(
+        &meshwork(&repo)
+            .args(["show", &id, "--comments"])
+            .assert()
+            .success(),
+    );
+    assert!(all.contains("[jon] one"));
+
+    // JSON parity: total + shown, stable envelope.
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["show", &id, "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["verb"], "show");
+    assert_eq!(v["data"]["id"], serde_json::json!(id));
+    assert_eq!(v["data"]["comments"]["total"], 4);
+    assert_eq!(v["data"]["comments"]["shown"].as_array().unwrap().len(), 3);
+}
+
+/// MW-D2/A5: caps with explicit `… and N more`, `--comments` opts out.
+#[test]
+fn show_caps() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let out = meshwork(&repo)
+        .args(["add", "Capped", "--verify", "true"])
+        .assert()
+        .success();
+    let id = stdout_of(&out).lines().next().unwrap().to_string();
+    let path = repo.join("meshwork/tasks");
+    let file = std::fs::read_dir(&path)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| p.file_name().unwrap().to_string_lossy().starts_with(&id))
+        .unwrap();
+    let mut text = std::fs::read_to_string(&file).unwrap();
+    text.push_str("\n## comments\n");
+    for i in 1..=5 {
+        use std::fmt::Write as _;
+        let _ = writeln!(text, "- 2026-08-04 [jon] comment number {i}");
+    }
+    std::fs::write(&file, text).unwrap();
+
+    let shown = stdout_of(&meshwork(&repo).args(["show", &id]).assert().success());
+    assert!(shown.contains("comment number 5"));
+    assert!(!shown.contains("comment number 2"));
+    assert!(shown.contains("… and 2 more"), "{shown}");
+}
+
+/// MW-B3: parent never crosses repos — refused at creation, not just lint.
+#[test]
+fn add_refuses_crossrepo_parent() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    meshwork(&repo)
+        .args(["add", "Bad parent", "--parent", "beta#bz-c0r3"])
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("parent"));
+}
+
+/// The `MESHWORK_ID_SEED` hook drives deterministic IDs (e2e scenario 2 relies
+/// on forcing the same mint in two clones).
+#[test]
+fn add_seeded_id_deterministic() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let expected = meshwork::id::IdGen::with_seed(7).next_id("wo");
+    let out = meshwork(&repo)
+        .env("MESHWORK_ID_SEED", "7")
+        .args(["add", "Seeded"])
+        .assert()
+        .success();
+    assert_eq!(stdout_of(&out).lines().next().unwrap(), expected);
+}
+
+/// MW-E4: `--from` records discovered-from provenance end to end — file
+/// field, show output, and the typed edge in the SQL tables.
+#[test]
+fn discovered_from_edge() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let origin = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "Origin task"])
+            .assert()
+            .success(),
+    )
+    .lines()
+    .next()
+    .unwrap()
+    .to_string();
+    let found = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "Found while working", "--from", &origin])
+            .assert()
+            .success(),
+    )
+    .lines()
+    .next()
+    .unwrap()
+    .to_string();
+
+    let shown = stdout_of(&meshwork(&repo).args(["show", &found]).assert().success());
+    assert!(shown.contains(&format!("discovered-from: {origin}")));
+
+    let store = meshwork::store::load_repo(&repo).unwrap();
+    let ctx = meshwork::tables::session_for(&[store]).unwrap();
+    let rows = tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(crate::common::sql_rows(
+            &ctx,
+            &format!(
+                "SELECT dst_gid FROM edges WHERE kind='discovered-from' AND src_gid='work#{found}'"
+            ),
+        ));
+    assert_eq!(rows, [[format!("work#{origin}")]]);
+}
+
+/// Unknown ids fail loudly.
+#[test]
+fn show_unknown_id_fails() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    meshwork(&repo)
+        .args(["show", "wo-zzzz"])
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("wo-zzzz"));
+}

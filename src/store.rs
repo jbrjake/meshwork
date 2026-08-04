@@ -82,14 +82,12 @@ impl RepoStore {
     }
 }
 
-/// Load a repo's store from its root directory.
+/// Load just the config of a store.
 ///
 /// # Errors
 /// [`StoreError::NotAStore`] when `meshwork/config.toml` is missing,
-/// [`StoreError::BadConfig`] when it doesn't parse, or I/O failures walking
-/// `meshwork/tasks/`. Task-file parse failures never error — they load as
-/// invalid entries (MW-I2).
-pub fn load_repo(root: &Path) -> Result<RepoStore, StoreError> {
+/// [`StoreError::BadConfig`] when it doesn't parse.
+pub fn load_config(root: &Path) -> Result<Config, StoreError> {
     let config_path = root.join("meshwork").join("config.toml");
     let config_text = match std::fs::read_to_string(&config_path) {
         Ok(text) => text,
@@ -98,11 +96,21 @@ pub fn load_repo(root: &Path) -> Result<RepoStore, StoreError> {
         }
         Err(e) => return Err(e.into()),
     };
-    let config: Config = toml::from_str(&config_text).map_err(|e| StoreError::BadConfig {
+    toml::from_str(&config_text).map_err(|e| StoreError::BadConfig {
         path: config_path,
         message: e.to_string(),
-    })?;
+    })
+}
 
+/// Load a repo's store from its root directory.
+///
+/// # Errors
+/// [`StoreError::NotAStore`] when `meshwork/config.toml` is missing,
+/// [`StoreError::BadConfig`] when it doesn't parse, or I/O failures walking
+/// `meshwork/tasks/`. Task-file parse failures never error — they load as
+/// invalid entries (MW-I2).
+pub fn load_repo(root: &Path) -> Result<RepoStore, StoreError> {
+    let config = load_config(root)?;
     let repo = repo_name(root);
     let tasks_dir = root.join("meshwork").join("tasks");
     let mut entries = Vec::new();
@@ -134,6 +142,37 @@ pub fn load_repo(root: &Path) -> Result<RepoStore, StoreError> {
         config,
         entries,
     })
+}
+
+/// Walk up from `start` to the directory containing `.git` (dir, or the
+/// file a linked worktree uses).
+#[must_use]
+pub fn find_git_root(start: &Path) -> Option<PathBuf> {
+    start
+        .ancestors()
+        .find(|dir| dir.join(".git").exists())
+        .map(Path::to_path_buf)
+}
+
+/// Locate a task file by ID: `<id>.md` or the `<id>-<slug>.md` glob —
+/// the ID prefix exists precisely for this lookup (DESIGN §2/§5).
+#[must_use]
+pub fn find_task_file(tasks_dir: &Path, id: &str) -> Option<PathBuf> {
+    let exact = format!("{id}.md");
+    let prefix = format!("{id}-");
+    let mut hits: Vec<PathBuf> = std::fs::read_dir(tasks_dir)
+        .ok()?
+        .filter_map(std::result::Result::ok)
+        .map(|e| e.path())
+        .filter(|p| {
+            p.file_name().is_some_and(|n| {
+                let n = n.to_string_lossy();
+                n == exact || (n.starts_with(&prefix) && n.ends_with(".md"))
+            })
+        })
+        .collect();
+    hits.sort();
+    hits.into_iter().next()
 }
 
 /// Registry name for a repo root: its directory name (canonicalized so `.`

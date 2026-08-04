@@ -4,7 +4,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 
 | req | tests | status |
 |---|---|---|
-| MW-A1 | `parse::roundtrip_hand_edited`, `e2e::add_show_roundtrip` | planned |
+| MW-A1 | `parse::roundtrip_hand_edited`, `e2e::add_show_roundtrip` | done |
 | MW-A2 | `tables::memtable_no_disk`, `e2e::cache_delete_safe` | planned |
 | MW-A3 | `e2e::init_layout` (nothing written outside repo, no hooks) | done |
 | MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id` | planned |
@@ -30,14 +30,14 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-E1 | `e2e::transitions` | planned |
 | MW-E2 | `e2e::close_gating`, `e2e::close_waive_recorded` | planned |
 | MW-E3 | `e2e::log_append_on_transitions` | planned |
-| MW-E4 | `e2e::discovered_from_edge` | planned |
+| MW-E4 | `e2e::discovered_from_edge` | done |
 | MW-F1 | `parse::docs_links` | done |
 | MW-F2 | `e2e::show_docs_excerpts` | planned |
 | MW-F3 | `lint::anchor_missing_warn` | planned |
 | MW-K1 | `e2e::comment_attach`, `parse::comment_format` | planned |
 | MW-K2 | `e2e::comment_attach` | planned |
 | MW-K3 | `lint::attachment_size_warn` | planned |
-| MW-K4 | `e2e::add_show_roundtrip` | planned |
+| MW-K4 | `e2e::add_show_roundtrip` | done |
 | MW-G1 | `e2e::repo_self_contained` | planned |
 | MW-G2 | `e2e::registry_overrides` | planned |
 | MW-G3 | `e2e::portfolio_union_golden` | planned |

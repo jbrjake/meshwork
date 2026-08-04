@@ -80,6 +80,33 @@ impl IdGen {
     }
 }
 
+/// Filename slug from a title: lowercase alphanumeric runs joined by `-`,
+/// capped at 48 chars. Cosmetic and never load-bearing (DESIGN §2).
+#[must_use]
+pub fn slugify(title: &str) -> String {
+    let mut slug = String::new();
+    let mut pending_dash = false;
+    for c in title.chars() {
+        if c.is_ascii_alphanumeric() {
+            if pending_dash && !slug.is_empty() {
+                slug.push('-');
+            }
+            pending_dash = false;
+            slug.push(c.to_ascii_lowercase());
+        } else {
+            pending_dash = true;
+        }
+        if slug.len() >= 48 {
+            break;
+        }
+    }
+    if slug.is_empty() {
+        "task".to_string()
+    } else {
+        slug
+    }
+}
+
 /// Mint an ID that no local task file already uses (MW-A4): re-roll while
 /// `<dir>/<id>-*.md` (or `<id>.md`) exists. A missing dir collides with
 /// nothing.
