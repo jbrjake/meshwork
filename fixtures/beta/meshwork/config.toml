@@ -1,0 +1,3 @@
+# beta — small clean fixture repo; target of cross-repo edges.
+alias = "bz"
+default_author = "jon"

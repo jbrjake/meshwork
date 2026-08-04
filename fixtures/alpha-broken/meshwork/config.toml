@@ -1,0 +1,3 @@
+# alpha-broken — the lint corpus (DESIGN §13): every failure mode, once.
+alias = "ax"
+default_author = "jon"

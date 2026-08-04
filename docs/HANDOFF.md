@@ -1,10 +1,10 @@
 # HANDOFF (≤2KB — pointer, not narrative; durable state lives in PLAN Position + TRACE + commits)
 
-**Done:** Bootstrap B0–B2 (2026-08-04): crate + pinned deps build clean; gate (`verify_meshwork.sh`, 8 sections) runs green with §§4,7,8 in loud-SKIP pending mode; TRACE.md seeded all-planned; baseline scaffolding (smoke/regression, hooks, file-length) in place; REQUIREMENTS/DESIGN/PLAN moved into this repo from the code root (they live here now).
+**Done:** B0–B3 (2026-08-04): bootstrap + gate green; fixture corpus committed per DESIGN §13 — alpha (33 tasks: 5-deep chain, every status/edge kind, cross-repo→beta, absent→gamma, good+bad doc anchors, multi-author comments w/ continuations, >1MB attachment, seq gaps, no-verify task), alpha-broken (all 9 failure modes), beta, portfolio (repos.toml + sequence.md), golden/ (populates per-feature via --bless). `fixtures::corpus_covers_features` enforces corpus completeness text-level (deliberately parser-free). Gate §4 coverage is now live.
 
-**Decisions:** all pre-build decisions are in DESIGN §15; dep posture mirrors sahjhan (datafusion 51, edition 2021); serde_yaml_ng replaces archived serde_yaml (REQUIREMENTS J1).
+**Decisions:** pre-build decisions in DESIGN §15. New, corpus-derived: `verify:` values ending in `::` (cargo test filters) must be YAML-quoted — a trailing colon at EOL is a YAML mapping indicator; the strict parser (0.1) must reject unquoted ones like any other bad YAML. Fixture doc anchors use heading-slug convention: `#§-budget-path` ↔ heading `## § budget path` (lowercase, spaces→dashes).
 
-**Open threads:** none.
+**Open threads:** TRACE MW-J4 stays `planned` until golden byte-compare + `--bless` machinery exists (0.8); the corpus test alone doesn't satisfy MW-J4's full text.
 
-**Next concrete step:** PLAN item B3 — fixture corpus skeleton + `fixtures::corpus_covers_features`.
-verify: `cargo test fixtures::` exits 0.
+**Next concrete step:** PLAN item B4 — stub `gh`: `tests/bin/gh` records argv+stdin to `.calls`, replays canned JSON from `tests/canned/`; harness prepends to `$PATH`.
+verify: `cargo test stub_gh::` exits 0.

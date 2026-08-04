@@ -1,0 +1,6 @@
+# 6-line excerpt: cliff onset at sample 009481 (full log kept one cycle)
+p99 sample 009479 spill_bytes=273741824 governed=true wakeup_ms=250 batch=65536
+p99 sample 009480 spill_bytes=273741824 governed=true wakeup_ms=250 batch=65536
+p99 sample 009481 spill_bytes=947183616 governed=true wakeup_ms=980 batch=65536
+p99 sample 009482 spill_bytes=951377920 governed=true wakeup_ms=1010 batch=65536
+p99 sample 009483 spill_bytes=955572224 governed=true wakeup_ms=1040 batch=65536

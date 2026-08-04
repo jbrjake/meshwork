@@ -44,7 +44,7 @@ fi
 section 4 "coverage >=80% (cargo llvm-cov)"
 if ! cargo llvm-cov --version >/dev/null 2>&1; then
   skip "cargo-llvm-cov not installed (cargo install cargo-llvm-cov)"
-elif ! ls tests/*.rs >/dev/null 2>&1 && ! grep -rq '#\[test\]' src/ 2>/dev/null; then
+elif ! ls tests/*.rs >/dev/null 2>&1 && ! ls tests/*/main.rs >/dev/null 2>&1 && ! grep -rq '#\[test\]' src/ 2>/dev/null; then
   skip "no tests yet (bootstrap; first red test flips this on)"
 else
   if PATH="$TEST_PATH" cargo llvm-cov --fail-under-lines 80 >/dev/null 2>&1; then pass; else fail "coverage <80%"; fi

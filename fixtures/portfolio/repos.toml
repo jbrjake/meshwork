@@ -1,0 +1,16 @@
+# Registry: name → remote (MW-G2). Order matters: portfolio-next fallback
+# is repos.toml order (MW-G4). Paths default to ~/Documents/code/<name>;
+# per-machine overrides live in gitignored repos.local.toml (the test
+# harness writes one pointing into its tempdir).
+
+[[repo]]
+name = "alpha"
+remote = "git@github.com:example/alpha.git"
+
+[[repo]]
+name = "beta"
+remote = "git@github.com:example/beta.git"
+
+[[repo]]
+name = "gamma"
+remote = "git@github.com:example/gamma.git"

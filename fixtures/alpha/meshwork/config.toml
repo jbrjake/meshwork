@@ -1,0 +1,6 @@
+# alpha — kitchen-sink fixture repo (DESIGN §13)
+alias = "az"
+default_author = "jon"
+
+[hierarchy]
+levels = ["saga", "epic", "sprint", "story"]   # cosmetic labels; zero semantics (MW-B8)
