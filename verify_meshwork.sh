@@ -67,7 +67,7 @@ else
   # done-rows must cite tests that exist (gate-satisfied rows say "gate")
   TEST_LIST=$(PATH="$TEST_PATH" cargo test -- --list 2>/dev/null || true)
   while IFS= read -r row; do
-    tests=$(printf '%s' "$row" | grep -Eo '`[a-z_]+::[a-z_0-9]+`' | tr -d '`')
+    tests=$(printf '%s' "$row" | grep -Eo '`[a-z_0-9]+::[a-z_0-9]+`' | tr -d '`')
     if [[ -z "$tests" ]]; then
       printf '%s' "$row" | grep -qi 'gate\|pilot\|checklist' || { printf '   done-row cites no test: %s\n' "$(printf '%s' "$row" | cut -c1-60)"; TRACE_FAIL=1; }
       continue

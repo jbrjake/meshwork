@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 0.4.** (Through 0.3 done 2026-08-04. `store::load_repo` (config + sorted task entries, invalids ride along) → `tables::session_for(&[RepoStore])` — five tables, waived/ord/resolved cols, parent stored child→parent, invalid rows as status='invalid' with error col; one code path 1..N repos.)
+**Position: next = 0.5.** (Through 0.4 done 2026-08-04. CLI skeleton up (clap, `--json` global, `{"v":1,"verb","data"}` envelope). `init`: layout at git toplevel, union attr, cache gitignore, alias default = first 2 chars of dir name, default_author seeded from git user.name; refuses non-git and re-init. TRACE MW-A3 done. Gate trace-regex fixed: module names with digits (`e2e::`) now match.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -25,7 +25,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | 0.1 ✓ | Task-file parser: strict serde model, frontmatter + `## log`/`## comments` tail sections, bullet+continuation comment format; unknown keys warn; parse failure → `invalid` row carrying filename-recovered ID (A1, A6, I2, K1) | `cargo test parse::` ✓ 2026-08-04 |
 | 0.2 ✓ | ID generation: `<alias>-<4-char base32>`, collision re-roll against local files; seedable RNG hook for tests (A4) | `cargo test id::` ✓ 2026-08-04 |
 | 0.3 ✓ | Ingestion → Arrow `MemTable`s → DataFusion `SessionContext`, five tables incl. `waived`, `ord`, `resolved`, child→parent edge direction (§3–4; C1) | `cargo test tables::` ✓ 2026-08-04 |
-| 0.4 | `init`: writes `meshwork/` layout, config.toml, `.gitattributes` (`tasks/*.md merge=union`), `.cache/.gitignore`; refuses outside a git repo (A3, I1) | `cargo test e2e::init_layout` |
+| 0.4 ✓ | `init`: writes `meshwork/` layout, config.toml, `.gitattributes` (`tasks/*.md merge=union`), `.cache/.gitignore`; refuses outside a git repo (A3, I1) | `cargo test e2e::init_layout` ✓ 2026-08-04 |
 | 0.5 | `add` (all flags incl. `--verify`) + `show` (last-3 comments, `… and N more`) (A5, D2, E4, K4) | `cargo test e2e::add_show_roundtrip` |
 | 0.6 | Transitions `start/block/drop/reopen` + log append; `block` demands `--reason` (E1, E3) | `cargo test e2e::transitions` |
 | 0.7 | `close`: runs `verify:` via `sh -c` from repo root, records exit+date, closes on 0 only; `--waive` writes `waived` (E2) | `cargo test e2e::close_gating` |
