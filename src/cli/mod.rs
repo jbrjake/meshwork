@@ -3,6 +3,7 @@
 //! milestone by milestone; this module holds clap types + dispatch only.
 
 mod add;
+mod close;
 mod init;
 mod show;
 mod transition;
@@ -37,6 +38,8 @@ enum Cmd {
     Drop(transition::IdArg),
     /// blocked|doing|done → open.
     Reopen(transition::IdArg),
+    /// Run verify:, close on exit 0 only; --waive records a loud skip.
+    Close(close::CloseArgs),
 }
 
 /// Repo root of an initialized store, or a user-facing error.
@@ -82,6 +85,7 @@ pub fn run() -> i32 {
         Cmd::Block(args) => transition::block(args, cli.json),
         Cmd::Drop(args) => transition::drop(args, cli.json),
         Cmd::Reopen(args) => transition::reopen(args, cli.json),
+        Cmd::Close(args) => close::run(args, cli.json),
     };
     match result {
         Ok(()) => 0,

@@ -458,6 +458,105 @@ fn log_append_on_transitions() {
     assert!(log[1].starts_with(&format!("- {date} ")), "dated entries");
 }
 
+/// PLAN 0.7 / MW-E2: `close` runs verify: via `sh -c` from the repo root,
+/// records exit + date in the log, and closes only on exit 0.
+#[test]
+fn close_gating() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+
+    // Failing verify: not closed, attempt recorded.
+    let failing = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "Fails verify", "--verify", "exit 3"])
+            .assert()
+            .success(),
+    )
+    .lines()
+    .next()
+    .unwrap()
+    .to_string();
+    meshwork(&repo)
+        .args(["close", &failing])
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("exit 3"));
+    let text = std::fs::read_to_string(task_file(&repo, &failing)).unwrap();
+    assert!(text.contains("status: open"), "must not close: {text}");
+    assert!(text.contains("verify exit 3"), "attempt recorded: {text}");
+
+    // Passing verify, run from the repo root even when invoked in a subdir.
+    let passing = stdout_of(
+        &meshwork(&repo)
+            .args([
+                "add",
+                "Passes verify",
+                "--verify",
+                "test -f meshwork/config.toml",
+            ])
+            .assert()
+            .success(),
+    )
+    .lines()
+    .next()
+    .unwrap()
+    .to_string();
+    let sub = repo.join("src");
+    std::fs::create_dir_all(&sub).unwrap();
+    meshwork(&sub).args(["close", &passing]).assert().success();
+    let text = std::fs::read_to_string(task_file(&repo, &passing)).unwrap();
+    assert!(text.contains("status: done"));
+    assert!(text.contains("→done — verify exit 0"), "{text}");
+
+    // Already done: refuse.
+    meshwork(&repo).args(["close", &passing]).assert().failure();
+
+    // No verify: close demands --waive (MW-E2).
+    let unverified = add_id(&repo, &["add", "No verify yet"]);
+    meshwork(&repo)
+        .args(["close", &unverified])
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("--waive"));
+}
+
+/// MW-E2: --waive closes without verify, recorded loud and queryable
+/// (`WHERE waived IS NOT NULL`).
+#[test]
+fn close_waive_recorded() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_id(&repo, &["add", "Spike task"]);
+    meshwork(&repo)
+        .args([
+            "close",
+            &id,
+            "--waive",
+            "spike; deliverable is the follow-up verify",
+        ])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("status: done"));
+    assert!(text.contains("waived: spike; deliverable is the follow-up verify"));
+    assert!(text.contains("waived:"), "log too: {text}");
+
+    let store = meshwork::store::load_repo(&repo).unwrap();
+    let ctx = meshwork::tables::session_for(&[store]).unwrap();
+    let rows = tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(crate::common::sql_rows(
+            &ctx,
+            "SELECT id FROM tasks WHERE waived IS NOT NULL",
+        ));
+    assert_eq!(rows, [[id]]);
+}
+
+fn add_id(repo: &Path, args: &[&str]) -> String {
+    let out = meshwork(repo).args(args).assert().success();
+    stdout_of(&out).lines().next().unwrap().to_string()
+}
+
 /// Unknown ids fail loudly.
 #[test]
 fn show_unknown_id_fails() {
