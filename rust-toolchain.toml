@@ -1,0 +1,4 @@
+[toolchain]
+# Baseline: toolchain pinned (Reproducibility). Bump deliberately, in its own commit.
+channel = "1.97.0"
+components = ["rustfmt", "clippy", "llvm-tools-preview"]
