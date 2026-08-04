@@ -5,6 +5,7 @@
 mod add;
 mod close;
 mod init;
+mod query;
 mod show;
 mod transition;
 
@@ -40,6 +41,10 @@ enum Cmd {
     Reopen(transition::IdArg),
     /// Run verify:, close on exit 0 only; --waive records a loud skip.
     Close(close::CloseArgs),
+    /// Open tasks with met deps and no live children (the queue).
+    Ready(query::ReadyArgs),
+    /// Raw SQL over tasks/edges/labels/comments/repos.
+    Q(query::QArgs),
 }
 
 /// Repo root of an initialized store, or a user-facing error.
@@ -86,6 +91,8 @@ pub fn run() -> i32 {
         Cmd::Drop(args) => transition::drop(args, cli.json),
         Cmd::Reopen(args) => transition::reopen(args, cli.json),
         Cmd::Close(args) => close::run(args, cli.json),
+        Cmd::Ready(args) => query::ready(args, cli.json),
+        Cmd::Q(args) => query::q(args, cli.json),
     };
     match result {
         Ok(()) => 0,

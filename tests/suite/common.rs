@@ -63,6 +63,24 @@ pub fn file_inventory(root: &Path) -> Vec<String> {
     out
 }
 
+/// Byte-compare `actual` against a committed golden (MW-J4). Regenerate
+/// ONLY via `MESHWORK_BLESS=1 cargo test …` — the `--bless` flow — followed
+/// by a reviewed git diff; never silently.
+pub fn assert_golden(name: &str, actual: &str) {
+    let path = fixtures_root().join("golden").join(name);
+    if std::env::var_os("MESHWORK_BLESS").is_some() {
+        std::fs::write(&path, actual).unwrap();
+        eprintln!("blessed golden {name} — review the git diff before committing");
+    }
+    let expected = std::fs::read_to_string(&path).unwrap_or_else(|_| {
+        panic!("missing golden {name}; generate with MESHWORK_BLESS=1 cargo test")
+    });
+    assert_eq!(
+        expected, actual,
+        "golden mismatch: {name} (if the change is intended: MESHWORK_BLESS=1 cargo test, then review the diff)"
+    );
+}
+
 /// Run SQL, return all rows as strings (nulls render empty).
 pub async fn sql_rows(ctx: &SessionContext, q: &str) -> Vec<Vec<String>> {
     let batches = ctx.sql(q).await.unwrap().collect().await.unwrap();

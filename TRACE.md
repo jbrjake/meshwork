@@ -15,15 +15,15 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-B3 | `e2e::crossrepo_resolution`, `lint::parent_crossrepo_error` | planned |
 | MW-B4 | `query::category_segment_prefix` | planned |
 | MW-B5 | `query::labels_orthogonal` | planned |
-| MW-B6 | `e2e::ready_golden` (container-exclusion + unresolved-blocks cases) | planned |
+| MW-B6 | `e2e::ready_golden` (container-exclusion + unresolved-blocks cases) | done |
 | MW-B7 | `lint::parent_rollup_warn` | planned |
 | MW-B8 | `e2e::tree_why_blocked_golden` (5-deep chain, cosmetic level names) | planned |
-| MW-C1 | `e2e::raw_sql_tables` | planned |
+| MW-C1 | `e2e::raw_sql_tables` | done |
 | MW-C2 | `e2e::tree_why_blocked_golden` | planned |
-| MW-C3 | `e2e::json_stable_shapes` | planned |
+| MW-C3 | `e2e::json_stable_shapes` | done |
 | MW-C4 | gate §7 (`perf::ready_1k`, `perf::portfolio_20x`) | planned |
-| MW-D1 | `e2e::show_caps`, `e2e::ready_golden` | planned |
-| MW-D2 | `e2e::caps_and_more_marker` | planned |
+| MW-D1 | `e2e::show_caps`, `e2e::ready_golden` | done |
+| MW-D2 | `e2e::caps_and_more_marker` | done |
 | MW-D3 | `e2e::prime_budget` | planned |
 | MW-D4 | `e2e::cli_surface_frozen` | planned |
 | MW-D5 | `unit::budget_bytes_not_lines` | planned |
@@ -53,6 +53,6 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-J1 | gate §§1–2 + Cargo.toml dep review (done at B0) | planned |
 | MW-J2 | gate §§4–5 | planned |
 | MW-J3 | `e2e::import_todo_golden` + M1.9 pilot checklist | planned |
-| MW-J4 | `fixtures::corpus_covers_features` | planned |
+| MW-J4 | `fixtures::corpus_covers_features` | done |
 | MW-J5 | gate §6 (this file's own checker) | planned |
 | MW-J6 | `e2e::offline_all` + stub-gh harness | planned |
