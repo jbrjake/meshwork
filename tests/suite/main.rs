@@ -5,3 +5,4 @@
 
 mod e2e;
 mod fixtures;
+mod stub_gh;

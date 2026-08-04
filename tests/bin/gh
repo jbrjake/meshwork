@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# tests/bin/gh — offline stub double for the GitHub CLI (PLAN B4, MW-J6).
+# Records argv+stdin, replays canned JSON, and hard-fails on any mutating
+# invocation — MW-H2's never-mutate, enforced at the boundary for every test.
+#
+# env: GH_STUB_CALLS   append-only record file. REQUIRED: a gh call from a
+#                      test that didn't set it is itself a bug → exit 66.
+#      GH_STUB_CANNED  canned responses dir (default: <this dir>/../canned).
+#                      <key>.json = stdout for `gh <a> <b> …` (key `a-b`);
+#                      optional <key>.exit overrides the exit code.
+# record format (deterministic, golden-friendly):
+#   $ <argv space-joined>
+#   > <each stdin line, when stdin is non-empty>
+set -u
+
+if [[ -z "${GH_STUB_CALLS:-}" ]]; then
+  echo "gh-stub: GH_STUB_CALLS unset — a test invoked gh without opting in (MW-H5/J6)" >&2
+  exit 66
+fi
+
+CANNED="${GH_STUB_CANNED:-"$(cd "$(dirname "$0")/.." && pwd)/canned"}"
+
+STDIN=""
+[[ ! -t 0 ]] && STDIN=$(cat)
+{
+  printf '$ %s\n' "$*"
+  [[ -n "$STDIN" ]] && printf '%s\n' "$STDIN" | sed 's/^/> /'
+} >> "$GH_STUB_CALLS"
+
+# Never-mutate guard (MW-H2): no edit/close/delete/reopen/… subcommands, no
+# destructive HTTP methods. Recorded above first — refusals leave evidence.
+refuse() { echo "gh-stub: MUTATION ATTEMPTED (gh $*) — MW-H2 violated" >&2; exit 65; }
+for word in "${@:1:3}"; do
+  case "$word" in
+    edit|close|delete|reopen|transfer|lock|unlock) refuse "$@" ;;
+  esac
+done
+prev=""
+for word in "$@"; do
+  if [[ "$prev" == "-X" || "$prev" == "--method" ]]; then
+    case "$word" in
+      GET|POST) ;;
+      *) refuse "$@" ;;
+    esac
+  fi
+  prev="$word"
+done
+
+# Replay: keyed on the first two argv words (`gh issue list` → issue-list);
+# a flag second word is dropped (`gh api --method POST …` → api).
+KEY="${1:-_}"
+if [[ -n "${2:-}" && "${2:0:1}" != "-" ]]; then KEY="$1-$2"; fi
+FILE="$CANNED/$KEY.json"
+if [[ ! -f "$FILE" ]]; then
+  echo "gh-stub: no canned response for '$KEY' ($FILE)" >&2
+  exit 64
+fi
+RC=0
+[[ -f "$CANNED/$KEY.exit" ]] && RC=$(<"$CANNED/$KEY.exit")
+cat "$FILE"
+exit "$RC"

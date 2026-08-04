@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = B4.** (B0–B3 done 2026-08-04: crate + gate + TRACE seeded; fixture corpus committed (33-task alpha, 12-file lint corpus, beta, portfolio, golden/) with `fixtures::corpus_covers_features` keeping it honest; gate §4 coverage now live — first tests flipped it on.)
+**Position: next = 0.1.** (Bootstrap B0–B4 done 2026-08-04: crate + gate + TRACE seeded; fixture corpus committed with `fixtures::corpus_covers_features` keeping it honest; stub `gh` records/replays/refuses-mutations (exit 64 unknown, 65 mutation, 66 no opt-in); gate §4 coverage live.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -14,7 +14,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | B1 ✓ | `verify_meshwork.sh` — all 8 sections (DESIGN §14); §§3–4 pass trivially on the empty crate; §6 runs in *pending* mode (TRACE.md rows may be marked `planned`; the v1 acceptance run uses `--strict`, where `planned` fails) | `./verify_meshwork.sh` ✓ 2026-08-04 |
 | B2 ✓ | Commit `TRACE.md` seeded from §3 below, all rows `planned` | `./verify_meshwork.sh` (§6 pending mode) ✓ 2026-08-04 |
 | B3 ✓ | Fixture corpus skeleton: `fixtures/{alpha,alpha-broken,beta,portfolio,golden}` per DESIGN §13, plus `fixtures::corpus_covers_features` — a test asserting the corpus contains ≥1 instance of every feature/failure DESIGN §13 lists (this test keeps the corpus honest forever) | `cargo test fixtures::` ✓ 2026-08-04 |
-| B4 | Stub `gh`: `tests/bin/gh` records argv+stdin to a `.calls` file, replays canned JSON from `tests/canned/`; harness prepends it to `$PATH` | `cargo test stub_gh::` |
+| B4 ✓ | Stub `gh`: `tests/bin/gh` records argv+stdin to a `.calls` file, replays canned JSON from `tests/canned/`; harness prepends it to `$PATH` | `cargo test stub_gh::` ✓ 2026-08-04 |
 
 ## 2. Work items by milestone
 

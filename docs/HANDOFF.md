@@ -1,10 +1,10 @@
 # HANDOFF (≤2KB — pointer, not narrative; durable state lives in PLAN Position + TRACE + commits)
 
-**Done:** B0–B3 (2026-08-04): bootstrap + gate green; fixture corpus committed per DESIGN §13 — alpha (33 tasks: 5-deep chain, every status/edge kind, cross-repo→beta, absent→gamma, good+bad doc anchors, multi-author comments w/ continuations, >1MB attachment, seq gaps, no-verify task), alpha-broken (all 9 failure modes), beta, portfolio (repos.toml + sequence.md), golden/ (populates per-feature via --bless). `fixtures::corpus_covers_features` enforces corpus completeness text-level (deliberately parser-free). Gate §4 coverage is now live.
+**Done:** Bootstrap complete, B0–B4 (2026-08-04). Corpus committed (DESIGN §13) + `fixtures::corpus_covers_features`. Stub `gh` at `tests/bin/gh`: records `$ argv` + `> stdin` lines to `$GH_STUB_CALLS` (required — exit 66 if a test didn't opt in), replays `tests/canned/<a>-<b>.json` (exit 64 if missing, `.exit` file overrides rc), and hard-refuses mutations — edit/close/delete/reopen/transfer/lock subcommands and non-GET/POST api methods exit 65 *after* recording (MW-H2 enforced at the boundary for the whole suite).
 
-**Decisions:** pre-build decisions in DESIGN §15. New, corpus-derived: `verify:` values ending in `::` (cargo test filters) must be YAML-quoted — a trailing colon at EOL is a YAML mapping indicator; the strict parser (0.1) must reject unquoted ones like any other bad YAML. Fixture doc anchors use heading-slug convention: `#§-budget-path` ↔ heading `## § budget path` (lowercase, spaces→dashes).
+**Decisions:** DESIGN §15 + two corpus-derived: (1) `verify:` values ending in `::` must be YAML-quoted (trailing colon at EOL = mapping indicator); (2) doc anchors are heading slugs: `#§-budget-path` ↔ `## § budget path` (lowercase, spaces→dashes).
 
-**Open threads:** TRACE MW-J4 stays `planned` until golden byte-compare + `--bless` machinery exists (0.8); the corpus test alone doesn't satisfy MW-J4's full text.
+**Open threads:** TRACE MW-J4 `planned` until golden byte-compare + `--bless` land (0.8). `tests/suite/fixtures.rs` at 510 lines (warn) — split if corpus checks grow.
 
-**Next concrete step:** PLAN item B4 — stub `gh`: `tests/bin/gh` records argv+stdin to `.calls`, replays canned JSON from `tests/canned/`; harness prepends to `$PATH`.
-verify: `cargo test stub_gh::` exits 0.
+**Next concrete step:** PLAN 0.1 — task-file parser: strict serde model, frontmatter + `## log`/`## comments` tail sections, bullet+continuation comments; unknown keys warn; parse failure → `invalid` row with filename-recovered ID (A1, A6, I2, K1).
+verify: `cargo test parse::` exits 0.
