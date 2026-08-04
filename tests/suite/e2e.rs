@@ -330,6 +330,134 @@ fn discovered_from_edge() {
     assert_eq!(rows, [[format!("work#{origin}")]]);
 }
 
+fn task_file(repo: &Path, id: &str) -> std::path::PathBuf {
+    std::fs::read_dir(repo.join("meshwork/tasks"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| {
+            p.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with(&format!("{id}-"))
+        })
+        .unwrap_or_else(|| panic!("no file for {id}"))
+}
+
+fn add_task(repo: &Path, title: &str) -> String {
+    let out = meshwork(repo)
+        .args(["add", title, "--verify", "true"])
+        .assert()
+        .success();
+    stdout_of(&out).lines().next().unwrap().to_string()
+}
+
+/// PLAN 0.6 / MW-E1: start/block/drop/reopen move status along the legal
+/// lifecycle; block demands --reason; illegal moves leave the file
+/// untouched; a status edit is a one-frontmatter-line diff (MW-I1).
+#[test]
+fn transitions() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Lifecycle");
+    let path = task_file(&repo, &id);
+
+    // start: open → doing; exactly one line replaced + one log line added.
+    let before = std::fs::read_to_string(&path).unwrap();
+    meshwork(&repo).args(["start", &id]).assert().success();
+    let after = std::fs::read_to_string(&path).unwrap();
+    let b: Vec<&str> = before.lines().collect();
+    let a: Vec<&str> = after.lines().collect();
+    assert_eq!(a.len(), b.len() + 1, "one appended log line");
+    let changed: Vec<usize> = b
+        .iter()
+        .zip(a.iter())
+        .enumerate()
+        .filter(|(_, (x, y))| x != y)
+        .map(|(i, _)| i)
+        .collect();
+    assert_eq!(changed.len(), 1, "exactly one line differs: {changed:?}");
+    assert_eq!(a[changed[0]], "status: doing");
+
+    // start again: illegal, file untouched.
+    meshwork(&repo)
+        .args(["start", &id])
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("doing"));
+    assert_eq!(after, std::fs::read_to_string(&path).unwrap());
+
+    // block without --reason is a usage error (clap-required).
+    meshwork(&repo).args(["block", &id]).assert().code(2);
+
+    // block --reason: status + blocked-reason + log line.
+    meshwork(&repo)
+        .args(["block", &id, "--reason", "waiting on upstream fix"])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("status: blocked"));
+    assert!(text.contains("blocked-reason: waiting on upstream fix"));
+
+    // reopen: blocked → open, reason cleared to the empty key.
+    meshwork(&repo).args(["reopen", &id]).assert().success();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("status: open"));
+    assert!(
+        text.contains("blocked-reason:\n"),
+        "cleared, key kept: {text}"
+    );
+
+    // drop; dropped is terminal for reopen (DESIGN §6: blocked|doing|done).
+    meshwork(&repo).args(["drop", &id]).assert().success();
+    assert!(std::fs::read_to_string(&path)
+        .unwrap()
+        .contains("status: dropped"));
+    meshwork(&repo).args(["reopen", &id]).assert().failure();
+
+    // JSON envelope on a transition.
+    let id2 = add_task(&repo, "Json transition");
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["start", &id2, "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["verb"], "start");
+    assert_eq!(v["data"]["from"], "open");
+    assert_eq!(v["data"]["to"], "doing");
+}
+
+/// MW-E3: every transition appends exactly one dated from→to log entry —
+/// the durable handoff record.
+#[test]
+fn log_append_on_transitions() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Logged");
+    meshwork(&repo).args(["start", &id]).assert().success();
+    meshwork(&repo)
+        .args(["block", &id, "--reason", "repro needed"])
+        .assert()
+        .success();
+    meshwork(&repo).args(["reopen", &id]).assert().success();
+
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    let log: Vec<&str> = text
+        .split("## log")
+        .nth(1)
+        .unwrap()
+        .lines()
+        .filter(|l| l.starts_with("- "))
+        .collect();
+    assert_eq!(log.len(), 4, "created + 3 transitions: {log:?}");
+    assert!(log[1].contains("open→doing"));
+    assert!(log[2].contains("doing→blocked — repro needed"));
+    assert!(log[3].contains("blocked→open"));
+    let date = meshwork::clock::today();
+    assert!(log[1].starts_with(&format!("- {date} ")), "dated entries");
+}
+
 /// Unknown ids fail loudly.
 #[test]
 fn show_unknown_id_fails() {

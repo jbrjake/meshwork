@@ -27,9 +27,9 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-D3 | `e2e::prime_budget` | planned |
 | MW-D4 | `e2e::cli_surface_frozen` | planned |
 | MW-D5 | `unit::budget_bytes_not_lines` | planned |
-| MW-E1 | `e2e::transitions` | planned |
+| MW-E1 | `e2e::transitions` | done |
 | MW-E2 | `e2e::close_gating`, `e2e::close_waive_recorded` | planned |
-| MW-E3 | `e2e::log_append_on_transitions` | planned |
+| MW-E3 | `e2e::log_append_on_transitions` | done |
 | MW-E4 | `e2e::discovered_from_edge` | done |
 | MW-F1 | `parse::docs_links` | done |
 | MW-F2 | `e2e::show_docs_excerpts` | planned |

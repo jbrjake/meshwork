@@ -5,6 +5,7 @@
 mod add;
 mod init;
 mod show;
+mod transition;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -28,6 +29,14 @@ enum Cmd {
     Add(add::AddArgs),
     /// Full single-task view; last-3 comments by default.
     Show(show::ShowArgs),
+    /// open → doing.
+    Start(transition::IdArg),
+    /// open|doing → blocked; demands --reason.
+    Block(transition::BlockArgs),
+    /// open|doing|blocked → dropped (recorded, never deleted).
+    Drop(transition::IdArg),
+    /// blocked|doing|done → open.
+    Reopen(transition::IdArg),
 }
 
 /// Repo root of an initialized store, or a user-facing error.
@@ -69,6 +78,10 @@ pub fn run() -> i32 {
         Cmd::Init => init::run(cli.json),
         Cmd::Add(args) => add::run(args, cli.json),
         Cmd::Show(args) => show::run(args, cli.json),
+        Cmd::Start(args) => transition::start(args, cli.json),
+        Cmd::Block(args) => transition::block(args, cli.json),
+        Cmd::Drop(args) => transition::drop(args, cli.json),
+        Cmd::Reopen(args) => transition::reopen(args, cli.json),
     };
     match result {
         Ok(()) => 0,

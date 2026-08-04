@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 0.6.** (Through 0.5 done 2026-08-04. `add`: all flags, YAML-safe scalar writer (`write::yaml_scalar` — quotes trailing-`::` verifies, bool/number lookalikes), refuses cross-repo parent, `MESHWORK_ID_SEED` wired, `MESHWORK_TODAY` clock override for goldens. `show`: full view, last-3 comments + `… and N more`, `--comments`, invalid files loud. TRACE: A1, E4, K4 done.)
+**Position: next = 0.7.** (Through 0.6 done 2026-08-04. Transitions via `edit::set_scalar` (one-frontmatter-line diff, asserted in test) + `edit::append_section_entry` (log grows in place, section created log-before-comments). Legal moves per DESIGN §6; reopen clears blocked-reason to the empty key; dropped is not reopenable. TRACE: E1, E3 done.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -27,7 +27,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | 0.3 ✓ | Ingestion → Arrow `MemTable`s → DataFusion `SessionContext`, five tables incl. `waived`, `ord`, `resolved`, child→parent edge direction (§3–4; C1) | `cargo test tables::` ✓ 2026-08-04 |
 | 0.4 ✓ | `init`: writes `meshwork/` layout, config.toml, `.gitattributes` (`tasks/*.md merge=union`), `.cache/.gitignore`; refuses outside a git repo (A3, I1) | `cargo test e2e::init_layout` ✓ 2026-08-04 |
 | 0.5 ✓ | `add` (all flags incl. `--verify`) + `show` (last-3 comments, `… and N more`) (A5, D2, E4, K4) | `cargo test e2e::add_show_roundtrip` ✓ 2026-08-04 |
-| 0.6 | Transitions `start/block/drop/reopen` + log append; `block` demands `--reason` (E1, E3) | `cargo test e2e::transitions` |
+| 0.6 ✓ | Transitions `start/block/drop/reopen` + log append; `block` demands `--reason` (E1, E3) | `cargo test e2e::transitions` ✓ 2026-08-04 |
 | 0.7 | `close`: runs `verify:` via `sh -c` from repo root, records exit+date, closes on 0 only; `--waive` writes `waived` (E2) | `cargo test e2e::close_gating` |
 | 0.8 | `ready` (normative SQL: needs clause + container clause) + `q` + `--json` everywhere, stable versioned shape (B6, C1, C3, D1, D2) | `cargo test e2e::ready_golden e2e::json_stable_shapes` |
 | 0.9 | `lint`: schema, needs/parent cycles, cross-repo parent, blocked-without-reason, duplicate IDs, duplicate frontmatter keys, dangling edges, missing verify (warn); `--fix`: re-slug fewer-inbound side + rewrite same-repo refs, repair duplicate keys (A4, A6, B2, B3, I2) | `cargo test e2e::lint_broken_corpus` |

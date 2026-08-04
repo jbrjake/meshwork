@@ -1,10 +1,10 @@
 # HANDOFF (≤2KB — pointer, not narrative; durable state lives in PLAN Position + TRACE + commits)
 
-**Done:** Through PLAN 0.5 (2026-08-04). `add`: all DESIGN §6 flags, field order matches the normative example, `write::yaml_scalar` quotes what YAML would misread (trailing `::`, `: `, bool/number lookalikes, commas), refuses cross-repo `--parent` at creation, prints id on line 1; `MESHWORK_ID_SEED` → `IdGen::from_seed_str`, `created:` from `clock::today()` (UTC, `MESHWORK_TODAY` override for byte-stable goldens). `show`: full task view, last-3 comments + `… and N more (use --comments)`, `--comments` for all, invalid files render loud (text → error exit; `--json` → status:"invalid" + error). TRACE: MW-A1, MW-E4, MW-K4 → done (with e2e::discovered_from_edge checking the edge in SQL too).
+**Done:** Through PLAN 0.6 (2026-08-04). `src/edit.rs`: `set_scalar` (replace/insert one frontmatter line, everything else byte-preserved) + `append_section_entry` (append at end of `## log`/`## comments`, creating log before comments). Transitions start/block/drop/reopen: legal moves exactly per DESIGN §6 (reopen: blocked|doing|done→open; dropped terminal), block's `--reason` clap-required, reopen clears blocked-reason to the bare key (matches normative example), every transition appends one dated `from→to` log entry. e2e::transitions asserts the one-line-diff shape directly. TRACE: MW-E1, MW-E3 → done.
 
-**Decisions:** `show` renders log fully (spec caps only comments); listing caps (20 rows) land with `ready` (0.8). `e2e::caps_and_more_marker` (MW-D2) also lands 0.8 alongside listing caps.
+**Decisions:** transitions refuse invalid files (can't know current status) with a pointer to lint --fix. `drop` allowed from open|doing|blocked only; `done` is not droppable.
 
 **Open threads:** MW-J4 planned until --bless (0.8); fixtures.rs 510 (warn).
 
-**Next concrete step:** PLAN 0.6 — transitions `start/block/drop/reopen` + log append; `block` demands `--reason` (E1, E3). Status edits touch ONE frontmatter line (MW-I1 — no full-file rewrite).
-verify: `cargo test e2e::transitions` exits 0.
+**Next concrete step:** PLAN 0.7 — `close`: runs `verify:` via `sh -c` from repo root, records exit+date in log, closes on 0 only; `--waive "reason"` writes `waived` (E2).
+verify: `cargo test e2e::close_gating` exits 0.
