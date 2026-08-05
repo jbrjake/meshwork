@@ -7,7 +7,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-A1 | `parse::roundtrip_hand_edited`, `e2e::add_show_roundtrip` | done |
 | MW-A2 | `tables::memtable_no_disk`, `e2e::cache_delete_safe` | planned |
 | MW-A3 | `e2e::init_layout` (nothing written outside repo, no hooks) | done |
-| MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id` | planned |
+| MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id` | done |
 | MW-A5 | `lint::description_size_warn`, `e2e::show_caps` | done |
 | MW-A6 | `parse::unknown_field_warns` | done |
 | MW-B1 | `tables::edge_kinds`, `e2e::dep_edit` | planned |
@@ -48,8 +48,8 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-H3 | `e2e::mirror_idempotent` | planned |
 | MW-H4 | `e2e::mirror_status_reports_only` | planned |
 | MW-H5 | `e2e::offline_all` | planned |
-| MW-I1 | `e2e::merge_concurrent_worktrees` | planned |
-| MW-I2 | `e2e::merge_union_poison`, `e2e::invalid_visible` | planned |
+| MW-I1 | `e2e::merge_concurrent_worktrees` | done |
+| MW-I2 | `e2e::merge_union_poison`, `e2e::invalid_visible` | done |
 | MW-J1 | gate §§1–2 + Cargo.toml dep review (done at B0) | planned |
 | MW-J2 | gate §§4–5 | planned |
 | MW-J3 | `e2e::import_todo_golden` + M1.9 pilot checklist | planned |

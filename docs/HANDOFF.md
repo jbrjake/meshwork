@@ -1,10 +1,10 @@
 # HANDOFF (≤2KB — pointer, not narrative; durable state lives in PLAN Position + TRACE + commits)
 
-**Done:** Through PLAN 0.9 (2026-08-04). `src/lint.rs`: sorted/deduped findings with stable codes — errors: parse, duplicate-key, duplicate-id, cycle-needs/parent, parent-crossrepo, blocked-no-reason, dangling (needs/parent); warnings: unknown-key/schema, no-verify, dangling (soft kinds), description-size (>2KB), file-size (>64KB §15.5), attachment-missing/-size (>1MB), parent-rollup. `lint --fix` repairs ONLY mechanical damage: dup keys keep-first + logged repair entry; dup IDs re-slugged (keeper = earliest created then filename — content can't attribute inbound refs, so they're reported, never rewritten blind). lint-broken.json golden committed. TRACE: A5, B2, B7, K3 done (33 planned).
+**Done:** Through PLAN 0.10 (2026-08-04). Merge scenarios 1–3 green with real git (bare origin + two configured clones, origin HEAD pinned to main for deterministic clones): (1) concurrent clones close/create/comment on the same task → union attr merges markerless, both comments survive, lint clean; (2) `MESHWORK_ID_SEED` forces the same mint in both clones → lint reports duplicate-id, `--fix` re-slugs the later side, references resolve to the keeper, lint exits 0; (3) conflicting status edits union into a dup key → row surfaces invalid in `q`, `--fix` repairs to one status line with both log entries intact. TRACE: A4, I1, I2 done (30 planned).
 
-**Decisions:** lint exit 1 iff errors; warnings never block. Cross-repo needs/relates are skipped by single-repo lint (registry owns them, M2). Anchors check lands at 4.2 per plan.
+**Decisions:** merge tests seed the `## comments` section at base so both sides purely append (avoids union duplicating the heading — a known cosmetic artifact when both sides create the section; parser tolerates it either way).
 
-**Open threads:** MW-B3 waits on e2e::crossrepo_resolution (2.3); MW-I2 waits on e2e::merge_union_poison (0.10).
+**Open threads:** none new.
 
-**Next concrete step:** PLAN 0.10 — merge scenarios 1–3: concurrent-worktrees (union attr, both comments survive), duplicate-id-merge (seeded RNG forces collision; lint --fix re-slugs), union-poison (conflicting status lines → dup key → invalid row → --fix repairs) (I1, I2, A4).
-verify: `cargo test e2e::merge_` exits 0.
+**Next concrete step:** PLAN 0.11 — offline-everything scenario 5 (H5): `$PATH` without `gh`, no network — every non-mirror verb runs clean.
+verify: `cargo test e2e::offline_all` exits 0. Then M0✓ TRACE sweep.
