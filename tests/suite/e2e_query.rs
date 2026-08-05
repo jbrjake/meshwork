@@ -177,6 +177,69 @@ fn offline_all() {
     run(&["close", &id]); // verify `true` runs via sh -c on the bare PATH
 }
 
+/// PLAN 1.6 / MW-D4, REQUIREMENTS §3: the CLI surface IS DESIGN §6 —
+/// verbatim, nothing more, nothing less. A verb that isn't in this list is
+/// a non-goal; adding one here requires an owner ruling amending §3.
+#[test]
+fn cli_surface_frozen() {
+    let (_g, repo) = git_repo("work");
+    let help = {
+        let out = meshwork(&repo).arg("--help").assert().success();
+        stdout_of(&out)
+    };
+    let verbs: Vec<String> = help
+        .lines()
+        .skip_while(|l| !l.starts_with("Commands:"))
+        .skip(1)
+        .take_while(|l| l.starts_with("  "))
+        .filter_map(|l| l.split_whitespace().next().map(ToString::to_string))
+        .collect();
+    assert_eq!(
+        verbs,
+        [
+            "init", "add", "show", "comment", "attach", "start", "block", "drop", "reopen",
+            "close", "dep", "ready", "blocked", "tree", "why", "q", "prime", "lint", "mirror",
+            "portfolio", "import",
+        ],
+        "DESIGN §6, frozen:\n{help}"
+    );
+
+    // Sub-surfaces are frozen too.
+    let subs = |args: &[&str], expected: &[&str]| {
+        let out = meshwork(&repo).args(args).assert().success();
+        let help = stdout_of(&out);
+        let got: Vec<String> = help
+            .lines()
+            .skip_while(|l| !l.starts_with("Commands:"))
+            .skip(1)
+            .take_while(|l| l.starts_with("  "))
+            .filter_map(|l| l.split_whitespace().next().map(ToString::to_string))
+            .collect();
+        assert_eq!(got, expected, "{args:?}:\n{help}");
+    };
+    subs(&["dep", "--help"], &["add", "rm"]);
+    subs(&["mirror", "--help"], &["push", "status"]);
+    subs(&["portfolio", "--help"], &["ready", "next", "q", "seq"]);
+    subs(&["import", "--help"], &["todo"]);
+
+    // show carries --docs and --comments (behavior for --docs lands M4).
+    let show_help = stdout_of(&meshwork(&repo).args(["show", "--help"]).assert().success());
+    assert!(show_help.contains("--docs") && show_help.contains("--comments"));
+
+    // Unbuilt verbs never pretend: honest errors naming their milestone.
+    init_store(&repo);
+    meshwork(&repo)
+        .args(["mirror", "status"])
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("M3"));
+    meshwork(&repo)
+        .args(["portfolio", "ready"])
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("M2"));
+}
+
 /// PLAN 1.5 / MW-D3, D5: `prime` is the ≤6KB session-start digest — ready
 /// top-10, in-progress with last log line, blocked with reasons, counts —
 /// measured in BYTES on the kitchen-sink corpus and on a hostile one.

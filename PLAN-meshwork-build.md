@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 1.6.** (Through 1.5 done 2026-08-04. `prime`: counts · ready top-10 (normative SQL) · doing w/ last log · blocked w/ reasons · invalid alarm; per-line 160B clamp, 6144B hard budget with visible truncation; `write::clamp_bytes` is the D5 primitive. TRACE: D3, D5 done — 18 planned.)
+**Position: next = 1.7.** (Through 1.6 done 2026-08-04. Full §6 surface in clap, §6 order; mirror/portfolio stubs error with their milestone; show --docs exists, errors until 4.1; freeze test pins top-level + dep/mirror/portfolio/import sub-surfaces. TRACE: D4 done — 17 planned.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -44,7 +44,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | 1.3 ✓ | Category segment-prefix + label queries (B4, B5) | `cargo test query::category_labels` ✓ 2026-08-04 |
 | 1.4 ✓ | `comment` (author fallback chain) + `attach` (`--force`, >1MB lint warn) (K1–K3) | `cargo test e2e::comment_attach` ✓ 2026-08-04 |
 | 1.5 ✓ | `prime`: byte-budgeted ≤6KB, measured on kitchen-sink fixture (D3, D5) | `cargo test e2e::prime_budget` ✓ 2026-08-04 |
-| 1.6 | CLI-surface freeze test: `--help` output lists exactly DESIGN §6 — the non-goals fence, enforced (D4, §3 non-goals) | `cargo test e2e::cli_surface_frozen` |
+| 1.6 ✓ | CLI-surface freeze test: `--help` output lists exactly DESIGN §6 — the non-goals fence, enforced (D4, §3 non-goals) | `cargo test e2e::cli_surface_frozen` ✓ 2026-08-04 |
 | 1.7 | `import todo`: baseline checkbox format from committed sazed-format sample → golden (J3) | `cargo test e2e::import_todo_golden` |
 | 1.8 | Gate §8 self-host activates: meshwork's own `meshwork/` initialized, its TODO items imported | `./verify_meshwork.sh` |
 | 1.9 | **Manual pilot (sazed):** import real TODO.md; SessionStart hook injects `prime`; run 2 real sessions; `check-todo.sh` retired; HANDOFF.md → ≤2KB pointer | pilot checklist in sazed commit message; REQUIREMENTS §4 clauses 1+5 |

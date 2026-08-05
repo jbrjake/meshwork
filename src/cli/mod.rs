@@ -12,6 +12,7 @@ mod notes;
 mod prime;
 mod query;
 mod show;
+mod stubs;
 mod transition;
 
 use clap::{Parser, Subcommand};
@@ -28,6 +29,8 @@ struct Cli {
     cmd: Cmd,
 }
 
+/// DESIGN §6, in order, complete — anything not here is a non-goal
+/// (`e2e::cli_surface_frozen` enforces it).
 #[derive(Subcommand)]
 enum Cmd {
     /// Create the meshwork/ store in the current git repo.
@@ -36,6 +39,10 @@ enum Cmd {
     Add(add::AddArgs),
     /// Full single-task view; last-3 comments by default.
     Show(show::ShowArgs),
+    /// Append a comment (self-professed identity, recorded as claimed).
+    Comment(notes::CommentArgs),
+    /// Copy a file into attachments/<id>/ and record it.
+    Attach(notes::AttachArgs),
     /// open → doing.
     Start(transition::IdArg),
     /// open|doing → blocked; demands --reason.
@@ -46,26 +53,28 @@ enum Cmd {
     Reopen(transition::IdArg),
     /// Run verify:, close on exit 0 only; --waive records a loud skip.
     Close(close::CloseArgs),
-    /// Open tasks with met deps and no live children (the queue).
-    Ready(query::ReadyArgs),
-    /// Raw SQL over tasks/edges/labels/comments/repos.
-    Q(query::QArgs),
-    /// Structural checks; --fix repairs merge damage.
-    Lint(lint::LintArgs),
     /// Edge edits without opening the file.
     Dep(dep::DepArgs),
+    /// Open tasks with met deps and no live children (the queue).
+    Ready(query::ReadyArgs),
     /// Blocked tasks with their reasons.
     Blocked(graph::BlockedArgs),
     /// Parent hierarchy below a task, any depth, cosmetic level names.
     Tree(transition::IdArg),
     /// The frontier of actually-open blockers for a task.
     Why(transition::IdArg),
-    /// Append a comment (self-professed identity, recorded as claimed).
-    Comment(notes::CommentArgs),
-    /// Copy a file into attachments/<id>/ and record it.
-    Attach(notes::AttachArgs),
+    /// Raw SQL over tasks/edges/labels/comments/repos.
+    Q(query::QArgs),
     /// The ≤6KB session-start digest.
     Prime,
+    /// Structural checks; --fix repairs merge damage.
+    Lint(lint::LintArgs),
+    /// Append-only GitHub view (M3).
+    Mirror(stubs::MirrorArgs),
+    /// Union of every registered repo (M2).
+    Portfolio(stubs::PortfolioArgs),
+    /// Migrate a TODO.md into the store.
+    Import(stubs::ImportArgs),
 }
 
 /// Repo root of an initialized store, or a user-facing error.
@@ -122,6 +131,9 @@ pub fn run() -> i32 {
         Cmd::Comment(args) => notes::comment(args, cli.json),
         Cmd::Attach(args) => notes::attach(args, cli.json),
         Cmd::Prime => prime::run(cli.json),
+        Cmd::Mirror(args) => stubs::mirror(args, cli.json),
+        Cmd::Portfolio(args) => stubs::portfolio(args, cli.json),
+        Cmd::Import(args) => stubs::import(args, cli.json),
     };
     match result {
         Ok(()) => 0,

@@ -9,6 +9,9 @@ use crate::store::find_task_file;
 pub(crate) struct ShowArgs {
     /// Task id (e.g. az-k7f3).
     id: String,
+    /// Anchor-scoped excerpts of linked docs, ~4KB per link (MW-F2).
+    #[arg(long)]
+    docs: bool,
     /// Render all comments instead of the last 3 (MW-K4).
     #[arg(long)]
     comments: bool,
@@ -17,6 +20,10 @@ pub(crate) struct ShowArgs {
 const COMMENT_CAP: usize = 3;
 
 pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
+    if args.docs {
+        // Frozen surface, honest gap: behavior lands at M4 (PLAN 4.1).
+        return Err("show --docs lands at M4 (PLAN 4.1); plain `show` is complete".into());
+    }
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("meshwork").join("tasks");
     let Some(path) = find_task_file(&tasks_dir, &args.id) else {
