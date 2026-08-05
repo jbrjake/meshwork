@@ -1,10 +1,9 @@
 # HANDOFF (≤2KB — pointer, not narrative; durable state lives in PLAN Position + TRACE + commits)
 
-**Done:** Through PLAN 1.6 (2026-08-04). The full DESIGN §6 surface exists in clap, in §6 order: 21 top-level verbs; `dep {add,rm}`, `mirror {push,status}`, `portfolio {ready,next,q,seq}`, `import {todo}` sub-surfaces pinned too. Unbuilt verbs never pretend: `mirror`→"lands at M3", `portfolio`→"M2", `import todo`→"PLAN 1.7", `show --docs`→"M4 (4.1)" — all exit 1 with the pointer. `e2e::cli_surface_frozen` parses --help and compares the verb lists verbatim: the non-goals fence is now machine-enforced (a new verb fails CI until an owner ruling amends REQUIREMENTS §3). TRACE: D4 done (17 planned).
+**Done:** B0→1.8 in one session (2026-08-04). M0 complete; M1 complete through 1.8. Self-host is LIVE: this repo's own `meshwork/` store (alias `mw`) holds the 15 remaining plan items as tasks, needs-chained in plan order — `meshwork ready` shows exactly the next item (mw-ntt5, the 1.9 pilot), `prime` is 82B. Gate: ALL SECTIONS PASS with §8 active; only §7 (perf) still SKIPs, pending 2.5. TRACE: 17 planned rows, every one mapped to an M2+/manual test.
 
-**Decisions:** none new (surface was frozen by DESIGN; this makes it executable).
+**Decisions:** per-commit messages carry the rationale; determinism hooks are MESHWORK_ID_SEED / MESHWORK_TODAY / MESHWORK_BLESS. Post-M1 rule now in force (CLAUDE.md override 1): new work → `meshwork add`, not plan edits.
 
-**Open threads:** replace the stubs::import error with the real implementation next item.
+**Open threads:** 1.9 is the stop-line and it is OWNER-DRIVEN: import sazed's real TODO.md, SessionStart hook injecting `prime`, 2 real sessions, retire check-todo.sh. No further plan item may start before it (plan ordering rule). When M2 resumes: 2.3 will re-bless ready-alpha.json (az-x9b2 becomes ready — expected diff).
 
-**Next concrete step:** PLAN 1.7 — `import todo`: baseline checkbox format (`[ ]`/`[~]`/`[x]`/`[!]`, `verify:` lines, `## Now` ordering → seq) from a committed sazed-format sample → golden task set (J3). Use MESHWORK_TODAY+MESHWORK_ID_SEED for byte-stable goldens.
-verify: `cargo test e2e::import_todo_golden` exits 0.
+**Next concrete step:** PLAN 1.9 — manual sazed pilot; checklist in the sazed commit message per REQUIREMENTS §4 clauses 1+5. Dev resumes at 2.1 afterward (`meshwork show mw-5ckb`).

@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 1.8.** (Through 1.7 done 2026-08-04. `import todo`: baseline checkboxes → task files (statuses mapped, ## Now → seq 10/20/30, backticked verify extracted, [!] context → blocked-reason, source untouched); golden import-todo.md seeded/date-pinned. MW-J3 stays planned until the 1.9 pilot.)
+**Position: next = 1.9 (MANUAL — owner).** (Through 1.8 done 2026-08-04. Self-host LIVE: `meshwork/` initialized (alias mw), 15 tasks = remaining plan items chained with needs so `ready` mirrors this Position line (currently: mw-ntt5, the pilot); gate §8 green — lint clean, prime 82B/6144B. 1.9 is the sazed pilot: owner-driven, cannot be automated from this repo. Post-M1 rule now active: new work files as meshwork tasks, not plan edits.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -46,7 +46,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | 1.5 ✓ | `prime`: byte-budgeted ≤6KB, measured on kitchen-sink fixture (D3, D5) | `cargo test e2e::prime_budget` ✓ 2026-08-04 |
 | 1.6 ✓ | CLI-surface freeze test: `--help` output lists exactly DESIGN §6 — the non-goals fence, enforced (D4, §3 non-goals) | `cargo test e2e::cli_surface_frozen` ✓ 2026-08-04 |
 | 1.7 ✓ | `import todo`: baseline checkbox format from committed sazed-format sample → golden (J3) | `cargo test e2e::import_todo_golden` ✓ 2026-08-04 |
-| 1.8 | Gate §8 self-host activates: meshwork's own `meshwork/` initialized, its TODO items imported | `./verify_meshwork.sh` |
+| 1.8 ✓ | Gate §8 self-host activates: meshwork's own `meshwork/` initialized, its TODO items imported | `./verify_meshwork.sh` ✓ 2026-08-04 (§8 PASS: lint + prime 82B) |
 | 1.9 | **Manual pilot (sazed):** import real TODO.md; SessionStart hook injects `prime`; run 2 real sessions; `check-todo.sh` retired; HANDOFF.md → ≤2KB pointer | pilot checklist in sazed commit message; REQUIREMENTS §4 clauses 1+5 |
 
 ### M2 — portfolio (stop-line: leras joins)

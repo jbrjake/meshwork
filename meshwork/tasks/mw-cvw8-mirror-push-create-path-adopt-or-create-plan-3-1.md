@@ -1,0 +1,13 @@
+---
+id: mw-cvw8
+title: "mirror push create path: adopt-or-create (PLAN 3.1)"
+status: open
+category: plan/m3
+needs: [mw-9zrd]
+verify: cargo test e2e::mirror_create
+seq: 80
+created: 2026-08-05
+---
+
+## log
+- 2026-08-05 created
