@@ -177,6 +177,45 @@ fn offline_all() {
     run(&["close", &id]); // verify `true` runs via sh -c on the bare PATH
 }
 
+/// PLAN 1.5 / MW-D3, D5: `prime` is the ≤6KB session-start digest — ready
+/// top-10, in-progress with last log line, blocked with reasons, counts —
+/// measured in BYTES on the kitchen-sink corpus and on a hostile one.
+#[test]
+fn prime_budget() {
+    let (_g, repo) = fixture_repo("alpha");
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    let bytes = out.len();
+    assert!(bytes > 0 && bytes <= 6144, "budget (MW-D3): {bytes} bytes");
+    assert!(out.contains("az-n33d"), "top ready task:\n{out}");
+    assert!(out.contains("az-t5k1"), "in-progress present:\n{out}");
+    assert!(out.contains("bisecting"), "last log line rides along:\n{out}");
+    assert!(out.contains("az-b10k") && out.contains("datafusion 52"), "blocked + reason:\n{out}");
+    assert!(out.contains("open") && out.contains("done"), "counts line:\n{out}");
+
+    // Hostile store: 80 giant-titled ready tasks + 40 doing — still ≤6KB,
+    // with the truncation loud.
+    let (_g2, big) = git_repo("bulk");
+    init_store(&big);
+    let long = "very long title segment that pads the line ".repeat(4);
+    for i in 0..80 {
+        add_task(&big, &format!("Task {i:02} {long}"));
+    }
+    for i in 0..40 {
+        let id = add_task(&big, &format!("Doing {i:02} {long}"));
+        meshwork(&big).args(["start", &id]).assert().success();
+    }
+    let out = stdout_of(&meshwork(&big).arg("prime").assert().success());
+    assert!(out.len() <= 6144, "hostile store: {} bytes", out.len());
+    assert!(out.contains("truncated"), "truncation is explicit:\n{out}");
+
+    // JSON parity.
+    let js = stdout_of(&meshwork(&repo).args(["prime", "--json"]).assert().success());
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["verb"], "prime");
+    assert!(v["data"]["counts"]["open"].as_i64().unwrap() > 0);
+    assert!(v["data"]["ready"].as_array().unwrap().len() <= 10);
+}
+
 /// MW-A2: the cache is an optimization, never a dependency — deleting
 /// .cache (or the whole layout reservation) is always safe.
 #[test]

@@ -24,9 +24,9 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-C4 | gate §7 (`perf::ready_1k`, `perf::portfolio_20x`) | planned |
 | MW-D1 | `e2e::show_caps`, `e2e::ready_golden` | done |
 | MW-D2 | `e2e::caps_and_more_marker` | done |
-| MW-D3 | `e2e::prime_budget` | planned |
+| MW-D3 | `e2e::prime_budget` | done |
 | MW-D4 | `e2e::cli_surface_frozen` | planned |
-| MW-D5 | `unit::budget_bytes_not_lines` | planned |
+| MW-D5 | `unit::budget_bytes_not_lines` | done |
 | MW-E1 | `e2e::transitions` | done |
 | MW-E2 | `e2e::close_gating`, `e2e::close_waive_recorded` | done |
 | MW-E3 | `e2e::log_append_on_transitions` | done |

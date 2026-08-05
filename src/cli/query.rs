@@ -28,7 +28,7 @@ const LISTING_CAP: usize = 20;
 /// The normative `ready` SQL (DESIGN §5, MW-B6) minus its `LIMIT 20`: the
 /// cap is applied at render time because the `… and N more` marker needs
 /// the true total (MW-D2). Semantics are otherwise verbatim.
-const READY_SQL: &str = "\
+pub(crate) const READY_SQL: &str = "\
 SELECT t.id, t.title FROM tasks t
 WHERE t.status = 'open'
   AND NOT EXISTS (

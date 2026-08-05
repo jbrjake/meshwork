@@ -9,6 +9,7 @@ mod graph;
 mod init;
 mod lint;
 mod notes;
+mod prime;
 mod query;
 mod show;
 mod transition;
@@ -63,6 +64,8 @@ enum Cmd {
     Comment(notes::CommentArgs),
     /// Copy a file into attachments/<id>/ and record it.
     Attach(notes::AttachArgs),
+    /// The ≤6KB session-start digest.
+    Prime,
 }
 
 /// Repo root of an initialized store, or a user-facing error.
@@ -118,6 +121,7 @@ pub fn run() -> i32 {
         Cmd::Why(args) => graph::why(args, cli.json),
         Cmd::Comment(args) => notes::comment(args, cli.json),
         Cmd::Attach(args) => notes::attach(args, cli.json),
+        Cmd::Prime => prime::run(cli.json),
     };
     match result {
         Ok(()) => 0,

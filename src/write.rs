@@ -13,6 +13,20 @@ pub fn yaml_scalar(s: &str) -> String {
     }
 }
 
+/// Clamp text to a BYTE budget (MW-D5 — bytes, never lines), char-boundary
+/// safe, with a visible `…` when anything was cut.
+#[must_use]
+pub fn clamp_bytes(s: &str, max: usize) -> String {
+    if s.len() <= max {
+        return s.to_string();
+    }
+    let mut cut = max.saturating_sub('…'.len_utf8());
+    while cut > 0 && !s.is_char_boundary(cut) {
+        cut -= 1;
+    }
+    format!("{}…", &s[..cut])
+}
+
 fn needs_quoting(s: &str) -> bool {
     if s.is_empty() || s != s.trim() {
         return true;

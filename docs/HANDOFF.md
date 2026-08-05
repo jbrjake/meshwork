@@ -1,10 +1,10 @@
 # HANDOFF (≤2KB — pointer, not narrative; durable state lives in PLAN Position + TRACE + commits)
 
-**Done:** Through PLAN 1.4 (2026-08-04). `comment <id> [--as] "text"`: author chain `--as` → `MESHWORK_AUTHOR` → config `default_author` → loud error; authors containing `]`/newline refused (they delimit the format); multi-line text becomes two-space continuations. `attach <id> <path>`: copies into `meshwork/attachments/<id>/`, records via new `edit::set_list` (replaces a key AND its indented block with a safe inline list — block-style corpora survive), `--force` gates overwrite, >1MB prints the excerpt-first note and lint warns (K3). TRACE: K1, K2 done (20 planned).
+**Done:** Through PLAN 1.5 (2026-08-04). `prime`: counts line · ready top-10 (normative SQL — one queue truth) · in-progress with last log line · blocked with reasons · loud invalid alarm. Byte discipline: 160B per-line clamp (`write::clamp_bytes`, char-boundary safe, visible `…`), 6144B hard budget with an explicit truncation tail — proven on the corpus AND a hostile 120-task store with giant titles. `unit::budget_bytes_not_lines` pins bytes-not-lines (MW-D5). TRACE: D3, D5 done (18 planned).
 
-**Decisions:** attachments/docs lists are written inline-style by tools (block style still parses fine — set_list migrates on first edit).
+**Decisions:** prime JSON mirrors rows (ready capped at 10) but the byte budget governs the TEXT artifact — that's what the SessionStart hook injects and what gate §8 measures.
 
 **Open threads:** none new.
 
-**Next concrete step:** PLAN 1.5 — `prime`: byte-budgeted ≤6KB digest measured on the kitchen-sink fixture (D3, D5): ready top-10 one-liners · in-progress with last log line · blocked with reasons · counts.
-verify: `cargo test e2e::prime_budget` exits 0.
+**Next concrete step:** PLAN 1.6 — CLI-surface freeze test: `--help` lists exactly DESIGN §6 (D4, §3 non-goals fence). Note: `show --docs` flag must exist in the surface but its behavior lands at 4.1 — until then it errors honestly.
+verify: `cargo test e2e::cli_surface_frozen` exits 0.
