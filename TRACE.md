@@ -5,7 +5,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | req | tests | status |
 |---|---|---|
 | MW-A1 | `parse::roundtrip_hand_edited`, `e2e::add_show_roundtrip` | done |
-| MW-A2 | `tables::memtable_no_disk`, `e2e::cache_delete_safe` | planned |
+| MW-A2 | `tables::memtable_no_disk`, `e2e::cache_delete_safe` | done |
 | MW-A3 | `e2e::init_layout` (nothing written outside repo, no hooks) | done |
 | MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id` | done |
 | MW-A5 | `lint::description_size_warn`, `e2e::show_caps` | done |
@@ -47,7 +47,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-H2 | `e2e::mirror_never_mutates` | planned |
 | MW-H3 | `e2e::mirror_idempotent` | planned |
 | MW-H4 | `e2e::mirror_status_reports_only` | planned |
-| MW-H5 | `e2e::offline_all` | planned |
+| MW-H5 | `e2e::offline_all` | done |
 | MW-I1 | `e2e::merge_concurrent_worktrees` | done |
 | MW-I2 | `e2e::merge_union_poison`, `e2e::invalid_visible` | done |
 | MW-J1 | gate §§1–2 + Cargo.toml dep review (done at B0) | planned |
@@ -55,4 +55,4 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-J3 | `e2e::import_todo_golden` + M1.9 pilot checklist | planned |
 | MW-J4 | `fixtures::corpus_covers_features` | done |
 | MW-J5 | gate §6 (this file's own checker) | planned |
-| MW-J6 | `e2e::offline_all` + stub-gh harness | planned |
+| MW-J6 | `e2e::offline_all` + stub-gh harness | done |

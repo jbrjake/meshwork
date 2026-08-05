@@ -126,6 +126,74 @@ fn json_stable_shapes() {
     );
 }
 
+/// PLAN 0.11 / MW-H5, J6: every non-mirror verb runs clean on a PATH that
+/// holds exactly git and sh — no gh binary exists, no network is reachable
+/// by construction (nothing to call it with).
+#[test]
+fn offline_all() {
+    let bin = tempfile::tempdir().unwrap();
+    for tool in ["git", "sh"] {
+        let out = std::process::Command::new("sh")
+            .args(["-c", &format!("command -v {tool}")])
+            .output()
+            .unwrap();
+        let real = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        std::os::unix::fs::symlink(&real, bin.path().join(tool)).unwrap();
+    }
+    let path_env = bin.path().to_string_lossy().into_owned();
+
+    // Sanity: gh must NOT resolve under this PATH.
+    let gh = std::process::Command::new("sh")
+        .args(["-c", "command -v gh"])
+        .env("PATH", &path_env)
+        .output()
+        .unwrap();
+    assert!(!gh.status.success(), "PATH must have no gh");
+
+    let (_g, repo) = git_repo("work");
+    let run = |args: &[&str]| {
+        meshwork(&repo)
+            .env("PATH", &path_env)
+            .args(args)
+            .assert()
+            .success();
+    };
+    run(&["init"]);
+    let id = {
+        let out = meshwork(&repo)
+            .env("PATH", &path_env)
+            .args(["add", "Fully offline", "--cat", "core", "--label", "x", "--verify", "true"])
+            .assert()
+            .success();
+        stdout_of(&out).lines().next().unwrap().to_string()
+    };
+    run(&["show", &id]);
+    run(&["start", &id]);
+    run(&["block", &id, "--reason", "checking offline"]);
+    run(&["reopen", &id]);
+    run(&["ready"]);
+    run(&["q", "SELECT count(*) FROM tasks"]);
+    run(&["lint"]);
+    run(&["close", &id]); // verify `true` runs via sh -c on the bare PATH
+}
+
+/// MW-A2: the cache is an optimization, never a dependency — deleting
+/// .cache (or the whole layout reservation) is always safe.
+#[test]
+fn cache_delete_safe() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Cacheless");
+    std::fs::remove_dir_all(repo.join("meshwork/.cache")).unwrap();
+    meshwork(&repo).arg("ready").assert().success();
+    meshwork(&repo).args(["show", &id]).assert().success();
+    meshwork(&repo).arg("lint").assert().success();
+    meshwork(&repo)
+        .args(["q", "SELECT count(*) FROM tasks"])
+        .assert()
+        .success();
+}
+
 /// MW-D2: listings cap at 20 with the explicit `… and N more` marker;
 /// `--all` is the opt-out.
 #[test]

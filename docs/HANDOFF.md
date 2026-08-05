@@ -1,10 +1,10 @@
 # HANDOFF (≤2KB — pointer, not narrative; durable state lives in PLAN Position + TRACE + commits)
 
-**Done:** Through PLAN 0.10 (2026-08-04). Merge scenarios 1–3 green with real git (bare origin + two configured clones, origin HEAD pinned to main for deterministic clones): (1) concurrent clones close/create/comment on the same task → union attr merges markerless, both comments survive, lint clean; (2) `MESHWORK_ID_SEED` forces the same mint in both clones → lint reports duplicate-id, `--fix` re-slugs the later side, references resolve to the keeper, lint exits 0; (3) conflicting status edits union into a dup key → row surfaces invalid in `q`, `--fix` repairs to one status line with both log entries intact. TRACE: A4, I1, I2 done (30 planned).
+**Done:** **M0 complete** (2026-08-04, one session): parser, IDs, five-table SQL contract, init/add/show/transitions/close, ready (normative SQL) + q, lint + --fix, merge scenarios 1–3, offline-everything (PATH = git+sh only), cache-delete-safe. Gate green throughout: 68 tests, coverage ≥80%, goldens ready-alpha.json + lint-broken.json committed via the bless flow. TRACE: 27 planned remain, all mapped to M1+ tests; B1/K1 flip with dep_edit (1.1) / comment_attach (1.4).
 
-**Decisions:** merge tests seed the `## comments` section at base so both sides purely append (avoids union duplicating the heading — a known cosmetic artifact when both sides create the section; parser tolerates it either way).
+**Decisions:** all in DESIGN §15 + per-commit notes. Session-critical ones: MESHWORK_BLESS=1 implements --bless; MESHWORK_ID_SEED/MESHWORK_TODAY are the determinism hooks; e2e part-files via include! keep flat `e2e::` test paths; unit tests live in the suite for TRACE-exact names.
 
-**Open threads:** none new.
+**Open threads:** M0 stop-line reached — sazed pilot is *usable* but the plan continues top-to-bottom; pilot itself is 1.9 (manual, needs owner).
 
-**Next concrete step:** PLAN 0.11 — offline-everything scenario 5 (H5): `$PATH` without `gh`, no network — every non-mirror verb runs clean.
-verify: `cargo test e2e::offline_all` exits 0. Then M0✓ TRACE sweep.
+**Next concrete step:** PLAN 1.1 — `dep add`/`dep rm` (B1): edge edits without opening the file.
+verify: `cargo test e2e::dep_edit` exits 0.
