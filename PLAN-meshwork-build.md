@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 1.1 (M1).** (M0 complete 2026-08-04: store, parse, all core verbs, ready/q, lint --fix, merge scenarios, offline-everything. TRACE: all M0-reachable rows done (27 planned remain); B1/K1 flip with their cited M1 tests (dep_edit 1.1, comment_attach 1.4) — flipping earlier would cite phantom tests and fail gate §6.)
+**Position: next = 1.2.** (M0 + 1.1 done 2026-08-04. `dep add/rm`: guarded one-line needs edits (self/dup/dangling refused, cross-repo passed through), empty list drops the key; MW-B1 done — 26 planned remain.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -39,7 +39,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 
 | id | item (MW refs) | verify |
 |---|---|---|
-| 1.1 | `dep add`/`dep rm` (B1) | `cargo test e2e::dep_edit` |
+| 1.1 ✓ | `dep add`/`dep rm` (B1) | `cargo test e2e::dep_edit` ✓ 2026-08-04 |
 | 1.2 | `tree`/`why`/`blocked`; `tree` renders 5-deep fixture chain with cosmetic level names (B8, C2) | `cargo test e2e::tree_why_blocked_golden` |
 | 1.3 | Category segment-prefix + label queries (B4, B5) | `cargo test query::category_labels` |
 | 1.4 | `comment` (author fallback chain) + `attach` (`--force`, >1MB lint warn) (K1–K3) | `cargo test e2e::comment_attach` |

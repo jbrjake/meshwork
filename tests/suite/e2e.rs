@@ -67,6 +67,7 @@ fn add_id(repo: &Path, args: &[&str]) -> String {
     stdout_of(&out).lines().next().unwrap().to_string()
 }
 
+include!("e2e_graph.rs");
 include!("e2e_lifecycle.rs");
 include!("e2e_lint.rs");
 include!("e2e_merge.rs");

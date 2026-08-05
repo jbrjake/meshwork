@@ -42,6 +42,36 @@ pub fn set_scalar(text: &str, key: &str, value: Option<&str>) -> Result<String, 
     Ok(format!("---\n{}{tail}", lines.join("\n")))
 }
 
+/// Remove the first `key:` line from the frontmatter (used when a list
+/// empties — a bare `needs: []` is noise in a hand-editable file).
+///
+/// # Errors
+/// When fences are missing, like [`set_scalar`].
+pub fn remove_scalar(text: &str, key: &str) -> Result<String, String> {
+    let Some(rest) = text.strip_prefix("---\n") else {
+        return Err("missing frontmatter fences".to_string());
+    };
+    let Some(end) = rest.find("\n---") else {
+        return Err("missing closing frontmatter fence".to_string());
+    };
+    let fm = &rest[..end];
+    let tail = &rest[end..];
+    let prefix = format!("{key}:");
+    let mut removed = false;
+    let lines: Vec<&str> = fm
+        .lines()
+        .filter(|line| {
+            if !removed && line.starts_with(&prefix) {
+                removed = true;
+                false
+            } else {
+                true
+            }
+        })
+        .collect();
+    Ok(format!("---\n{}{tail}", lines.join("\n")))
+}
+
 /// Append `- entry` at the end of `## section`, creating the section when
 /// missing (`## log` goes before `## comments`; anything else at EOF).
 #[must_use]

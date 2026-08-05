@@ -4,6 +4,7 @@
 
 mod add;
 mod close;
+mod dep;
 mod init;
 mod lint;
 mod query;
@@ -48,6 +49,8 @@ enum Cmd {
     Q(query::QArgs),
     /// Structural checks; --fix repairs merge damage.
     Lint(lint::LintArgs),
+    /// Edge edits without opening the file.
+    Dep(dep::DepArgs),
 }
 
 /// Repo root of an initialized store, or a user-facing error.
@@ -97,6 +100,7 @@ pub fn run() -> i32 {
         Cmd::Ready(args) => query::ready(args, cli.json),
         Cmd::Q(args) => query::q(args, cli.json),
         Cmd::Lint(args) => lint::run(args, cli.json),
+        Cmd::Dep(args) => dep::run(args, cli.json),
     };
     match result {
         Ok(()) => 0,

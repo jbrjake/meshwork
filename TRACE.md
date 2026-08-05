@@ -10,7 +10,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id` | done |
 | MW-A5 | `lint::description_size_warn`, `e2e::show_caps` | done |
 | MW-A6 | `parse::unknown_field_warns` | done |
-| MW-B1 | `tables::edge_kinds`, `e2e::dep_edit` | planned |
+| MW-B1 | `tables::edge_kinds`, `e2e::dep_edit` | done |
 | MW-B2 | `lint::cycle_needs`, `lint::cycle_parent` | done |
 | MW-B3 | `e2e::crossrepo_resolution`, `lint::parent_crossrepo_error` | planned |
 | MW-B4 | `query::category_segment_prefix` | planned |
