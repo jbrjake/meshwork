@@ -17,9 +17,9 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-B5 | `query::labels_orthogonal` | planned |
 | MW-B6 | `e2e::ready_golden` (container-exclusion + unresolved-blocks cases) | done |
 | MW-B7 | `lint::parent_rollup_warn` | done |
-| MW-B8 | `e2e::tree_why_blocked_golden` (5-deep chain, cosmetic level names) | planned |
+| MW-B8 | `e2e::tree_why_blocked_golden` (5-deep chain, cosmetic level names) | done |
 | MW-C1 | `e2e::raw_sql_tables` | done |
-| MW-C2 | `e2e::tree_why_blocked_golden` | planned |
+| MW-C2 | `e2e::tree_why_blocked_golden` | done |
 | MW-C3 | `e2e::json_stable_shapes` | done |
 | MW-C4 | gate §7 (`perf::ready_1k`, `perf::portfolio_20x`) | planned |
 | MW-D1 | `e2e::show_caps`, `e2e::ready_golden` | done |

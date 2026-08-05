@@ -71,6 +71,14 @@ fn run_query(ctx: &SessionContext, sql: &str) -> Result<(Vec<String>, Vec<Record
     .map_err(|e: datafusion::error::DataFusionError| e.to_string())
 }
 
+/// Run SQL over the local store, rows as strings — for sibling verbs
+/// (`blocked`, later `prime`) that share the canned-SQL pipeline.
+pub(crate) fn sql_rows_local(sql: &str) -> Result<Vec<Vec<String>>, String> {
+    let ctx = local_session()?;
+    let (_, batches) = run_query(&ctx, sql)?;
+    Ok(string_rows(&batches))
+}
+
 pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
     let ctx = local_session()?;
     let (_, batches) = run_query(&ctx, READY_SQL)?;

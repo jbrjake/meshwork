@@ -5,6 +5,7 @@
 mod add;
 mod close;
 mod dep;
+mod graph;
 mod init;
 mod lint;
 mod query;
@@ -51,6 +52,12 @@ enum Cmd {
     Lint(lint::LintArgs),
     /// Edge edits without opening the file.
     Dep(dep::DepArgs),
+    /// Blocked tasks with their reasons.
+    Blocked(graph::BlockedArgs),
+    /// Parent hierarchy below a task, any depth, cosmetic level names.
+    Tree(transition::IdArg),
+    /// The frontier of actually-open blockers for a task.
+    Why(transition::IdArg),
 }
 
 /// Repo root of an initialized store, or a user-facing error.
@@ -101,6 +108,9 @@ pub fn run() -> i32 {
         Cmd::Q(args) => query::q(args, cli.json),
         Cmd::Lint(args) => lint::run(args, cli.json),
         Cmd::Dep(args) => dep::run(args, cli.json),
+        Cmd::Blocked(args) => graph::blocked(args, cli.json),
+        Cmd::Tree(args) => graph::tree(args, cli.json),
+        Cmd::Why(args) => graph::why(args, cli.json),
     };
     match result {
         Ok(()) => 0,
