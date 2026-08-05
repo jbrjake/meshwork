@@ -177,6 +177,72 @@ fn offline_all() {
     run(&["close", &id]); // verify `true` runs via sh -c on the bare PATH
 }
 
+/// PLAN 1.7 / MW-J3: `import todo` converts the baseline checkbox format
+/// — [ ]/[~]/[x]/[!], bold titles, indented verify: lines, ## Now → seq —
+/// into a golden-pinned task set. The source file stays untouched.
+#[test]
+fn import_todo_golden() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let sample = fixtures_root().join("import/TODO-sample.md");
+    let before = std::fs::read_to_string(&sample).unwrap();
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .env("MESHWORK_ID_SEED", "7")
+            .env("MESHWORK_TODAY", "2026-08-04")
+            .args(["import", "todo", sample.to_str().unwrap()])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains("5 imported"), "{out}");
+
+    // Byte-stable task set (seeded ids + fixed date) → one golden blob.
+    let tasks_dir = repo.join("meshwork/tasks");
+    let mut names: Vec<String> = std::fs::read_dir(&tasks_dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    let mut blob = String::new();
+    for name in &names {
+        blob.push_str("=== ");
+        blob.push_str(name);
+        blob.push('\n');
+        blob.push_str(&std::fs::read_to_string(tasks_dir.join(name)).unwrap());
+        blob.push('\n');
+    }
+    crate::common::assert_golden("import-todo.md", &blob);
+
+    // Semantics: statuses mapped, Now ordering → seq 10/20/30, verify
+    // extracted, blocked-reason carried, source untouched.
+    let counts = stdout_of(
+        &meshwork(&repo)
+            .args(["q", "SELECT status, count(*) FROM tasks GROUP BY status ORDER BY status"])
+            .assert()
+            .success(),
+    );
+    for expected in ["blocked | 1", "doing | 1", "done | 1", "open | 2"] {
+        assert!(counts.contains(expected), "{counts}");
+    }
+    let seqs = stdout_of(
+        &meshwork(&repo)
+            .args(["q", "SELECT seq FROM tasks WHERE seq IS NOT NULL ORDER BY seq"])
+            .assert()
+            .success(),
+    );
+    assert!(seqs.contains("10") && seqs.contains("20") && seqs.contains("30"), "{seqs}");
+
+    let blocked = stdout_of(&meshwork(&repo).args(["blocked"]).assert().success());
+    assert!(blocked.contains("52 unreleased"), "{blocked}");
+
+    // Exactly one lint warning: the Later item without a verify.
+    let lint = stdout_of(&meshwork(&repo).arg("lint").assert().success());
+    assert!(lint.contains("no-verify"), "{lint}");
+
+    assert_eq!(before, std::fs::read_to_string(&sample).unwrap());
+}
+
 /// PLAN 1.6 / MW-D4, REQUIREMENTS §3: the CLI surface IS DESIGN §6 —
 /// verbatim, nothing more, nothing less. A verb that isn't in this list is
 /// a non-goal; adding one here requires an owner ruling amending §3.

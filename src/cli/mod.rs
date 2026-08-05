@@ -6,6 +6,7 @@ mod add;
 mod close;
 mod dep;
 mod graph;
+mod import;
 mod init;
 mod lint;
 mod notes;

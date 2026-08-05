@@ -66,10 +66,7 @@ enum ImportAction {
     },
 }
 
-pub(crate) fn import(args: &ImportArgs, _json: bool) -> Result<(), String> {
+pub(crate) fn import(args: &ImportArgs, json: bool) -> Result<(), String> {
     let ImportAction::Todo { path } = &args.action;
-    Err(format!(
-        "import todo lands at PLAN 1.7 (next item); {} left untouched",
-        path.display()
-    ))
+    super::import::todo(path, json)
 }
