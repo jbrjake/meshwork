@@ -8,6 +8,7 @@ mod dep;
 mod graph;
 mod init;
 mod lint;
+mod notes;
 mod query;
 mod show;
 mod transition;
@@ -58,6 +59,10 @@ enum Cmd {
     Tree(transition::IdArg),
     /// The frontier of actually-open blockers for a task.
     Why(transition::IdArg),
+    /// Append a comment (self-professed identity, recorded as claimed).
+    Comment(notes::CommentArgs),
+    /// Copy a file into attachments/<id>/ and record it.
+    Attach(notes::AttachArgs),
 }
 
 /// Repo root of an initialized store, or a user-facing error.
@@ -111,6 +116,8 @@ pub fn run() -> i32 {
         Cmd::Blocked(args) => graph::blocked(args, cli.json),
         Cmd::Tree(args) => graph::tree(args, cli.json),
         Cmd::Why(args) => graph::why(args, cli.json),
+        Cmd::Comment(args) => notes::comment(args, cli.json),
+        Cmd::Attach(args) => notes::attach(args, cli.json),
     };
     match result {
         Ok(()) => 0,

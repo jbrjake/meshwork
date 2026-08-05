@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 1.4.** (Through 1.3 done 2026-08-04. `category_matches` lib fn + SQL UDF registered in every session (whole-segment prefix, MW-B4); labels stay orthogonal via the exploded table. TRACE: B4, B5 done — 22 planned.)
+**Position: next = 1.5.** (Through 1.4 done 2026-08-04. `comment`: author chain --as → $MESHWORK_AUTHOR → config, `]`/newline authors refused, multi-line → continuations. `attach`: copy to attachments/<id>/, frontmatter via new edit::set_list (block→inline safe), --force gate, >1MB note + lint warn. TRACE: K1, K2 done — 20 planned.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -42,7 +42,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | 1.1 ✓ | `dep add`/`dep rm` (B1) | `cargo test e2e::dep_edit` ✓ 2026-08-04 |
 | 1.2 ✓ | `tree`/`why`/`blocked`; `tree` renders 5-deep fixture chain with cosmetic level names (B8, C2) | `cargo test e2e::tree_why_blocked_golden` ✓ 2026-08-04 |
 | 1.3 ✓ | Category segment-prefix + label queries (B4, B5) | `cargo test query::category_labels` ✓ 2026-08-04 |
-| 1.4 | `comment` (author fallback chain) + `attach` (`--force`, >1MB lint warn) (K1–K3) | `cargo test e2e::comment_attach` |
+| 1.4 ✓ | `comment` (author fallback chain) + `attach` (`--force`, >1MB lint warn) (K1–K3) | `cargo test e2e::comment_attach` ✓ 2026-08-04 |
 | 1.5 | `prime`: byte-budgeted ≤6KB, measured on kitchen-sink fixture (D3, D5) | `cargo test e2e::prime_budget` |
 | 1.6 | CLI-surface freeze test: `--help` output lists exactly DESIGN §6 — the non-goals fence, enforced (D4, §3 non-goals) | `cargo test e2e::cli_surface_frozen` |
 | 1.7 | `import todo`: baseline checkbox format from committed sazed-format sample → golden (J3) | `cargo test e2e::import_todo_golden` |

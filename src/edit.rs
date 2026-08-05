@@ -72,6 +72,55 @@ pub fn remove_scalar(text: &str, key: &str) -> Result<String, String> {
     Ok(format!("---\n{}{tail}", lines.join("\n")))
 }
 
+/// Replace `key:` and any indented block under it with an inline list
+/// (`key: [a, b]`), inserting before the closing fence when absent. Items
+/// pass through [`crate::write::yaml_scalar`].
+///
+/// # Errors
+/// When fences are missing, like [`set_scalar`].
+pub fn set_list(text: &str, key: &str, items: &[String]) -> Result<String, String> {
+    let Some(rest) = text.strip_prefix("---\n") else {
+        return Err("missing frontmatter fences".to_string());
+    };
+    let Some(end) = rest.find("\n---") else {
+        return Err("missing closing frontmatter fence".to_string());
+    };
+    let fm = &rest[..end];
+    let tail = &rest[end..];
+
+    let rendered = format!(
+        "{key}: [{}]",
+        items
+            .iter()
+            .map(|i| crate::write::yaml_scalar(i))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
+    let prefix = format!("{key}:");
+    let mut lines: Vec<String> = Vec::new();
+    let mut replaced = false;
+    let mut skipping_block = false;
+    for line in fm.lines() {
+        if skipping_block {
+            if line.starts_with(' ') {
+                continue; // the old block-list items under the key
+            }
+            skipping_block = false;
+        }
+        if !replaced && line.starts_with(&prefix) {
+            lines.push(rendered.clone());
+            replaced = true;
+            skipping_block = true;
+        } else {
+            lines.push(line.to_string());
+        }
+    }
+    if !replaced {
+        lines.push(rendered);
+    }
+    Ok(format!("---\n{}{tail}", lines.join("\n")))
+}
+
 /// Append `- entry` at the end of `## section`, creating the section when
 /// missing (`## log` goes before `## comments`; anything else at EOF).
 #[must_use]

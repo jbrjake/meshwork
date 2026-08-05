@@ -34,8 +34,8 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-F1 | `parse::docs_links` | done |
 | MW-F2 | `e2e::show_docs_excerpts` | planned |
 | MW-F3 | `lint::anchor_missing_warn` | planned |
-| MW-K1 | `e2e::comment_attach`, `parse::comment_format` | planned |
-| MW-K2 | `e2e::comment_attach` | planned |
+| MW-K1 | `e2e::comment_attach`, `parse::comment_format` | done |
+| MW-K2 | `e2e::comment_attach` | done |
 | MW-K3 | `lint::attachment_size_warn` | done |
 | MW-K4 | `e2e::add_show_roundtrip` | done |
 | MW-G1 | `e2e::repo_self_contained` | planned |
