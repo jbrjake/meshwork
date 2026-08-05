@@ -9,5 +9,6 @@ mod fixtures;
 mod id;
 mod lint;
 mod parse;
+mod query;
 mod stub_gh;
 mod tables;

@@ -13,7 +13,8 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 /// Build a `SessionContext` with the five-table contract registered:
-/// `tasks`, `edges`, `labels`, `comments`, `repos` (DESIGN §4).
+/// `tasks`, `edges`, `labels`, `comments`, `repos` (DESIGN §4) — plus the
+/// `category_matches` UDF (MW-B4), so filtering stays plain SQL.
 ///
 /// # Errors
 /// Only Arrow schema/registration failures — which would be a bug, not data.
@@ -24,7 +25,60 @@ pub fn session_for(stores: &[RepoStore]) -> DfResult<SessionContext> {
     ctx.register_batch("labels", labels_batch(stores)?)?;
     ctx.register_batch("comments", comments_batch(stores)?)?;
     ctx.register_batch("repos", repos_batch(stores)?)?;
+    ctx.register_udf(category_matches_udf());
     Ok(ctx)
+}
+
+/// Whole-segment category prefix match (MW-B4): `engine/spill` matches
+/// `engine/spill/compaction` and `engine/spill` itself — never
+/// `engine/spillover`, never mid-path. Empty prefix matches everything.
+#[must_use]
+pub fn category_matches(category: &str, prefix: &str) -> bool {
+    prefix.is_empty()
+        || category == prefix
+        || (category.len() > prefix.len()
+            && category.starts_with(prefix)
+            && category.as_bytes()[prefix.len()] == b'/')
+}
+
+/// `category_matches(category, prefix)` as a SQL scalar UDF.
+fn category_matches_udf() -> datafusion::logical_expr::ScalarUDF {
+    use datafusion::logical_expr::{create_udf, ColumnarValue, Volatility};
+    let fun = std::sync::Arc::new(|args: &[ColumnarValue]| {
+        let arrays = ColumnarValue::values_to_arrays(args)?;
+        let cats = arrays[0]
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .ok_or_else(|| {
+                datafusion::error::DataFusionError::Execution(
+                    "category_matches: expected utf8 arguments".into(),
+                )
+            })?;
+        let prefixes = arrays[1]
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .ok_or_else(|| {
+                datafusion::error::DataFusionError::Execution(
+                    "category_matches: expected utf8 arguments".into(),
+                )
+            })?;
+        let out: BooleanArray = cats
+            .iter()
+            .zip(prefixes.iter())
+            .map(|(cat, prefix)| match (cat, prefix) {
+                (Some(cat), Some(prefix)) => Some(category_matches(cat, prefix)),
+                _ => None,
+            })
+            .collect();
+        Ok(ColumnarValue::Array(std::sync::Arc::new(out)))
+    });
+    create_udf(
+        "category_matches",
+        vec![DataType::Utf8, DataType::Utf8],
+        DataType::Boolean,
+        Volatility::Immutable,
+        fun,
+    )
 }
 
 fn utf8(nullable: bool, name: &str) -> Field {

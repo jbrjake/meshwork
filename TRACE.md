@@ -13,8 +13,8 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-B1 | `tables::edge_kinds`, `e2e::dep_edit` | done |
 | MW-B2 | `lint::cycle_needs`, `lint::cycle_parent` | done |
 | MW-B3 | `e2e::crossrepo_resolution`, `lint::parent_crossrepo_error` | planned |
-| MW-B4 | `query::category_segment_prefix` | planned |
-| MW-B5 | `query::labels_orthogonal` | planned |
+| MW-B4 | `query::category_segment_prefix` | done |
+| MW-B5 | `query::labels_orthogonal` | done |
 | MW-B6 | `e2e::ready_golden` (container-exclusion + unresolved-blocks cases) | done |
 | MW-B7 | `lint::parent_rollup_warn` | done |
 | MW-B8 | `e2e::tree_why_blocked_golden` (5-deep chain, cosmetic level names) | done |
