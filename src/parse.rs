@@ -55,7 +55,8 @@ pub struct Comment {
 /// A fully parsed, schema-valid task file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Task {
-    /// `<alias>-<4-char base32>` (MW-A4).
+    /// `<alias>-<base32 suffix>` (MW-A4; minted at 7 chars since mw-1b09,
+    /// length never validated — pre-existing 4-char IDs stay legal).
     pub id: String,
     /// One-line title.
     pub title: String,

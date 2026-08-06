@@ -1,5 +1,7 @@
-//! ID generation (PLAN 0.2, MW-A4): `<alias>-<4-char base32>` slugs,
-//! Crockford-lowercase alphabet (no i/l/o/u), ~1M combinations.
+//! ID generation (PLAN 0.2, MW-A4; length 4→7 per mw-1b09): `<alias>-<7-char
+//! base32>` slugs, Crockford-lowercase alphabet (no i/l/o/u), 32^7 ≈ 34.4B
+//! combinations. Length applies to minting only — parsing never validates
+//! it, so pre-mw-1b09 4-char IDs remain legal and stores mix lengths freely.
 //!
 //! Collision policy: creation collision-checks against local files and
 //! re-rolls. Parallel clones share no state and CAN mint the same ID —
@@ -17,7 +19,7 @@ const MAX_ATTEMPTS: u32 = 4096;
 
 /// Small deterministic RNG (splitmix64 core) — the pinned dep posture
 /// (MW-J1) has no `rand`, and reproducibility matters more than randomness
-/// quality for 20-bit draws.
+/// quality for 35-bit draws.
 #[derive(Debug, Clone)]
 pub struct IdGen {
     state: u64,
@@ -64,14 +66,14 @@ impl IdGen {
         z ^ (z >> 31)
     }
 
-    /// Mint the next `<alias>-<4 chars>` ID. No collision check — see
+    /// Mint the next `<alias>-<7 chars>` ID. No collision check — see
     /// [`mint_unique`].
     #[must_use]
     pub fn next_id(&mut self, alias: &str) -> String {
         let bytes = ALPHABET.as_bytes();
         let mut draw = self.next_u64();
-        let mut suffix = String::with_capacity(4);
-        for _ in 0..4 {
+        let mut suffix = String::with_capacity(7);
+        for _ in 0..7 {
             let idx = usize::try_from(draw & 31).unwrap_or(0);
             suffix.push(bytes[idx] as char);
             draw >>= 5;
@@ -113,7 +115,7 @@ pub fn slugify(title: &str) -> String {
 ///
 /// # Errors
 /// After 4096 colliding draws, errors out loudly ("space exhausted") rather
-/// than spinning — at that density the repo has outgrown 4-char IDs.
+/// than spinning — at that density something is deeply wrong with the store.
 pub fn mint_unique(alias: &str, tasks_dir: &Path, gen: &mut IdGen) -> std::io::Result<String> {
     for _ in 0..MAX_ATTEMPTS {
         let id = gen.next_id(alias);

@@ -1,6 +1,6 @@
-//! `id::` — ID generation (PLAN 0.2, MW-A4): `<alias>-<4-char base32>`,
-//! Crockford-lowercase alphabet, collision re-roll against local files,
-//! seedable for tests.
+//! `id::` — ID generation (PLAN 0.2, MW-A4; length 4→7 per mw-1b09):
+//! `<alias>-<7-char base32>`, Crockford-lowercase alphabet, collision
+//! re-roll against local files, seedable for tests.
 
 use meshwork::id::{mint_unique, IdGen, ALPHABET};
 
@@ -8,7 +8,7 @@ fn assert_legal(id: &str, alias: &str) {
     let suffix = id
         .strip_prefix(&format!("{alias}-"))
         .unwrap_or_else(|| panic!("id `{id}` lacks `{alias}-` prefix"));
-    assert_eq!(suffix.len(), 4, "4-char random component: {id}");
+    assert_eq!(suffix.len(), 7, "7-char random component: {id}");
     for c in suffix.chars() {
         assert!(
             ALPHABET.contains(c),

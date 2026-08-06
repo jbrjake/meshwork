@@ -137,8 +137,8 @@ fn add_show_roundtrip() {
         .success();
     let id = stdout_of(&out).lines().next().unwrap().to_string();
     assert!(
-        id.starts_with("wo-") && id.len() == 7,
-        "add prints the id: {id}"
+        id.starts_with("wo-") && id.len() == 10,
+        "add prints the id (7-char suffix, mw-1b09): {id}"
     );
 
     // File on disk, filename = <id>-<slug>.md, fields verbatim.
