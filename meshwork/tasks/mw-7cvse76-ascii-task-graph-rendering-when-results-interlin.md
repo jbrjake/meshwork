@@ -17,16 +17,17 @@ box-drawing DAG, topological layers, edge glyphs distinguishing hard
 needs from parent nesting from soft relates; cross-repo edges (repo#id)
 marked. Applies to ready/q/tree/why output and the prime handoff view.
 Constraints that make it non-trivial: prime's 6144B cap includes the
-art (MW-D5). Owner ruling 2026-08-06: if the art doesn't fit the byte
-budget, it becomes optional and OFF by default — the budget is never
-raised for it and the flat format is never squeezed by it. Trivial
-subgraphs (0-1 edges) get no art regardless. tree today is indent-only
+art (MW-D5). Owner ruling 2026-08-06 (refined): automatic when ALL of
+— more than 1 edge to show, the art fits, and there's room in the
+remaining budget; when the budget doesn't fit it does NOT show without
+a flag. The budget is never raised for art and the flat format is
+never squeezed by it. Trivial subgraphs (0-1 edges) get no art
+regardless. tree today is indent-only
 and lies about DAGs (a task with two inbound edges prints twice) — the
 graph view renders shared nodes once. Must be cycle-safe (render can't
 hang on what lint hasn't caught yet), monochrome, --json output
-unchanged. Ruling still open: automatic vs --graph flag for the
-non-prime verbs, opt-in mechanism for prime (config key vs flag), §6
-wording. Layout stays hand-rolled — a graph-layout
+unchanged. Ruling still open at implementation: only the flag's name
+and §6 wording. Layout stays hand-rolled — a graph-layout
 dependency fails the pinned-dep posture (MW-J1) for a cosmetic feature.
 
 ## log

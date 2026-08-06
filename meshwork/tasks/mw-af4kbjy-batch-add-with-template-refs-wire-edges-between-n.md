@@ -19,12 +19,16 @@ orchestration happened outside the tool. Wanted: one batch input
 declaring several tasks with local symbolic handles (e.g. @parent,
 @grammar) usable anywhere an id is (needs, parent, from, relates);
 meshwork mints real ids, rewrites the refs, writes all files in one
-atomic operation — partial failure writes nothing. Shape for the
-ruling (frozen §6): likely `add --batch <file|-> ` where the input
-reuses the §2 frontmatter format (which also wants mw-0f4j's fields —
-batch entries need seq:/docs: too, hence relates). Include --dry-run
-style preview (print would-be files, write nothing) so agents can
-show the graph before committing it.
+atomic operation — partial failure writes nothing. FORMAT RULED
+(owner delegated the choice 2026-08-06; proposal accepted): input is
+concatenated §2 task documents — the exact on-disk format agents
+already read and write, no new syntax to learn. Each block is normal
+frontmatter (+optional body) with `id:` omitted and a new local-only
+`handle: <name>` key; `@<name>` is legal anywhere an id is (needs,
+parent, from, relates) and handles never persist to disk. Surface:
+`add --batch <file|->` (stdin is the agent-natural path) +
+`--dry-run` printing the would-be files, writing nothing. Batch
+entries accept every §2 field, so this lands after mw-0f4j.
 
 ## log
 - 2026-08-06 created

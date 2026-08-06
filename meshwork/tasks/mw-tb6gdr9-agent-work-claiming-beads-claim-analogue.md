@@ -14,11 +14,12 @@ created: 2026-08-06
 Owner-requested 2026-08-06: a way for agents to take on work, like beads'
 --claim. Today `start` flips open→doing but records no actor — two
 parallel worktree sessions can start the same task and merge silently
-into duplicate work. Shape needs an owner ruling (frozen surface, §6):
-(a) `start` grows a claimed-by write via the MW-K1 author chain;
-(b) new `claim [<id>]` verb, bare form = claim top ready item (closest
-to beads `ready --claim`); (c) field-only `claimed-by:` + lint. Whatever
-the shape: identity stays a self-professed string (no accounts — §3
+into duplicate work. SHAPE RULED (owner, 2026-08-06): option (a) —
+claiming rides on `start`, no new verb. `start` records `claimed-by:`
+via the MW-K1 author chain (`--as` flag / env / config fallback);
+release semantics (close/drop/reopen clear it) decided at
+implementation. Whatever the details: identity stays a self-professed
+string (no accounts — §3
 fence holds), a claim is advisory with no locking (concurrency is git's
 problem; post-merge double-claim is a lint finding like duplicate IDs,
 reported never auto-resolved), and `ready`/`prime` must respect claims
