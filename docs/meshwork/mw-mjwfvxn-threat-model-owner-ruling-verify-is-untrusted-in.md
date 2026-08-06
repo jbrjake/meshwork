@@ -10,6 +10,14 @@ docs:
   - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
   - REQUIREMENTS-meshwork.md#§-3-non-goals # ruling recorded here when scope moves
 created: 2026-08-06
+handoff: |
+  Before starting this: check mw-0pj8qgv — if GitHub Actions has
+  recovered (githubstatus.com), ship the v0.1.4 release per its
+  blocked-reason (dispatch or tag re-push), close it, and the sazed pilot
+  unblocks. THEN this threat-model doc is the top of the security
+  sequence: deliverables are a DESIGN trust-boundary section, MW-E5, and
+  the §3 scope ruling — details in the task body; the trust-gate
+  stopgap (mw-9rc4vs6) is gated on it.
 ---
 Deliverable is a ruling, written down: DESIGN gains a trust-boundary
 section (task files that arrived via merge are untrusted input; verify:

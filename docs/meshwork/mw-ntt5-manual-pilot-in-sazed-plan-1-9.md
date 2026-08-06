@@ -10,17 +10,16 @@ docs:
   - DESIGN-meshwork.md#§-7-session-integration
   - DESIGN-meshwork.md#§-10-migration   # MW-J3
 created: 2026-08-05
-needs: [mw-der3, mw-a8tv]
+needs: [mw-der3, mw-a8tv, mw-0pj8qgv]
 handoff: |
-  Everything you need is live: v0.1.4 released (7-char ids, docs/meshwork
-  store, add --seq/--docs, meshwork set), pinned install proven end to
-  end, the skill carries the step-by-step. In sazed: pin v0.1.4, init
-  (creates docs/meshwork), import TODO.md and READ the generated diff,
-  wire the SessionStart hook, then delete TODO.md + check-todo.sh +
-  HANDOFF.md in ONE commit — prime is the handoff (DESIGN §7b). The two
-  real work sessions are the acceptance evidence and cannot be delegated;
-  checklist = REQUIREMENTS §4 clauses 1+5, recorded in the sazed commit
-  message.
+  v0.1.4 is TAGGED (74d65e2) but NOT RELEASED — the pilot now needs
+  mw-0pj8qgv, whose blocked-reason carries the exact unblock commands.
+  Everything the pilot wants is in that tag: 7-char ids, docs/meshwork
+  flat store with auto-archive, add --seq/--docs, set verb. Once the
+  release ships: pin v0.1.4, init, import TODO.md and READ the diff, wire
+  the SessionStart hook, delete TODO.md + check-todo.sh + HANDOFF.md in
+  ONE commit. Two real work sessions are the acceptance evidence;
+  checklist = REQUIREMENTS §4 clauses 1+5 in the sazed commit message.
 ---
 
 ## log
