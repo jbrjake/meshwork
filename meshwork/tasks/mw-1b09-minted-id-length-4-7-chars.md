@@ -1,7 +1,7 @@
 ---
 id: mw-1b09
 title: Minted ID length 4 → 7 chars
-status: doing
+status: done
 category: core/id
 verify: "cargo test id::"
 seq: 5
@@ -21,3 +21,4 @@ the new binary. lint --fix re-slug and import inherit via IdGen for free.
 ## log
 - 2026-08-06 created
 - 2026-08-06 open→doing
+- 2026-08-06 doing→done — verify exit 0
