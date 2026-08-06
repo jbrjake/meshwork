@@ -28,9 +28,9 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 
 ## Session ritual
 
-1. Read the Position line in `PLAN-meshwork-build.md`; read that item and its MW/DESIGN refs.
+1. `meshwork prime` (`target/debug/meshwork`; a SessionStart hook in `.claude/settings.json` injects it automatically). Then `meshwork show <ready-id>` and read its `docs:` refs. The PLAN Position line stays in sync until v1 but the store is the live worklist.
 2. Red first: the item's test precedes its code. Golden files change only via `--bless` + a reviewed diff.
-3. An item closes only on its `verify:` exit 0 AND a green `./verify_meshwork.sh` — observed, not predicted.
+3. An item closes only on its `verify:` exit 0 AND a green `./verify_meshwork.sh` — observed, not predicted. Close via `meshwork close <id>` (it runs the verify).
 4. Same commit: flip the item's TRACE.md rows `planned`→`done`, advance the Position line, update `docs/HANDOFF.md` (≤2KB).
 
 ## Hard boundaries

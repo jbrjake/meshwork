@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 1.9 (MANUAL — owner).** (Through 1.8 done 2026-08-04. Self-host LIVE: `meshwork/` initialized (alias mw), 15 tasks = remaining plan items chained with needs so `ready` mirrors this Position line (currently: mw-ntt5, the pilot); gate §8 green — lint clean, prime 82B/6144B. 1.9 is the sazed pilot: owner-driven, cannot be automated from this repo. Post-M1 rule now active: new work files as meshwork tasks, not plan edits.)
+**Position: next = 1.9 (MANUAL — owner).** (Through 1.8 done 2026-08-04. Self-host LIVE: `meshwork/` initialized (alias mw), 15 tasks = remaining plan items chained with needs so `ready` mirrors this Position line (currently: mw-ntt5, the pilot); gate §8 green — lint clean, prime 82B/6144B. 1.9 is the sazed pilot: owner-driven, cannot be automated from this repo. Post-M1 rule now active: new work files as meshwork tasks, not plan edits.) (2026-08-06: 1.9 gained `needs: mw-der3` — per-project pinned distribution via tagged releases, owner ruling; `meshwork ready` shows the live next item.)
 
 ## 1. Bootstrap (B0–B4, first session)
 

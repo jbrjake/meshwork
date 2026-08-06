@@ -6,6 +6,9 @@ category: plan/m3
 needs: [mw-9zrd]
 verify: cargo test e2e::mirror_create
 seq: 80
+docs:
+  - REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H1, MW-H3
+  - DESIGN-meshwork.md#§-8-github-push
 created: 2026-08-05
 ---
 

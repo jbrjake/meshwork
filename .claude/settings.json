@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/target/debug/meshwork prime 2>/dev/null || cargo run -q --manifest-path \"$CLAUDE_PROJECT_DIR\"/Cargo.toml -- prime 2>/dev/null || true",
+            "timeout": 120,
+            "statusMessage": "meshwork prime"
+          }
+        ]
+      }
+    ]
+  }
+}

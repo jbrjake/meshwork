@@ -3,7 +3,7 @@ name = "meshwork"
 version = "0.1.0"
 edition = "2021"
 description = "Task graph as markdown-in-git, queried with SQL, no database. See REQUIREMENTS-meshwork.md."
-license = "MIT OR Apache-2.0"
+license = "MIT"
 publish = false
 
 # Dep posture mirrors sahjhan (MW-J1); serde_yaml_ng replaces archived serde_yaml (REQUIREMENTS J1 decision).

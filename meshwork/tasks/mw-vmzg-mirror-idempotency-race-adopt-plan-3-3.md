@@ -6,6 +6,9 @@ category: plan/m3
 needs: [mw-wm9w]
 verify: cargo test e2e::mirror_idempotent
 seq: 100
+docs:
+  - REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H3
+  - DESIGN-meshwork.md#§-8-github-push
 created: 2026-08-05
 ---
 
