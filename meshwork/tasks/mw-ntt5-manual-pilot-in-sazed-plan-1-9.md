@@ -10,7 +10,7 @@ docs:
   - DESIGN-meshwork.md#§-7-session-integration
   - DESIGN-meshwork.md#§-10-migration   # MW-J3
 created: 2026-08-05
-needs: [mw-der3]
+needs: [mw-der3, mw-a8tv]
 ---
 
 ## log
