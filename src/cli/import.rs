@@ -30,7 +30,7 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
         ));
     }
 
-    let tasks_dir = root.join("meshwork").join("tasks");
+    let tasks_dir = root.join("docs").join("meshwork");
     std::fs::create_dir_all(&tasks_dir).map_err(|e| e.to_string())?;
     let seed = std::env::var("MESHWORK_ID_SEED").ok();
     let mut gen = IdGen::from_seed_str(seed.as_deref());
@@ -44,7 +44,7 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
         let name = format!("{id}-{}.md", slugify(&item.title));
         std::fs::write(tasks_dir.join(&name), file).map_err(|e| e.to_string())?;
         *counts.entry(item.status.as_str()).or_default() += 1;
-        created.push(serde_json::json!({ "id": id, "path": format!("meshwork/tasks/{name}") }));
+        created.push(serde_json::json!({ "id": id, "path": format!("docs/meshwork/{name}") }));
     }
 
     if json {

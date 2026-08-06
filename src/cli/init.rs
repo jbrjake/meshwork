@@ -5,8 +5,10 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
-/// Files `init` writes, relative to the repo root.
-const GITATTRIBUTES: &str = "tasks/*.md merge=union\n";
+/// Files `init` writes, relative to the repo root. The store is flat —
+/// task files live in `docs/meshwork/` itself (mw-acgp), so the union
+/// attribute anchors to the store dir (`/*.md`, gitignore-style).
+const GITATTRIBUTES: &str = "/*.md merge=union\n";
 const CACHE_GITIGNORE: &str = "*\n!.gitignore\n";
 
 pub(crate) fn run(json: bool) -> Result<(), String> {
@@ -18,7 +20,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
                 .to_string(),
         );
     };
-    let mw = root.join("meshwork");
+    let mw = root.join("docs").join("meshwork");
     if mw.join("config.toml").exists() {
         return Err(format!(
             "already initialized: {} exists",
@@ -40,11 +42,10 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     config.push_str("# [hierarchy]\n# levels = [\"saga\", \"epic\", \"sprint\", \"story\"]\n");
 
     let created = [
-        ("meshwork/config.toml", Some(config.as_str())),
-        ("meshwork/.gitattributes", Some(GITATTRIBUTES)),
-        ("meshwork/.cache/.gitignore", Some(CACHE_GITIGNORE)),
-        ("meshwork/tasks", None),
-        ("meshwork/attachments", None),
+        ("docs/meshwork/config.toml", Some(config.as_str())),
+        ("docs/meshwork/.gitattributes", Some(GITATTRIBUTES)),
+        ("docs/meshwork/.cache/.gitignore", Some(CACHE_GITIGNORE)),
+        ("docs/meshwork/attachments", None),
     ];
     for (rel, content) in created {
         let path = root.join(rel);
@@ -74,7 +75,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
             println!("  {rel}");
         }
         println!(
-            "edit meshwork/config.toml (alias `{alias}`) before the first `add`, then commit."
+            "edit docs/meshwork/config.toml (alias `{alias}`) before the first `add`, then commit."
         );
     }
     Ok(())

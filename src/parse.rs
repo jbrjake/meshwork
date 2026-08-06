@@ -78,7 +78,7 @@ pub struct Task {
     pub verify: Option<String>,
     /// Repo-relative doc links with optional `#§-anchors` (MW-F1).
     pub docs: Vec<String>,
-    /// Repo-relative attachment paths under `meshwork/attachments/` (MW-K2).
+    /// Repo-relative attachment paths under `docs/meshwork/attachments/` (MW-K2).
     pub attachments: Vec<String>,
     /// Per-repo order weight; portfolio overlay supersedes (MW-G4).
     pub seq: Option<i64>,

@@ -25,12 +25,12 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
         return Err("show --docs lands at M4 (PLAN 4.1); plain `show` is complete".into());
     }
     let root = crate::cli::require_store_root()?;
-    let tasks_dir = root.join("meshwork").join("tasks");
+    let tasks_dir = root.join("docs").join("meshwork");
     let Some(path) = find_task_file(&tasks_dir, &args.id) else {
         return Err(format!("{} not found in {}", args.id, tasks_dir.display()));
     };
     let rel = format!(
-        "meshwork/tasks/{}",
+        "docs/meshwork/{}",
         path.file_name().unwrap_or_default().to_string_lossy()
     );
 

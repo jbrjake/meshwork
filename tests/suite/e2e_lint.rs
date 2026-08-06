@@ -59,7 +59,7 @@ fn lint_broken_corpus() {
     assert!(un10.contains("lint --fix"), "repair logged: {un10}");
 
     // Exactly one ax-dup1 file remains; the other carries a fresh id.
-    let dup_files: Vec<_> = std::fs::read_dir(repo.join("meshwork/tasks"))
+    let dup_files: Vec<_> = std::fs::read_dir(repo.join("docs/meshwork"))
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .filter(|n| n.starts_with("ax-dup1-"))

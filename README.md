@@ -34,7 +34,7 @@ None of this is hypothetical.
 
 One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
-> Every terminal transcript below is pasted from a real run of the released binary, with two exceptions queued in the store: v0.1.x still keeps its store at `meshwork/tasks/` (the `docs/meshwork/` layout shown here is landing), and the field-setter surface (`--seq` on `add`, `meshwork set`) isn't shipped yet.
+> Every terminal transcript below is pasted from a real run of the released binary, with one exception queued in the store: the field-setter surface (`--seq` on `add`, `meshwork set`) isn't shipped yet.
 
 ---
 

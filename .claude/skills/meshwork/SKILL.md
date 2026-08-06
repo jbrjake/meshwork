@@ -5,7 +5,7 @@ description: Use meshwork — the portfolio task tracker (markdown task files in
 
 # meshwork
 
-Task graph as markdown-with-frontmatter files under `meshwork/tasks/`, one file
+Task graph as markdown-with-frontmatter files under `docs/meshwork/`, one file
 per task. Single Rust binary, zero config, zero network. `meshwork` below means
 the repo's pinned binary: `~/.meshwork/versions/$(cat .meshwork-version)/meshwork`.
 

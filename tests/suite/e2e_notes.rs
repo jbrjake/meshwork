@@ -47,13 +47,13 @@ fn comment_attach() {
     assert!(text.contains("\n  second line detail"), "continuation: {text}");
 
     // No author anywhere → loud error naming the chain.
-    let mut config = std::fs::read_to_string(repo.join("meshwork/config.toml")).unwrap();
+    let mut config = std::fs::read_to_string(repo.join("docs/meshwork/config.toml")).unwrap();
     config = config
         .lines()
         .filter(|l| !l.starts_with("default_author"))
         .collect::<Vec<_>>()
         .join("\n");
-    std::fs::write(repo.join("meshwork/config.toml"), config).unwrap();
+    std::fs::write(repo.join("docs/meshwork/config.toml"), config).unwrap();
     meshwork(&repo)
         .args(["comment", &id, "authorless"])
         .assert()
@@ -69,7 +69,7 @@ fn comment_attach() {
         .assert()
         .success();
     let rel = format!("attachments/{id}/p99-excerpt.log");
-    assert!(repo.join("meshwork").join(&rel).is_file());
+    assert!(repo.join("docs").join("meshwork").join(&rel).is_file());
     let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
     assert!(text.contains(&format!("attachments: [{rel}]")), "{text}");
 

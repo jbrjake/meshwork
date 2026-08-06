@@ -121,7 +121,7 @@ fn tasks_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
     for store in stores {
         for entry in &store.entries {
             repo.push(store.repo.clone());
-            path.push(format!("meshwork/tasks/{}", entry.file_name));
+            path.push(format!("docs/meshwork/{}", entry.file_name));
             match &entry.parsed {
                 ParsedTask::Valid(t) => {
                     gid.push(store.gid(&t.id));

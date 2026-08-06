@@ -25,7 +25,7 @@ Keywords MUST / SHOULD / MAY per RFC 2119. IDs are stable; cite as `MW-A1`.
 
 ### A. Store
 
-- **MW-A1 (MUST)** Canonical store = one markdown file per task with YAML frontmatter, under `meshwork/tasks/` in the owning repo's git tree. Human-readable, hand-editable in any editor; the tool MUST tolerate and re-validate hand edits. (Backlog.md's concept, our schema.)
+- **MW-A1 (MUST)** Canonical store = one markdown file per task with YAML frontmatter, under `docs/meshwork/` in the owning repo's git tree (flat — task files sit beside the store's config; moved from `meshwork/tasks/` by owner ruling 2026-08-06, mw-acgp; pre-move stores migrate with a `git mv`, nothing else). Human-readable, hand-editable in any editor; the tool MUST tolerate and re-validate hand edits. (Backlog.md's concept, our schema.)
 - **MW-A2 (MUST)** No database. No SQLite, no Dolt, no server, no daemon, no persistent index as source of anything. Queries execute in-memory per invocation (DataFusion `MemTable`, exactly `sahjhan/src/query/mod.rs`). A derived JSONL projection MAY exist as a gitignored, regenerable cache; deleting it is always safe.
 - **MW-A3 (MUST)** No git hooks installed by default; nothing written outside the repo (and the portfolio repo, §G). Explicit lesson from beads' hook-hijack reports.
 - **MW-A4 (MUST)** Task IDs: short repo-prefixed slugs with a random component (e.g. `sz-k7f3x2m`; 7 chars since mw-1b09, owner-ruled 2026-08-06 — earlier 4-char IDs stay legal, length is never validated), collision-checked against local files at creation. Parallel clones share no state and CAN mint the same ID (rare — 32^7 ≈ 34.4B combinations, small unmerged windows — but possible), so `lint` MUST detect duplicate IDs post-merge and `lint --fix` MUST re-slug the side with fewer inbound edges, rewriting same-repo references (cross-repo inbound references are reported, never silently rewritten). Never renumbered, never reused.
@@ -74,7 +74,7 @@ Keywords MUST / SHOULD / MAY per RFC 2119. IDs are stable; cite as `MW-A1`.
 ### K. Comments & attachments (owner correction, rev 2)
 
 - **MW-K1 (MUST)** Append-only comments per task. Each comment carries a date and a **self-professed identity** — a free author string (`jon`, `claude/f10a7561`, …). No accounts, no auth, no verification; identity is a claim, recorded as claimed.
-- **MW-K2 (MUST)** Attachments: arbitrary files (log excerpts, artifacts, images) stored under `meshwork/attachments/<task-id>/` in the repo tree, referenced from task frontmatter and addressable from comments. They live in git like everything else.
+- **MW-K2 (MUST)** Attachments: arbitrary files (log excerpts, artifacts, images) stored under `docs/meshwork/attachments/<task-id>/` in the repo tree, referenced from task frontmatter and addressable from comments. They live in git like everything else.
 - **MW-K3 (SHOULD)** Lint warns on attachments >1MB (suggest excerpting; keep full logs out of git history when a 50-line excerpt carries the signal).
 - **MW-K4 (MUST)** Comments obey §D at read time: default `show` renders the last 3 with a count; `--comments` renders all; the `comments` SQL table exposes everything.
 

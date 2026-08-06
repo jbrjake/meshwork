@@ -41,7 +41,7 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
         );
     }
 
-    let tasks_dir = root.join("meshwork").join("tasks");
+    let tasks_dir = root.join("docs").join("meshwork");
     let seed = std::env::var("MESHWORK_ID_SEED").ok();
     let mut idgen = IdGen::from_seed_str(seed.as_deref());
     let id = mint_unique(&config.alias, &tasks_dir, &mut idgen).map_err(|e| e.to_string())?;
@@ -78,7 +78,7 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     std::fs::write(&path, file).map_err(|e| e.to_string())?;
 
     let rel = format!(
-        "meshwork/tasks/{}",
+        "docs/meshwork/{}",
         path.file_name().unwrap().to_string_lossy()
     );
     if json {

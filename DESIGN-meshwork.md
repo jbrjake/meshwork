@@ -7,12 +7,11 @@ Shape in one paragraph: markdown-with-frontmatter task files in each repo's git 
 ## 1. On-disk layout (per repo)
 
 ```
-meshwork/
-  .gitattributes         # "tasks/*.md merge=union" — committed by init (MW-I1)
+docs/meshwork/           # store root (owner-ruled 2026-08-06, mw-acgp; was meshwork/tasks/ — old stores migrate via git mv)
+  .gitattributes         # "/*.md merge=union" — committed by init (MW-I1); anchored, flat
   config.toml            # repo alias ("sz"), defaults, default_author, mirror opt-in, level names
-  tasks/
-    sz-k7f3-spill-cliff.md
-    sz-a2m9-arrow-seam.md
+  sz-k7f3-spill-cliff.md # task files live flat in the store root — no tasks/ level
+  sz-a2m9-arrow-seam.md
   attachments/
     sz-k7f3/spill-p99.log          # MW-K2; lint warns >1MB (MW-K3)
   .cache/                # gitignored
@@ -71,7 +70,7 @@ Format decisions: status is a single frontmatter line (one-line diffs, MW-I1); `
 
 ## 3. Ingestion pipeline
 
-`discover tasks/*.md → parse frontmatter + tail sections (strict serde model; unknown keys warn, MW-A6) → validate (schema, edge targets, cycles via DFS on needs+parent, anchors, attachment paths) → row projection`. Files that fail to parse are carried as `status: invalid` rows (ID recovered from the filename, error text attached) so they stay visible in every listing and in lint — never silently dropped (MW-I2). The `.cache/tasks.jsonl` projection is keyed on (file count, total bytes, max-mtime); at ≤1K tasks/repo a full reparse is <100ms (MW-C4), so the cache is an optimization, not a dependency — v1 ships without it and reserves the layout.
+`discover docs/meshwork/*.md → parse frontmatter + tail sections (strict serde model; unknown keys warn, MW-A6) → validate (schema, edge targets, cycles via DFS on needs+parent, anchors, attachment paths) → row projection`. Files that fail to parse are carried as `status: invalid` rows (ID recovered from the filename, error text attached) so they stay visible in every listing and in lint — never silently dropped (MW-I2). The `.cache/tasks.jsonl` projection is keyed on (file count, total bytes, max-mtime); at ≤1K tasks/repo a full reparse is <100ms (MW-C4), so the cache is an optimization, not a dependency — v1 ships without it and reserves the layout.
 
 ## 4. Tables (the SQL contract)
 
@@ -105,13 +104,13 @@ ORDER BY coalesce(t.seq, 999999), t.created
 LIMIT 20;
 ```
 
-`d.status IS NULL` = unresolved edge counts as blocking — conservative by rule (MW-G5). Single-repo commands do NOT leave cross-repo targets unresolved when they don't have to: a foreign `repo#id` resolves through the registry with a direct file lookup (`<repo-path>/meshwork/tasks/<id>-*.md` — the ID-prefixed filename exists precisely for this), no full portfolio load; only an unregistered or absent repo yields NULL (MW-B3/G5). `why <id>` walks `needs` transitively and prints the frontier of actually-open blockers with their `blocked_reason`/verify. `tree <id>` walks `parent` downward — at any depth, so a saga→epic→story→task chain renders as a tree without the tool knowing what those words mean (MW-B8). `blocked` lists `status='blocked'` + reason. All verbs share the caps (20 rows; last 3 comments) with `… and N more` (MW-D2).
+`d.status IS NULL` = unresolved edge counts as blocking — conservative by rule (MW-G5). Single-repo commands do NOT leave cross-repo targets unresolved when they don't have to: a foreign `repo#id` resolves through the registry with a direct file lookup (`<repo-path>/docs/meshwork/<id>-*.md` — the ID-prefixed filename exists precisely for this), no full portfolio load; only an unregistered or absent repo yields NULL (MW-B3/G5). `why <id>` walks `needs` transitively and prints the frontier of actually-open blockers with their `blocked_reason`/verify. `tree <id>` walks `parent` downward — at any depth, so a saga→epic→story→task chain renders as a tree without the tool knowing what those words mean (MW-B8). `blocked` lists `status='blocked'` + reason. All verbs share the caps (20 rows; last 3 comments) with `… and N more` (MW-D2).
 
 ## 6. CLI surface (complete for v1 — anything not here is a non-goal)
 
 | verb | does |
 |---|---|
-| `init` | create `meshwork/` + config in a repo |
+| `init` | create `docs/meshwork/` + config in a repo |
 | `add "title" [--cat p] [--label l] [--needs id..] [--parent id] [--from id] [--verify cmd]` | create task file, print id; missing `--verify` = lint warning until set (MW-E2) |
 | `show <id> [--docs] [--comments]` | full task; last-3 comments by default (MW-K4); `--docs` = anchor-scoped excerpts, capped ~4KB/link (bytes, MW-D5/F2) |
 | `comment <id> [--as <author>] "text"` | append comment; `--as` falls back to `$MESHWORK_AUTHOR`, then config `default_author`, else error (MW-K1) |
@@ -236,7 +235,7 @@ House pattern (verify_alpha.sh precedent: numbered sections, one exit 0):
 | 5 | file caps: warn >500, fail >750 lines per source file (house numbers) | ceiling breach |
 | 6 | trace: every MW-* MUST in REQUIREMENTS appears in TRACE.md mapped to a test name that exists in the test binaries | unmapped requirement or phantom test |
 | 7 | perf (owned machines, release build): `ready` cold <100ms at 1K synthetic tasks, portfolio <1s at 20 synthetic repos; N≥7 reps, median (MW-C4) | regression |
-| 8 | self-host (from M1): `meshwork lint` + `meshwork prime` clean on meshwork's own `meshwork/`; prime output ≤6KB measured | dogfood breakage |
+| 8 | self-host (from M1): `meshwork lint` + `meshwork prime` clean on meshwork's own `docs/meshwork/`; prime output ≤6KB measured | dogfood breakage |
 
 No network anywhere in the gate (MW-J6). The live scratch-GitHub drill (REQUIREMENTS §4) is a manual acceptance step outside it.
 
@@ -250,3 +249,4 @@ No network anywhere in the gate (MW-J6). The live scratch-GitHub drill (REQUIREM
 6. **Determinism hooks are env vars**: `MESHWORK_ID_SEED` (id generation), `MESHWORK_TODAY` (clock), `MESHWORK_BLESS` (golden re-bless). Tests and fixtures depend on them; they are contract, not convenience. (Moved from hand-written HANDOFF at its retirement, 2026-08-06.)
 7. **No hand-written handoff docs** (2026-08-06, four review rounds): prime IS the handoff (§7b). Current conditions are always derived; the only authored voice is `handoff:` on up-next tasks. Per-commit messages carry rationale; durable decisions land here in §15.
 8. **Minted ID suffix is 7 chars** (owner-ruled 2026-08-06, mw-1b09; was 4). 32^7 ≈ 34.4B combinations retires the parallel-clone collision worry for any realistic store. Length is a minting rule, not a validation rule: parse accepts any suffix, pre-ruling 4-char IDs are legal forever, and no store migration ever happens for this.
+9. **Store root is `docs/meshwork/`, flat** (owner-ruled 2026-08-06, mw-acgp; was `meshwork/tasks/`). Task files sit beside config.toml — only `.md` files are tasks, so no `tasks/` level earns its path segment. The union attribute anchors to the store dir (`/*.md`). Pre-move stores migrate with a `git mv`, nothing else — the tool never migrates layouts itself.

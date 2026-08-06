@@ -18,7 +18,7 @@ struct TaskFile {
 }
 
 fn read_tasks(repo: &str) -> Vec<TaskFile> {
-    let dir = fixtures_root().join(repo).join("meshwork").join("tasks");
+    let dir = fixtures_root().join(repo).join("docs").join("meshwork");
     let entries =
         fs::read_dir(&dir).unwrap_or_else(|e| panic!("missing corpus dir {}: {e}", dir.display()));
     let mut out = Vec::new();
@@ -327,7 +327,7 @@ fn check_alpha_payloads(tasks: &[TaskFile], missing: &mut Vec<String>) {
                 .map(str::to_string)
                 .collect::<Vec<_>>()
         })
-        .filter_map(|rel| fs::metadata(fixtures_root().join("alpha/meshwork").join(rel)).ok())
+        .filter_map(|rel| fs::metadata(fixtures_root().join("alpha/docs/meshwork").join(rel)).ok())
         .map(|m| m.len())
         .collect();
     need(
@@ -357,14 +357,14 @@ fn check_alpha_payloads(tasks: &[TaskFile], missing: &mut Vec<String>) {
     );
 
     // Cosmetic level names + committed union merge attribute (MW-B8/I1).
-    let config =
-        fs::read_to_string(fixtures_root().join("alpha/meshwork/config.toml")).unwrap_or_default();
+    let config = fs::read_to_string(fixtures_root().join("alpha/docs/meshwork/config.toml"))
+        .unwrap_or_default();
     need(config.contains("levels"), "config.toml [hierarchy] levels");
-    let attrs = fs::read_to_string(fixtures_root().join("alpha/meshwork/.gitattributes"))
+    let attrs = fs::read_to_string(fixtures_root().join("alpha/docs/meshwork/.gitattributes"))
         .unwrap_or_default();
     need(
         attrs.contains("merge=union"),
-        ".gitattributes tasks/*.md merge=union",
+        ".gitattributes /*.md merge=union",
     );
 }
 

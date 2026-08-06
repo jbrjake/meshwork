@@ -20,9 +20,9 @@ fn init_layout() {
         .arg("init")
         .assert()
         .success()
-        .stdout(predicates::str::contains("meshwork/config.toml"));
+        .stdout(predicates::str::contains("docs/meshwork/config.toml"));
 
-    let mw = repo.join("meshwork");
+    let mw = repo.join("docs").join("meshwork");
     let config = std::fs::read_to_string(mw.join("config.toml")).unwrap();
     assert!(config.contains("alias = \"wo\""), "config: {config}");
     assert!(
@@ -31,14 +31,14 @@ fn init_layout() {
     );
     assert_eq!(
         std::fs::read_to_string(mw.join(".gitattributes")).unwrap(),
-        "tasks/*.md merge=union\n",
+        "/*.md merge=union\n",
         "the committed union attr is MW-I1's whole mechanism"
     );
     assert_eq!(
         std::fs::read_to_string(mw.join(".cache/.gitignore")).unwrap(),
         "*\n!.gitignore\n"
     );
-    assert!(mw.join("tasks").is_dir());
+    assert!(!mw.join("tasks").exists(), "flat store: no tasks/ level");
     assert!(mw.join("attachments").is_dir());
 
     // MW-A3: no hooks installed, no hooksPath redirection.
@@ -59,8 +59,8 @@ fn init_from_subdir_writes_at_root() {
     let sub = repo.join("src/deep");
     std::fs::create_dir_all(&sub).unwrap();
     meshwork(&sub).arg("init").assert().success();
-    assert!(repo.join("meshwork/config.toml").is_file());
-    assert!(!sub.join("meshwork").exists());
+    assert!(repo.join("docs/meshwork/config.toml").is_file());
+    assert!(!sub.join("docs").join("meshwork").exists());
 }
 
 /// MW-A3: refuses to write anywhere that isn't a git repo.
@@ -72,7 +72,7 @@ fn init_refuses_outside_git_repo() {
         .assert()
         .failure()
         .stderr(predicates::str::contains("git repo"));
-    assert!(!dir.path().join("meshwork").exists());
+    assert!(!dir.path().join("docs").join("meshwork").exists());
 }
 
 /// Re-running init must not clobber an existing store.
@@ -81,7 +81,7 @@ fn init_twice_refuses() {
     let (_g, repo) = git_repo("work");
     meshwork(&repo).arg("init").assert().success();
     std::fs::write(
-        repo.join("meshwork/config.toml"),
+        repo.join("docs/meshwork/config.toml"),
         "alias = \"xx\"\n", // hand-edited; init must not overwrite
     )
     .unwrap();
@@ -90,7 +90,7 @@ fn init_twice_refuses() {
         .assert()
         .failure()
         .stderr(predicates::str::contains("already"));
-    let config = std::fs::read_to_string(repo.join("meshwork/config.toml")).unwrap();
+    let config = std::fs::read_to_string(repo.join("docs/meshwork/config.toml")).unwrap();
     assert!(config.contains("xx"), "hand-edited config untouched");
 }
 
@@ -142,7 +142,7 @@ fn add_show_roundtrip() {
     );
 
     // File on disk, filename = <id>-<slug>.md, fields verbatim.
-    let path = repo.join(format!("meshwork/tasks/{id}-fix-the-spill-cliff.md"));
+    let path = repo.join(format!("docs/meshwork/{id}-fix-the-spill-cliff.md"));
     let text = std::fs::read_to_string(&path).unwrap();
     assert!(text.contains(&format!("id: {id}")), "{text}");
     assert!(text.contains("status: open"));
@@ -206,7 +206,7 @@ fn show_caps() {
         .assert()
         .success();
     let id = stdout_of(&out).lines().next().unwrap().to_string();
-    let path = repo.join("meshwork/tasks");
+    let path = repo.join("docs/meshwork");
     let file = std::fs::read_dir(&path)
         .unwrap()
         .map(|e| e.unwrap().path())
@@ -439,7 +439,7 @@ fn close_gating() {
                 "add",
                 "Passes verify",
                 "--verify",
-                "test -f meshwork/config.toml",
+                "test -f docs/meshwork/config.toml",
             ])
             .assert()
             .success(),
@@ -510,4 +510,36 @@ fn show_unknown_id_fails() {
         .assert()
         .failure()
         .stderr(predicates::str::contains("wo-zzzz"));
+}
+
+/// mw-acgp (README spec, owner-ruled): the store root is `docs/meshwork/`,
+/// flat — config, attributes, cache, attachments, and task files all live
+/// there directly; no `tasks/` level. `add` echoes the real path.
+#[test]
+fn store_at_docs_meshwork() {
+    let (_g, repo) = git_repo("work");
+    meshwork(&repo)
+        .arg("init")
+        .assert()
+        .success()
+        .stdout(predicates::str::contains("docs/meshwork/config.toml"));
+    let store = repo.join("docs/meshwork");
+    assert!(store.join("config.toml").exists());
+    assert!(store.join(".cache/.gitignore").exists());
+    assert!(store.join("attachments").exists());
+    assert!(!repo.join("meshwork").exists(), "old root must not appear");
+    assert!(!store.join("tasks").exists(), "flat: no tasks/ level");
+    // union-merge attribute anchored to the store dir itself (flat *.md)
+    let attrs = std::fs::read_to_string(store.join(".gitattributes")).unwrap();
+    assert!(attrs.contains("/*.md merge=union"), "{attrs}");
+
+    let out = meshwork(&repo)
+        .args(["add", "Flat store", "--verify", "true"])
+        .assert()
+        .success();
+    let stdout = stdout_of(&out);
+    let id = stdout.lines().next().unwrap().to_string();
+    let echoed = stdout.lines().nth(1).unwrap().trim().to_string();
+    assert_eq!(echoed, format!("docs/meshwork/{id}-flat-store.md"));
+    assert!(repo.join(&echoed).exists(), "file at echoed path");
 }

@@ -37,7 +37,7 @@ pub(crate) fn run(args: &DepArgs, json: bool) -> Result<(), String> {
         DepAction::Rm(e) => (e, false),
     };
     let root = crate::cli::require_store_root()?;
-    let tasks_dir = root.join("meshwork").join("tasks");
+    let tasks_dir = root.join("docs").join("meshwork");
     let Some(path) = find_task_file(&tasks_dir, &edge.a) else {
         return Err(format!("{} not found", edge.a));
     };

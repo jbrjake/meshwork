@@ -19,7 +19,7 @@ pub(crate) struct CloseArgs {
 
 pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
-    let tasks_dir = root.join("meshwork").join("tasks");
+    let tasks_dir = root.join("docs").join("meshwork");
     let Some(path) = find_task_file(&tasks_dir, &args.id) else {
         return Err(format!("{} not found in {}", args.id, tasks_dir.display()));
     };

@@ -10,8 +10,8 @@ use std::path::{Path, PathBuf};
 /// (invalid rows), not errors.
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
-    /// The directory has no `meshwork/config.toml`.
-    #[error("not a meshwork store: {0} (missing meshwork/config.toml — run `meshwork init`)")]
+    /// The directory has no `docs/meshwork/config.toml`.
+    #[error("not a meshwork store: {0} (missing docs/meshwork/config.toml — run `meshwork init`)")]
     NotAStore(PathBuf),
     /// Filesystem failure walking the store.
     #[error("reading store: {0}")]
@@ -26,7 +26,7 @@ pub enum StoreError {
     },
 }
 
-/// `meshwork/config.toml` (DESIGN §1). Unknown keys are ignored by serde —
+/// `docs/meshwork/config.toml` (DESIGN §1). Unknown keys are ignored by serde —
 /// config is not the strict surface task files are.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -54,7 +54,7 @@ pub struct Hierarchy {
 /// One task file: name + parse outcome, in filename order.
 #[derive(Debug, Clone)]
 pub struct TaskEntry {
-    /// File name within `meshwork/tasks/`.
+    /// File name within `docs/meshwork/`.
     pub file_name: String,
     /// Parse outcome (valid task or loud invalid).
     pub parsed: ParsedTask,
@@ -85,10 +85,10 @@ impl RepoStore {
 /// Load just the config of a store.
 ///
 /// # Errors
-/// [`StoreError::NotAStore`] when `meshwork/config.toml` is missing,
+/// [`StoreError::NotAStore`] when `docs/meshwork/config.toml` is missing,
 /// [`StoreError::BadConfig`] when it doesn't parse.
 pub fn load_config(root: &Path) -> Result<Config, StoreError> {
-    let config_path = root.join("meshwork").join("config.toml");
+    let config_path = root.join("docs").join("meshwork").join("config.toml");
     let config_text = match std::fs::read_to_string(&config_path) {
         Ok(text) => text,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -105,14 +105,14 @@ pub fn load_config(root: &Path) -> Result<Config, StoreError> {
 /// Load a repo's store from its root directory.
 ///
 /// # Errors
-/// [`StoreError::NotAStore`] when `meshwork/config.toml` is missing,
+/// [`StoreError::NotAStore`] when `docs/meshwork/config.toml` is missing,
 /// [`StoreError::BadConfig`] when it doesn't parse, or I/O failures walking
-/// `meshwork/tasks/`. Task-file parse failures never error — they load as
+/// `docs/meshwork/`. Task-file parse failures never error — they load as
 /// invalid entries (MW-I2).
 pub fn load_repo(root: &Path) -> Result<RepoStore, StoreError> {
     let config = load_config(root)?;
     let repo = repo_name(root);
-    let tasks_dir = root.join("meshwork").join("tasks");
+    let tasks_dir = root.join("docs").join("meshwork");
     let mut entries = Vec::new();
     match std::fs::read_dir(&tasks_dir) {
         Ok(dir) => {

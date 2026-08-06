@@ -84,7 +84,12 @@ pub(crate) fn require_store_root() -> Result<PathBuf, String> {
     let Some(root) = crate::store::find_git_root(&cwd) else {
         return Err("not inside a git repo (MW-A3)".to_string());
     };
-    if !root.join("meshwork").join("config.toml").exists() {
+    if !root
+        .join("docs")
+        .join("meshwork")
+        .join("config.toml")
+        .exists()
+    {
         return Err(format!(
             "no meshwork store at {} — run `meshwork init`",
             root.display()

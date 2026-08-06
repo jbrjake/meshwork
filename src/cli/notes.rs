@@ -1,6 +1,6 @@
 //! `comment` + `attach` (PLAN 1.4; MW-K1–K3). Comments are append-only
 //! with self-professed identity, recorded as claimed; attachments live in
-//! git under `meshwork/attachments/<id>/` and are referenced from
+//! git under `docs/meshwork/attachments/<id>/` and are referenced from
 //! frontmatter. Excerpt-first: lint warns past 1MB.
 
 use crate::edit::{append_section_entry, set_list};
@@ -24,7 +24,7 @@ pub(crate) struct CommentArgs {
 pub(crate) struct AttachArgs {
     /// Task id.
     id: String,
-    /// File to copy into meshwork/attachments/<id>/.
+    /// File to copy into docs/meshwork/attachments/<id>/.
     path: PathBuf,
     /// Overwrite an existing attachment of the same name.
     #[arg(long)]
@@ -33,7 +33,7 @@ pub(crate) struct AttachArgs {
 
 pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
-    let tasks_dir = root.join("meshwork").join("tasks");
+    let tasks_dir = root.join("docs").join("meshwork");
     let Some(path) = find_task_file(&tasks_dir, &args.id) else {
         return Err(format!("{} not found", args.id));
     };
@@ -50,7 +50,7 @@ pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
                 .default_author
                 .ok_or(
                     "no author: use --as <author>, set MESHWORK_AUTHOR, or add \
-                     default_author to meshwork/config.toml (MW-K1)",
+                     default_author to docs/meshwork/config.toml (MW-K1)",
                 )?,
         },
     };
@@ -78,7 +78,7 @@ pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
 
 pub(crate) fn attach(args: &AttachArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
-    let tasks_dir = root.join("meshwork").join("tasks");
+    let tasks_dir = root.join("docs").join("meshwork");
     let Some(task_path) = find_task_file(&tasks_dir, &args.id) else {
         return Err(format!("{} not found", args.id));
     };
@@ -101,7 +101,11 @@ pub(crate) fn attach(args: &AttachArgs, json: bool) -> Result<(), String> {
         .to_string_lossy()
         .into_owned();
 
-    let dest_dir = root.join("meshwork").join("attachments").join(&args.id);
+    let dest_dir = root
+        .join("docs")
+        .join("meshwork")
+        .join("attachments")
+        .join(&args.id);
     let dest = dest_dir.join(&name);
     if dest.exists() && !args.force {
         return Err(format!(

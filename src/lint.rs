@@ -313,8 +313,8 @@ fn check_budgets(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
     for entry in &store.entries {
         let path = store
             .root
+            .join("docs")
             .join("meshwork")
-            .join("tasks")
             .join(&entry.file_name);
         if let Ok(meta) = std::fs::metadata(&path) {
             if meta.len() > FILE_BUDGET {
@@ -347,7 +347,7 @@ fn check_budgets(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
             ));
         }
         for rel in &t.attachments {
-            let path = store.root.join("meshwork").join(rel);
+            let path = store.root.join("docs").join("meshwork").join(rel);
             match std::fs::metadata(&path) {
                 Err(_) => out.push(finding(
                     Severity::Warning,

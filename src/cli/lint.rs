@@ -85,8 +85,8 @@ fn fix_duplicate_keys(store: &RepoStore) -> Result<usize, String> {
         }
         let path = store
             .root
+            .join("docs")
             .join("meshwork")
-            .join("tasks")
             .join(&entry.file_name);
         let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
         let Some((repaired, dropped)) = drop_duplicate_keys(&text) else {
@@ -143,7 +143,7 @@ fn drop_duplicate_keys(text: &str) -> Option<(String, Vec<String>)> {
 /// to it — later sides get fresh ids. Inbound refs are reported, since no
 /// file content can say which side a reference meant.
 fn fix_duplicate_ids(store: &RepoStore) -> Result<usize, String> {
-    let tasks_dir = store.root.join("meshwork").join("tasks");
+    let tasks_dir = store.root.join("docs").join("meshwork");
     let today = crate::clock::today();
     let seed = std::env::var("MESHWORK_ID_SEED").ok();
     let mut gen = IdGen::from_seed_str(seed.as_deref());

@@ -4,7 +4,7 @@
 /// Write a minimal open task file directly — the rollup-cap scenario needs
 /// exact categories and seqs, which `add` doesn't expose.
 fn write_rollup_task(repo: &Path, id: &str, cat: &str, seq: i64) {
-    let path = repo.join("meshwork/tasks").join(format!("{id}-t.md"));
+    let path = repo.join("docs/meshwork").join(format!("{id}-t.md"));
     std::fs::write(
         path,
         format!(

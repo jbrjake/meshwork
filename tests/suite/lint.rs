@@ -45,13 +45,13 @@ fn parent_crossrepo_error() {
 #[test]
 fn description_size_warn() {
     let dir = tempfile::tempdir().unwrap();
-    let mw = dir.path().join("repo/meshwork");
-    std::fs::create_dir_all(mw.join("tasks")).unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
     std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
     let big = "long design narrative that belongs behind docs: links. ".repeat(60);
     assert!(big.len() > 2048);
     std::fs::write(
-        mw.join("tasks/zz-big1-oversized.md"),
+        mw.join("zz-big1-oversized.md"),
         format!("---\nid: zz-big1\ntitle: Oversized\nstatus: open\nverify: \"true\"\n---\n{big}\n"),
     )
     .unwrap();
@@ -77,16 +77,16 @@ fn attachment_size_warn() {
 #[test]
 fn parent_rollup_warn() {
     let dir = tempfile::tempdir().unwrap();
-    let mw = dir.path().join("repo/meshwork");
-    std::fs::create_dir_all(mw.join("tasks")).unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
     std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
     std::fs::write(
-        mw.join("tasks/zz-par1-parent.md"),
+        mw.join("zz-par1-parent.md"),
         "---\nid: zz-par1\ntitle: Parent\nstatus: done\nverify: \"true\"\n---\nx\n",
     )
     .unwrap();
     std::fs::write(
-        mw.join("tasks/zz-chd1-child.md"),
+        mw.join("zz-chd1-child.md"),
         "---\nid: zz-chd1\ntitle: Child\nstatus: open\nparent: zz-par1\nverify: \"true\"\n---\nx\n",
     )
     .unwrap();
@@ -112,16 +112,16 @@ fn alpha_corpus_error_free() {
 #[test]
 fn handoff_on_done_warn() {
     let dir = tempfile::tempdir().unwrap();
-    let mw = dir.path().join("repo/meshwork");
-    std::fs::create_dir_all(mw.join("tasks")).unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
     std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
     std::fs::write(
-        mw.join("tasks/zz-old1-finished.md"),
+        mw.join("zz-old1-finished.md"),
         "---\nid: zz-old1\ntitle: Finished\nstatus: done\nverify: \"true\"\nhandoff: |\n  stale voice from a past session\n---\nx\n",
     )
     .unwrap();
     std::fs::write(
-        mw.join("tasks/zz-nxt1-upnext.md"),
+        mw.join("zz-nxt1-upnext.md"),
         "---\nid: zz-nxt1\ntitle: Up next\nstatus: open\nverify: \"true\"\nhandoff: |\n  live voice — legal on an open task\n---\nx\n",
     )
     .unwrap();

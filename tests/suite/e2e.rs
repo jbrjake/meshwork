@@ -46,7 +46,7 @@ fn stdout_of(assert: &assert_cmd::assert::Assert) -> String {
 }
 
 fn task_file(repo: &Path, id: &str) -> std::path::PathBuf {
-    std::fs::read_dir(repo.join("meshwork/tasks"))
+    std::fs::read_dir(repo.join("docs/meshwork"))
         .unwrap()
         .map(|e| e.unwrap().path())
         .find(|p| {

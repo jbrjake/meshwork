@@ -198,10 +198,11 @@ fn import_todo_golden() {
     assert!(out.contains("5 imported"), "{out}");
 
     // Byte-stable task set (seeded ids + fixed date) → one golden blob.
-    let tasks_dir = repo.join("meshwork/tasks");
+    let tasks_dir = repo.join("docs/meshwork");
     let mut names: Vec<String> = std::fs::read_dir(&tasks_dir)
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|n| n.ends_with(".md")) // flat store: skip config/attrs
         .collect();
     names.sort();
     let mut blob = String::new();
@@ -352,7 +353,7 @@ fn cache_delete_safe() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
     let id = add_task(&repo, "Cacheless");
-    std::fs::remove_dir_all(repo.join("meshwork/.cache")).unwrap();
+    std::fs::remove_dir_all(repo.join("docs/meshwork/.cache")).unwrap();
     meshwork(&repo).arg("ready").assert().success();
     meshwork(&repo).args(["show", &id]).assert().success();
     meshwork(&repo).arg("lint").assert().success();

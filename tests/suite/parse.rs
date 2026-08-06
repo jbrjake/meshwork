@@ -197,8 +197,13 @@ fn corpus_parses_as_planted() {
     use meshwork::parse::parse_task_file;
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("fixtures");
     for repo in ["alpha", "beta"] {
-        for entry in std::fs::read_dir(root.join(repo).join("meshwork/tasks")).unwrap() {
+        for entry in std::fs::read_dir(root.join(repo).join("docs/meshwork")).unwrap() {
             let path = entry.unwrap().path();
+            // Flat store (mw-acgp): config/attributes live beside tasks;
+            // only .md files are task files, same filter as the loader.
+            if path.extension().is_none_or(|x| x != "md") {
+                continue;
+            }
             match parse_task_file(&path) {
                 ParsedTask::Valid(t) => assert!(
                     t.warnings.is_empty(),
@@ -213,8 +218,12 @@ fn corpus_parses_as_planted() {
         }
     }
     let mut invalid_ids = Vec::new();
-    for entry in std::fs::read_dir(root.join("alpha-broken/meshwork/tasks")).unwrap() {
-        if let ParsedTask::Invalid(inv) = parse_task_file(&entry.unwrap().path()) {
+    for entry in std::fs::read_dir(root.join("alpha-broken/docs/meshwork")).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension().is_none_or(|x| x != "md") {
+            continue;
+        }
+        if let ParsedTask::Invalid(inv) = parse_task_file(&path) {
             invalid_ids.push(inv.id);
         }
     }

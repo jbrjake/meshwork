@@ -77,7 +77,7 @@ fn transition(
     json: bool,
 ) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
-    let tasks_dir = root.join("meshwork").join("tasks");
+    let tasks_dir = root.join("docs").join("meshwork");
     let Some(path) = find_task_file(&tasks_dir, id) else {
         return Err(format!("{id} not found in {}", tasks_dir.display()));
     };

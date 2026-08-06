@@ -3,7 +3,7 @@
 Prerequisite: the pinned binary is installed (`install.md`). Every `meshwork`
 below means that pinned binary.
 
-1. `meshwork init` — creates `meshwork/` + config. It never installs git hooks
+1. `meshwork init` — creates `docs/meshwork/` + config. It never installs git hooks
    and never writes outside the repo.
 2. If the repo has a TODO.md: `meshwork import todo TODO.md` — checkboxes
    become task files. Review every generated file before committing (import is
@@ -26,7 +26,7 @@ below means that pinned binary.
    Prove it fired: `claude -p "Without tools: quote the first line the
    session-start hook injected"` — expect the `meshwork — N open` digest.
 4. Retire the old ritual **in the same commit**: delete TODO.md (its content
-   now lives in `meshwork/`), delete check-todo.sh and any references to it,
+   now lives in `docs/meshwork/`), delete check-todo.sh and any references to it,
    and DELETE HANDOFF.md outright — `prime` is the handoff (meshwork DESIGN
    §7b). Two task systems is worse than one; a hand-written handoff is a
    second one.
