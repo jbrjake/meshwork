@@ -1,7 +1,7 @@
 ---
 id: mw-tb6gdr9
 title: Agent work claiming (beads --claim analogue)
-status: doing
+status: done
 category: core/lifecycle
 verify: cargo test e2e::claim
 seq: 240
@@ -30,3 +30,4 @@ rule.
 ## log
 - 2026-08-06 created
 - 2026-08-06 open→doing
+- 2026-08-06 doing→done — verify exit 0

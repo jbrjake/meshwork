@@ -114,12 +114,16 @@ fn rollup<'a>(tasks: &[&'a Task]) -> (Vec<(&'a str, i64, usize)>, Option<String>
 fn weather_lines(tasks: &[&Task], ready_ids: &BTreeSet<&str>) -> Vec<String> {
     let mut out = Vec::new();
     for t in tasks.iter().filter(|t| t.status == Status::Doing) {
+        let claim = t
+            .claimed_by
+            .as_deref()
+            .map_or(String::new(), |c| format!(" [claimed: {c}]"));
         let tail = t
             .log
             .last()
             .map_or(String::new(), |l| format!(" \u{2014} {l}"));
         out.push(clamp_bytes(
-            &format!("- doing {} {}{}", t.id, t.title, tail),
+            &format!("- doing {} {}{claim}{}", t.id, t.title, tail),
             LINE_CLAMP,
         ));
     }

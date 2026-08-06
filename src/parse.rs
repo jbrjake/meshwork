@@ -88,6 +88,10 @@ pub struct Task {
     pub created: Option<String>,
     /// Required non-empty iff status is `blocked` (MW-E1; lint enforces).
     pub blocked_reason: Option<String>,
+    /// Advisory claimant while doing/blocked — self-professed via the MW-K1
+    /// chain, set by `start`, released by close/drop/reopen (mw-tb6gdr9).
+    /// Never a lock; post-merge double-claims are lint's business.
+    pub claimed_by: Option<String>,
     /// Waive reason recorded by `close --waive` — loud and queryable (MW-E2).
     pub waived: Option<String>,
     /// Outgoing session's color commentary to the incoming one — the only
@@ -157,6 +161,8 @@ struct Frontmatter {
     created: Option<String>,
     #[serde(default, rename = "blocked-reason")]
     blocked_reason: Option<String>,
+    #[serde(default, rename = "claimed-by")]
+    claimed_by: Option<String>,
     #[serde(default)]
     waived: Option<String>,
     #[serde(default)]
@@ -181,6 +187,7 @@ const KNOWN_KEYS: &[&str] = &[
     "github",
     "created",
     "blocked-reason",
+    "claimed-by",
     "waived",
     "handoff",
 ];
@@ -249,6 +256,7 @@ pub fn parse_task_str(file_name: &str, text: &str) -> ParsedTask {
         github: fm.github,
         created: fm.created,
         blocked_reason: fm.blocked_reason,
+        claimed_by: fm.claimed_by,
         waived: fm.waived,
         handoff: fm.handoff,
         description,

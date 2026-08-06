@@ -47,8 +47,9 @@ enum Cmd {
     Comment(notes::CommentArgs),
     /// Copy a file into attachments/<id>/ and record it.
     Attach(notes::AttachArgs),
-    /// open → doing.
-    Start(transition::IdArg),
+    /// open → doing; records an advisory claimed-by: when an identity
+    /// resolves (MW-K1 chain via --as; mw-tb6gdr9).
+    Start(transition::StartArgs),
     /// open|doing → blocked; demands --reason.
     Block(transition::BlockArgs),
     /// open|doing|blocked → dropped (recorded, never deleted).

@@ -84,6 +84,7 @@ fn render_text(t: &Task, rel: &str, shown_from: usize) {
     kv("created", t.created.clone());
     kv("github", t.github.map(|n| format!("#{n}")));
     kv("blocked-reason", t.blocked_reason.clone());
+    kv("claimed-by", t.claimed_by.clone());
     kv("waived", t.waived.clone());
     for d in &t.docs {
         println!("doc: {d}");
@@ -145,7 +146,7 @@ fn emit_json(t: &Task, rel: &str, shown_from: usize) {
             "relates": t.relates, "verify": t.verify, "docs": t.docs,
             "attachments": t.attachments, "seq": t.seq, "github": t.github,
             "created": t.created, "blocked_reason": t.blocked_reason,
-            "waived": t.waived, "handoff": t.handoff,
+            "claimed_by": t.claimed_by, "waived": t.waived, "handoff": t.handoff,
             "description": t.description, "log": t.log,
             "comments": { "total": t.comments.len(), "shown": shown },
             "path": rel, "warnings": t.warnings,

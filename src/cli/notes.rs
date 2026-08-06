@@ -31,6 +31,35 @@ pub(crate) struct AttachArgs {
     force: bool,
 }
 
+/// The MW-K1 identity chain: explicit flag → `$MESHWORK_AUTHOR` → config
+/// `default_author` → None. Callers decide whether None is an error
+/// (`comment`) or just no claim (`start`, mw-tb6gdr9).
+pub(crate) fn resolve_author(
+    root: &std::path::Path,
+    flag: Option<&str>,
+) -> Result<Option<String>, String> {
+    let author = match flag {
+        Some(a) => Some(a.to_string()),
+        None => match std::env::var("MESHWORK_AUTHOR")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+        {
+            Some(a) => Some(a.trim().to_string()),
+            None => {
+                crate::store::load_config(root)
+                    .map_err(|e| e.to_string())?
+                    .default_author
+            }
+        },
+    };
+    if let Some(a) = &author {
+        if a.contains(']') || a.contains('\n') {
+            return Err("author must not contain `]` or newlines — it delimits the format".into());
+        }
+    }
+    Ok(author)
+}
+
 pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
@@ -38,25 +67,10 @@ pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
         return Err(format!("{} not found", args.id));
     };
 
-    let author = match &args.author {
-        Some(a) => a.clone(),
-        None => match std::env::var("MESHWORK_AUTHOR")
-            .ok()
-            .filter(|v| !v.trim().is_empty())
-        {
-            Some(a) => a.trim().to_string(),
-            None => crate::store::load_config(&root)
-                .map_err(|e| e.to_string())?
-                .default_author
-                .ok_or(
-                    "no author: use --as <author>, set MESHWORK_AUTHOR, or add \
-                     default_author to docs/meshwork/config.toml (MW-K1)",
-                )?,
-        },
-    };
-    if author.contains(']') || author.contains('\n') {
-        return Err("author must not contain `]` or newlines — it delimits the format".into());
-    }
+    let author = resolve_author(&root, args.author.as_deref())?.ok_or(
+        "no author: use --as <author>, set MESHWORK_AUTHOR, or add \
+         default_author to docs/meshwork/config.toml (MW-K1)",
+    )?;
 
     let today = crate::clock::today();
     let text_flat = args.text.replace('\r', "");

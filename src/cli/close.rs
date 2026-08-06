@@ -2,7 +2,7 @@
 //! repo root, record exit + date in the log, close on exit 0 only.
 //! `--waive` skips the check but is recorded — loud and queryable.
 
-use crate::edit::{append_section_entry, set_scalar};
+use crate::edit::{append_section_entry, remove_scalar, set_scalar};
 use crate::parse::{parse_task_file, ParsedTask, Status};
 use crate::store::find_task_file;
 use crate::write::yaml_scalar;
@@ -44,8 +44,19 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
     let from = task.status.as_str();
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
 
+    // Actually closing releases the claim; a failed verify keeps it —
+    // the task is still someone's claimed work (mw-tb6gdr9).
+    let release_claim = |t: &str| -> Result<String, String> {
+        if task.claimed_by.is_some() {
+            remove_scalar(t, "claimed-by")
+        } else {
+            Ok(t.to_string())
+        }
+    };
+
     if let Some(reason) = &args.waive {
-        let out = set_scalar(&text, "status", Some("done"))?;
+        let out = release_claim(&text)?;
+        let out = set_scalar(&out, "status", Some("done"))?;
         let out = set_scalar(&out, "waived", Some(&yaml_scalar(reason)))?;
         let out = append_section_entry(
             &out,
@@ -87,7 +98,8 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
     }
 
     if exit == 0 {
-        let out = set_scalar(&text, "status", Some("done"))?;
+        let out = release_claim(&text)?;
+        let out = set_scalar(&out, "status", Some("done"))?;
         let out =
             append_section_entry(&out, "log", &format!("{today} {from}→done — verify exit 0"));
         std::fs::write(&path, out).map_err(|e| e.to_string())?;

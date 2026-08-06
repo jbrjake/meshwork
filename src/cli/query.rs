@@ -29,7 +29,7 @@ const LISTING_CAP: usize = 20;
 /// cap is applied at render time because the `… and N more` marker needs
 /// the true total (MW-D2). Semantics are otherwise verbatim.
 pub(crate) const READY_SQL: &str = "\
-SELECT t.id, t.title FROM tasks t
+SELECT t.id, t.title, t.claimed_by FROM tasks t
 WHERE t.status = 'open'
   AND NOT EXISTS (
     SELECT 1 FROM edges e
@@ -93,7 +93,10 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
     if json {
         let shown: Vec<_> = rows[..cap]
             .iter()
-            .map(|r| serde_json::json!({ "id": r[0], "title": r[1] }))
+            .map(|r| {
+                serde_json::json!({ "id": r[0], "title": r[1],
+                    "claimed_by": (!r[2].is_empty()).then(|| r[2].clone()) })
+            })
             .collect();
         crate::cli::emit_json(
             "ready",
@@ -101,7 +104,14 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
         );
     } else {
         for row in &rows[..cap] {
-            println!("{}  {}", row[0], row[1]);
+            // An open task carrying a claim is a merge artifact — annotate,
+            // never hide: claims are advisory (mw-tb6gdr9).
+            let claim = if row[2].is_empty() {
+                String::new()
+            } else {
+                format!("  [claimed: {}]", row[2])
+            };
+            println!("{}  {}{claim}", row[0], row[1]);
         }
         if total > cap {
             println!("… and {} more (use --all)", total - cap);

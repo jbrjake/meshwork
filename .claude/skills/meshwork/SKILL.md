@@ -26,7 +26,11 @@ the repo's pinned binary: `~/.meshwork/versions/$(cat .meshwork-version)/meshwor
 - Terminal tasks auto-archive to `docs/meshwork/archive/` on close/drop
   (reopen moves them back). They stay fully queryable — never re-create or
   hand-move them; `lint --fix` repairs misplacements.
-- Status via verbs: `start`, `block --reason`, `reopen`, `drop`. Close ONLY via
+- Status via verbs: `start [--as <author>]`, `block --reason`, `reopen`,
+  `drop`. `start` claims the task for you (`claimed-by:`, advisory — MW-K1
+  chain: `--as`, then `$MESHWORK_AUTHOR`, then config `default_author`);
+  close/drop/reopen release the claim. Respect others' `[claimed: …]`
+  annotations in prime/ready — pick unclaimed work. Close ONLY via
   `meshwork close <id>` — it runs the task's `verify:` and closes on exit 0;
   `--waive "reason"` is the loud escape hatch.
 - Notes: `comment <id> --as <author> "text"`. Files: `attach <id> <path>`.

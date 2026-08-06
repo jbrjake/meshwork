@@ -67,7 +67,7 @@ Acceptance beyond `verify:` if any. Long design lives behind docs:, never here (
 - 2026-08-04 [claude/f10a7561] bisected to batch=64k; excerpt attached
 ```
 
-Format decisions: status is a single frontmatter line (one-line diffs, MW-I1); `## log` and `## comments` are append-only at end-of-file, one bullet per entry — `- <date> [<author>] text`, continuation lines indented two spaces, anything bigger becomes an attachment (MW-K1). Same-file concurrent appends merge cleanly via the committed `merge=union` attribute (MW-I1); union's failure mode — conflicting edits to one frontmatter line become duplicate YAML keys — is rejected by strict parsing and repaired by `lint --fix`. `blocked` without `blocked-reason` is a lint error. IDs are `<alias>-<7-char base32 random>` (32^7 ≈ 34.4B combinations; minted at 4 chars before mw-1b09, owner-ruled 2026-08-06 — length is a minting rule only, never validated at parse, so old 4-char IDs stay legal and stores mix lengths freely), collision-checked at creation against local files; parallel clones share no state and CAN collide — `lint` detects post-merge duplicates, `--fix` re-slugs (MW-A4). Filename = `<id>-<slug>.md`; the slug is cosmetic and never load-bearing — the ID prefix is what by-ID lookup globs on. Storage may grow (history); read-time output is what's capped (MW-A5/K4).
+Format decisions: status is a single frontmatter line (one-line diffs, MW-I1); `## log` and `## comments` are append-only at end-of-file, one bullet per entry — `- <date> [<author>] text`, continuation lines indented two spaces, anything bigger becomes an attachment (MW-K1). Same-file concurrent appends merge cleanly via the committed `merge=union` attribute (MW-I1); union's failure mode — conflicting edits to one frontmatter line become duplicate YAML keys — is rejected by strict parsing and repaired by `lint --fix`. `blocked` without `blocked-reason` is a lint error. `claimed-by:` (mw-tb6gdr9) records the advisory claimant while a task is doing/blocked: written by `start` via the MW-K1 identity chain, released by `close`/`drop`/`reopen` — a coordination signal, never a lock (concurrency stays git's problem); parallel starts that merge into one history are lint's `double-claim`, a claim outside doing/blocked its `claim-stale` — both reported, never auto-resolved. IDs are `<alias>-<7-char base32 random>` (32^7 ≈ 34.4B combinations; minted at 4 chars before mw-1b09, owner-ruled 2026-08-06 — length is a minting rule only, never validated at parse, so old 4-char IDs stay legal and stores mix lengths freely), collision-checked at creation against local files; parallel clones share no state and CAN collide — `lint` detects post-merge duplicates, `--fix` re-slugs (MW-A4). Filename = `<id>-<slug>.md`; the slug is cosmetic and never load-bearing — the ID prefix is what by-ID lookup globs on. Storage may grow (history); read-time output is what's capped (MW-A5/K4).
 
 ## 3. Ingestion pipeline
 
@@ -77,7 +77,7 @@ Format decisions: status is a single frontmatter line (one-line diffs, MW-I1); `
 
 | table | columns (abridged) |
 |---|---|
-| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status`, `category`, `verify`, `waived` (reason or NULL — makes MW-E2's "queryable" true), `seq`, `created`, `blocked_reason`, `github`, `path` |
+| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status`, `category`, `verify`, `waived` (reason or NULL — makes MW-E2's "queryable" true), `seq`, `created`, `blocked_reason`, `claimed_by` (advisory claimant or NULL, mw-tb6gdr9), `github`, `path` |
 | `edges` | `src_gid`, `dst_gid`, `kind` (`needs`\|`parent`\|`discovered-from`\|`relates`), `resolved` (bool) |
 | `labels` | `gid`, `label` (exploded) |
 | `comments` | `gid`, `ord` (file position), `date`, `author` (self-professed), `text` (MW-C1/K1) |
@@ -90,7 +90,7 @@ Single-repo commands register the same tables filtered to one repo — one code 
 `ready` (normative, MW-B6):
 
 ```sql
-SELECT t.id, t.title FROM tasks t
+SELECT t.id, t.title, t.claimed_by FROM tasks t
 WHERE t.status = 'open'
   AND NOT EXISTS (              -- unmet hard deps block (MW-B6)
     SELECT 1 FROM edges e
@@ -117,7 +117,7 @@ LIMIT 20;
 | `show <id> [--docs] [--comments]` | full task; last-3 comments by default (MW-K4); `--docs` = anchor-scoped excerpts, capped ~4KB/link (bytes, MW-D5/F2) |
 | `comment <id> [--as <author>] "text"` | append comment; `--as` falls back to `$MESHWORK_AUTHOR`, then config `default_author`, else error (MW-K1) |
 | `attach <id> <path>` | copy file into `attachments/<id>/`, record in frontmatter; refuses overwrite without `--force` (MW-K2) |
-| `start / block --reason / drop / reopen <id>` | status transitions + log line; `reopen`: blocked\|doing\|done → open (the missing inverse — without it every unblock is a hand-edit) |
+| `start [--as <author>] / block --reason / drop / reopen <id>` | status transitions + log line; `start` records an advisory `claimed-by:` when the MW-K1 chain resolves an identity (no identity = no claim, never an error); close/drop/reopen release the claim, block keeps it (mw-tb6gdr9); `reopen`: blocked\|doing\|done → open (the missing inverse — without it every unblock is a hand-edit) |
 | `close <id> [--waive "reason"]` | run `verify:`, close on exit 0 only (MW-E2) |
 | `dep add / dep rm <a> --needs <b>` | edge edits without opening the file |
 | `ready / blocked / tree / why` | §5 |

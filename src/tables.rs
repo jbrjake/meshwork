@@ -98,6 +98,7 @@ fn tasks_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
         Field::new("seq", DataType::Int64, true),
         utf8(true, "created"),
         utf8(true, "blocked_reason"),
+        utf8(true, "claimed_by"),
         Field::new("github", DataType::Int64, true),
         utf8(false, "path"),
         utf8(true, "error"),
@@ -114,6 +115,7 @@ fn tasks_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
     let mut seq: Vec<Option<i64>> = Vec::new();
     let mut created: Vec<Option<String>> = Vec::new();
     let mut blocked_reason: Vec<Option<String>> = Vec::new();
+    let mut claimed_by: Vec<Option<String>> = Vec::new();
     let mut github: Vec<Option<i64>> = Vec::new();
     let mut path = Vec::new();
     let mut error: Vec<Option<String>> = Vec::new();
@@ -134,6 +136,7 @@ fn tasks_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
                     seq.push(t.seq);
                     created.push(t.created.clone());
                     blocked_reason.push(t.blocked_reason.clone());
+                    claimed_by.push(t.claimed_by.clone());
                     github.push(t.github.and_then(|n| i64::try_from(n).ok()));
                     error.push(None);
                 }
@@ -148,6 +151,7 @@ fn tasks_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
                     seq.push(None);
                     created.push(None);
                     blocked_reason.push(None);
+                    claimed_by.push(None);
                     github.push(None);
                     error.push(Some(inv.error.clone()));
                 }
@@ -167,6 +171,7 @@ fn tasks_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
         Arc::new(Int64Array::from(seq)),
         Arc::new(StringArray::from(created)),
         Arc::new(StringArray::from(blocked_reason)),
+        Arc::new(StringArray::from(claimed_by)),
         Arc::new(Int64Array::from(github)),
         Arc::new(StringArray::from(path)),
         Arc::new(StringArray::from(error)),

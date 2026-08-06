@@ -301,16 +301,23 @@ fn discovered_from_edge() {
 /// PLAN 0.6 / MW-E1: start/block/drop/reopen move status along the legal
 /// lifecycle; block demands --reason; illegal moves leave the file
 /// untouched; a status edit is a one-frontmatter-line diff (MW-I1).
+/// Identity is stripped so `start` stays claimless here — the claimed
+/// variant (a second one-line edit, mw-tb6gdr9) is `e2e_claim.rs`'s beat.
 #[test]
 fn transitions() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
+    strip_default_author(&repo);
     let id = add_task(&repo, "Lifecycle");
     let path = task_file(&repo, &id);
 
     // start: open → doing; exactly one line replaced + one log line added.
     let before = std::fs::read_to_string(&path).unwrap();
-    meshwork(&repo).args(["start", &id]).assert().success();
+    meshwork(&repo)
+        .args(["start", &id])
+        .env_remove("MESHWORK_AUTHOR")
+        .assert()
+        .success();
     let after = std::fs::read_to_string(&path).unwrap();
     let b: Vec<&str> = before.lines().collect();
     let a: Vec<&str> = after.lines().collect();

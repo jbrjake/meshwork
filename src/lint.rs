@@ -295,6 +295,33 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 ));
             }
         }
+        if !matches!(t.status, Status::Doing | Status::Blocked)
+            && t.claimed_by
+                .as_deref()
+                .is_some_and(|c| !c.trim().is_empty())
+        {
+            out.push(finding(
+                Severity::Warning,
+                "claim-stale",
+                &t.id,
+                format!(
+                    "claimed-by on a {} task — claims live on doing/blocked; \
+                     a transition should have released it (mw-tb6gdr9)",
+                    t.status.as_str()
+                ),
+            ));
+        }
+        if let Some((a, b)) = double_claim(&t.log) {
+            out.push(finding(
+                Severity::Warning,
+                "double-claim",
+                &t.id,
+                format!(
+                    "claimed by {a} and {b} with no release between — parallel \
+                     sessions started the same task; coordinate, never auto-resolve (mw-tb6gdr9)"
+                ),
+            ));
+        }
         if matches!(t.status, Status::Done | Status::Dropped)
             && t.handoff.as_deref().is_some_and(|h| !h.trim().is_empty())
         {
@@ -307,6 +334,32 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
             ));
         }
     }
+}
+
+/// Two different claimants in the log with no release (`→open`/`→done`/
+/// `→dropped`) between them — union merge's signature for parallel starts
+/// of one task (mw-tb6gdr9). Reported, never auto-resolved: which claim
+/// wins is a human call.
+fn double_claim(log: &[String]) -> Option<(String, String)> {
+    let mut claims: Vec<&str> = Vec::new();
+    for entry in log {
+        let head = entry.lines().next().unwrap_or_default();
+        if head.contains("\u{2192}doing") {
+            if let Some(c) = head.split(" \u{2014} claimed by ").nth(1) {
+                claims.push(c.trim());
+            }
+        } else if ["\u{2192}open", "\u{2192}done", "\u{2192}dropped"]
+            .iter()
+            .any(|m| head.contains(m))
+        {
+            claims.clear();
+        }
+    }
+    let first = claims.first()?;
+    claims
+        .iter()
+        .find(|c| *c != first)
+        .map(|other| ((*first).to_string(), (*other).to_string()))
 }
 
 /// Terminal tasks belong in `archive/`, live tasks in the store root
