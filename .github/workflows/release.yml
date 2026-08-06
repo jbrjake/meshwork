@@ -1,0 +1,29 @@
+# Tag-push release (mw-der3): v* tag → darwin arm64 binary → GitHub Release.
+# Consumers never `cargo install` globally — each repo pins a tag in
+# .meshwork-version and installs to ~/.meshwork/versions/<tag>/ (DESIGN,
+# adoption skill). Minimal by ruling: no matrix, no cross-compile.
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: macos-14 # arm64 darwin
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: cargo build --release --locked
+      - name: package
+        run: |
+          mkdir -p dist
+          tar -czf "dist/meshwork-${GITHUB_REF_NAME}-aarch64-apple-darwin.tar.gz" \
+            -C target/release meshwork
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/*.tar.gz \
+            --title "meshwork ${GITHUB_REF_NAME}" \
+            --notes "darwin arm64. Pin: put ${GITHUB_REF_NAME} in .meshwork-version; install to ~/.meshwork/versions/${GITHUB_REF_NAME}/ (see the meshwork adoption skill)."
