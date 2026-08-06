@@ -7,6 +7,13 @@ verify: test -f .github/workflows/release.yml
 docs:
   - REQUIREMENTS-meshwork.md#§-j-non-functional   # MW-J3 adoptable-in-one-session
 created: 2026-08-06
+handoff: |
+  Remote exists now (jbrjake/meshwork) — that was the blocker. Ship the
+  workflow minimal: tag push → build darwin arm64 → attach tar.gz to the
+  release; no matrix, no cross-compile, nobody else consumes this yet.
+  The pin contract is .meshwork-version + ~/.meshwork/versions/<tag>/ —
+  the adoption skill already documents it, keep the paths in sync. CI is
+  the one thing the gate can't verify; watch the first run to completion.
 ---
 Owner ruling 2026-08-06: NO global cargo install — each consuming repo chooses
 its own meshwork version. Model: repo commits a version pin (e.g.

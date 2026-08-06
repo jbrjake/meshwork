@@ -1,7 +1,7 @@
 ---
 id: mw-a8tv
 title: "prime grows handoff sections: next-task detail + last-N done; retire hand-written HANDOFF.md"
-status: open
+status: done
 category: product/prime
 verify: cargo test e2e::prime_handoff_sections
 docs:
@@ -22,3 +22,4 @@ world.
 
 ## log
 - 2026-08-06 created
+- 2026-08-06 open→done — verify exit 0

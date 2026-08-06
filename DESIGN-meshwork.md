@@ -131,7 +131,7 @@ Every verb: `--json`, stable schema, versioned with the binary (MW-C3).
 
 ## 7. Session integration (where the savings land)
 
-`prime` emits, capped at 6KB ≈ 1.5K tokens (normative approximation: 4 bytes/token; the gate measures bytes — MW-D3/D5): ready top-10 (one line each) · in-progress with last log line · blocked with reasons · counts (`12 open, 3 blocked, 41 done`). Injected via SessionStart hook (the giles `session_context.py` pattern) or run as the session's first command per CLAUDE.md ritual. Task selection then goes `prime → show <id> [--docs]` — flat two-level disclosure (MW-D1), replacing the ~22K-token full-file read measured in ~95% of sessions. Session end: `close`/`block`/`comment` on touched tasks only. HANDOFF.md shrinks to a ≤2KB pointer (current-session context only; bytes, MW-D5); durable state lives in task logs and comments.
+`prime` emits, capped at 6KB ≈ 1.5K tokens (normative approximation: 4 bytes/token; the gate measures bytes — MW-D3/D5): ready top-10 (one line each) · in-progress with last log line · blocked with reasons · counts (`12 open, 3 blocked, 41 done`). Injected via SessionStart hook (the giles `session_context.py` pattern) or run as the session's first command per CLAUDE.md ritual. Task selection then goes `prime → show <id> [--docs]` — flat two-level disclosure (MW-D1), replacing the ~22K-token full-file read measured in ~95% of sessions. Session end: `close`/`block`/`comment` on touched tasks only, plus refresh `handoff:` on whatever is up next. There is no HANDOFF.md — prime is the handoff (§7b); durable state lives in task logs, comments, and §15.
 
 ### 7b. prime as materialized handoff (owner-ruled 2026-08-06, four rounds; lands with mw-a8tv)
 
@@ -247,3 +247,5 @@ No network anywhere in the gate (MW-J6). The live scratch-GitHub drill (REQUIREM
 3. **`--waive` stays available everywhere**, recorded and loud (`WHERE waived IS NOT NULL` — the `waived` column exists for this). Strict mode is a non-goal until the pilot shows waive abuse actually happening.
 4. **Portfolio repo = `~/Documents/code/portfolio/`**, its own git repo with a private GitHub remote as backup. Folding into a future backed-up code-root repo is a later `git mv` + one config path, not a blocker.
 5. **Comment growth: accepted.** Storage is history; read-time is capped (MW-A5/K4). Lint warns when a task file passes 64KB — the real signal is usually that the task should be split.
+6. **Determinism hooks are env vars**: `MESHWORK_ID_SEED` (id generation), `MESHWORK_TODAY` (clock), `MESHWORK_BLESS` (golden re-bless). Tests and fixtures depend on them; they are contract, not convenience. (Moved from hand-written HANDOFF at its retirement, 2026-08-06.)
+7. **No hand-written handoff docs** (2026-08-06, four review rounds): prime IS the handoff (§7b). Current conditions are always derived; the only authored voice is `handoff:` on up-next tasks. Per-commit messages carry rationale; durable decisions land here in §15.

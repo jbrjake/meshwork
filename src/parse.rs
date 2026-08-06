@@ -89,6 +89,10 @@ pub struct Task {
     pub blocked_reason: Option<String>,
     /// Waive reason recorded by `close --waive` — loud and queryable (MW-E2).
     pub waived: Option<String>,
+    /// Outgoing session's color commentary to the incoming one — the only
+    /// authored piece of the handoff view, meaningful only while up next
+    /// (DESIGN §7b; stale on done tasks, lint `handoff-stale`).
+    pub handoff: Option<String>,
     /// Body text before the first tail section.
     pub description: String,
     /// `## log` entries in file order, continuations joined (MW-E3).
@@ -154,6 +158,8 @@ struct Frontmatter {
     blocked_reason: Option<String>,
     #[serde(default)]
     waived: Option<String>,
+    #[serde(default)]
+    handoff: Option<String>,
 }
 
 /// Frontmatter keys the schema knows; anything else warns (MW-A6).
@@ -175,6 +181,7 @@ const KNOWN_KEYS: &[&str] = &[
     "created",
     "blocked-reason",
     "waived",
+    "handoff",
 ];
 
 /// Recover the task ID from a `<alias>-<rand>-<slug>.md` filename: the first
@@ -242,6 +249,7 @@ pub fn parse_task_str(file_name: &str, text: &str) -> ParsedTask {
         created: fm.created,
         blocked_reason: fm.blocked_reason,
         waived: fm.waived,
+        handoff: fm.handoff,
         description,
         log,
         comments,

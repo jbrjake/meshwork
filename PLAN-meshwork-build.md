@@ -47,7 +47,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | 1.6 ✓ | CLI-surface freeze test: `--help` output lists exactly DESIGN §6 — the non-goals fence, enforced (D4, §3 non-goals) | `cargo test e2e::cli_surface_frozen` ✓ 2026-08-04 |
 | 1.7 ✓ | `import todo`: baseline checkbox format from committed sazed-format sample → golden (J3) | `cargo test e2e::import_todo_golden` ✓ 2026-08-04 |
 | 1.8 ✓ | Gate §8 self-host activates: meshwork's own `meshwork/` initialized, its TODO items imported | `./verify_meshwork.sh` ✓ 2026-08-04 (§8 PASS: lint + prime 82B) |
-| 1.9 | **Manual pilot (sazed):** import real TODO.md; SessionStart hook injects `prime`; run 2 real sessions; `check-todo.sh` retired; HANDOFF.md → ≤2KB pointer | pilot checklist in sazed commit message; REQUIREMENTS §4 clauses 1+5 |
+| 1.9 | **Manual pilot (sazed):** import real TODO.md; SessionStart hook injects `prime`; run 2 real sessions; `check-todo.sh` retired; HANDOFF.md deleted (prime is the handoff, DESIGN §7b) | pilot checklist in sazed commit message; REQUIREMENTS §4 clauses 1+5 |
 
 ### M2 — portfolio (stop-line: leras joins)
 

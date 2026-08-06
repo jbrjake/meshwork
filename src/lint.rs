@@ -294,6 +294,17 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 ));
             }
         }
+        if matches!(t.status, Status::Done | Status::Dropped)
+            && t.handoff.as_deref().is_some_and(|h| !h.trim().is_empty())
+        {
+            out.push(finding(
+                Severity::Warning,
+                "handoff-stale",
+                &t.id,
+                "handoff: on a closed task — the voice belongs on whatever is up next (DESIGN §7b)"
+                    .to_string(),
+            ));
+        }
     }
 }
 

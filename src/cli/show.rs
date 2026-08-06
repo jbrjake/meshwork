@@ -92,6 +92,12 @@ fn render_text(t: &Task, rel: &str, shown_from: usize) {
         println!("attachment: {a}");
     }
     println!("file: {rel}");
+    if let Some(voice) = t.handoff.as_deref().filter(|h| !h.trim().is_empty()) {
+        println!();
+        for line in voice.lines() {
+            println!("\u{bb} {line}");
+        }
+    }
     if !t.description.is_empty() {
         println!("\n{}", t.description);
     }
@@ -139,7 +145,8 @@ fn emit_json(t: &Task, rel: &str, shown_from: usize) {
             "relates": t.relates, "verify": t.verify, "docs": t.docs,
             "attachments": t.attachments, "seq": t.seq, "github": t.github,
             "created": t.created, "blocked_reason": t.blocked_reason,
-            "waived": t.waived, "description": t.description, "log": t.log,
+            "waived": t.waived, "handoff": t.handoff,
+            "description": t.description, "log": t.log,
             "comments": { "total": t.comments.len(), "shown": shown },
             "path": rel, "warnings": t.warnings,
         }),

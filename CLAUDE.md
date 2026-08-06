@@ -16,7 +16,7 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 **Explicit overrides, with reasons (baseline permits exactly this):**
 
 1. **No TODO.md, no check-todo.sh.** `PLAN-meshwork-build.md` is the worklist until M1, when meshwork starts tracking itself (gate §8 self-host). Reason: this project exists to replace TODO.md; duplicating the plan into one would recreate the disease it cures. New work discovered mid-build: file it as a plan item with a `verify:` (pre-M1) or a meshwork task (post-M1) — never carry it in your head.
-2. **Doc budgets are in bytes, not lines** (MW-D5 doctrine — line caps get gamed; this repo's own audit proved it). `docs/HANDOFF.md` ≤2KB. Code files still use the 500/750 line caps.
+2. **Doc budgets are in bytes, not lines** (MW-D5 doctrine — line caps get gamed; this repo's own audit proved it). No HANDOFF.md exists — `prime` materializes the handoff (DESIGN §7b). Code files still use the 500/750 line caps.
 3. **check-perf.sh + bench-baseline.json arrive with the first perf-relevant code** (M2, gate §7) — the baseline's own rule, noted here so its absence isn't read as drift.
 
 ## Gates
@@ -31,7 +31,7 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 1. `meshwork prime` (`target/debug/meshwork`; a SessionStart hook in `.claude/settings.json` injects it automatically). Then `meshwork show <ready-id>` and read its `docs:` refs. The PLAN Position line stays in sync until v1 but the store is the live worklist.
 2. Red first: the item's test precedes its code. Golden files change only via `--bless` + a reviewed diff.
 3. An item closes only on its `verify:` exit 0 AND a green `./verify_meshwork.sh` — observed, not predicted. Close via `meshwork close <id>` (it runs the verify).
-4. Same commit: flip the item's TRACE.md rows `planned`→`done`, advance the Position line, update `docs/HANDOFF.md` (≤2KB).
+4. Same commit: flip the item's TRACE.md rows `planned`→`done`, advance the Position line. Session end: refresh `handoff:` on whatever task is up next (DESIGN §7b) — there is no HANDOFF.md; prime is the handoff.
 
 ## Hard boundaries
 

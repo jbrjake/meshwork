@@ -106,3 +106,36 @@ fn alpha_corpus_error_free() {
     assert!(errors.is_empty(), "alpha must lint clean: {errors:?}");
     assert!(has(&f, Severity::Warning, "no-verify", "az-n0v1"), "{f:?}");
 }
+
+/// DESIGN §7b: `handoff:` is the outgoing session's voice on an up-next
+/// task; on a done task it is stale — lint warns (handoff-stale).
+#[test]
+fn handoff_on_done_warn() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/meshwork");
+    std::fs::create_dir_all(mw.join("tasks")).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    std::fs::write(
+        mw.join("tasks/zz-old1-finished.md"),
+        "---\nid: zz-old1\ntitle: Finished\nstatus: done\nverify: \"true\"\nhandoff: |\n  stale voice from a past session\n---\nx\n",
+    )
+    .unwrap();
+    std::fs::write(
+        mw.join("tasks/zz-nxt1-upnext.md"),
+        "---\nid: zz-nxt1\ntitle: Up next\nstatus: open\nverify: \"true\"\nhandoff: |\n  live voice — legal on an open task\n---\nx\n",
+    )
+    .unwrap();
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "handoff-stale", "zz-old1"),
+        "{f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "handoff-stale", "zz-nxt1"),
+        "{f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "unknown-key", "zz-nxt1"),
+        "handoff is schema-known: {f:?}"
+    );
+}
