@@ -11,7 +11,7 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 
 ## Engineering baseline
 
-`docs/CLAUDE-BASELINE.md` adopted whole (copied in; this repo must be self-contained). House numbers: 500-line target / 750 ceiling, 80% coverage floor, N≥7 bench reps, red-first TDD, evidence rule (no claim without observed exit 0, this session, this code).
+`docs/CLAUDE-BASELINE.md` adopted whole (copied in; this repo must be self-contained). House numbers: 500-line target / 750 ceiling, 80% coverage floor, N≥7 bench reps, red-first TDD, evidence rule (no claim without observed exit 0, this session, this code). Commit messages: Conventional Commits (`type(scope): subject` — owner rule 2026-08-06; applies portfolio-wide, never retrofit pushed history).
 
 **Explicit overrides, with reasons (baseline permits exactly this):**
 
