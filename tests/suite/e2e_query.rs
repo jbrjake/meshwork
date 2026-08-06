@@ -264,7 +264,7 @@ fn cli_surface_frozen() {
     assert_eq!(
         verbs,
         [
-            "init", "add", "show", "comment", "attach", "start", "block", "drop", "reopen",
+            "init", "add", "set", "show", "comment", "attach", "start", "block", "drop", "reopen",
             "close", "dep", "ready", "blocked", "tree", "why", "q", "prime", "lint", "mirror",
             "portfolio", "import",
         ],

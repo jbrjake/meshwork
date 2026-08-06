@@ -28,6 +28,12 @@ pub(crate) struct AddArgs {
     /// Verify command `close` runs via `sh -c` (MW-E2).
     #[arg(long, value_name = "CMD")]
     verify: Option<String>,
+    /// Per-repo order weight, lower sooner; gaps of 10 (MW-G4, mw-0f4j).
+    #[arg(long, value_name = "N")]
+    seq: Option<i64>,
+    /// Doc link `path#§-anchor`; repeatable (MW-F1, mw-0f4j).
+    #[arg(long = "docs", value_name = "LINK")]
+    docs: Vec<String>,
 }
 
 pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
@@ -69,6 +75,15 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     }
     if let Some(verify) = &args.verify {
         let _ = writeln!(fm, "verify: {}", yaml_scalar(verify));
+    }
+    if !args.docs.is_empty() {
+        fm.push_str("docs:\n");
+        for link in &args.docs {
+            let _ = writeln!(fm, "  - {link}");
+        }
+    }
+    if let Some(seq) = args.seq {
+        let _ = writeln!(fm, "seq: {seq}");
     }
     let _ = writeln!(fm, "created: {today}");
 

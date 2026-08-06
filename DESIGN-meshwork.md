@@ -111,7 +111,8 @@ LIMIT 20;
 | verb | does |
 |---|---|
 | `init` | create `docs/meshwork/` + config in a repo |
-| `add "title" [--cat p] [--label l] [--needs id..] [--parent id] [--from id] [--verify cmd]` | create task file, print id; missing `--verify` = lint warning until set (MW-E2) |
+| `add "title" [--cat p] [--label l] [--needs id..] [--parent id] [--from id] [--verify cmd] [--seq n] [--docs link..]` | create task file, print id; missing `--verify` = lint warning until set (MW-E2) |
+| `set <id> [--seq n] [--docs link..] [--handoff "text"]` | field edits without opening the file (mw-0f4j); `--docs` appends, `--handoff` replaces the block |
 | `show <id> [--docs] [--comments]` | full task; last-3 comments by default (MW-K4); `--docs` = anchor-scoped excerpts, capped ~4KB/link (bytes, MW-D5/F2) |
 | `comment <id> [--as <author>] "text"` | append comment; `--as` falls back to `$MESHWORK_AUTHOR`, then config `default_author`, else error (MW-K1) |
 | `attach <id> <path>` | copy file into `attachments/<id>/`, record in frontmatter; refuses overwrite without `--force` (MW-K2) |
@@ -142,7 +143,7 @@ Hand-written HANDOFF.md is retired: it duplicates graph state. prime becomes the
 4. **also-ready** one-liners with blocks-lines.
 5. **recently done** — last ~5 closed (id, title, done-date from log lines).
 
-New frontmatter key `handoff:` (multi-line block): the outgoing session's color commentary to the incoming one — the ONLY authored piece of the view, meaningful solely on up-next tasks. Rewritten freely (history belongs in comments); hand-edit only, no verb — §6 unchanged. Lint warns when `handoff:` sits on a done task. Session-end ritual: refresh `handoff:` on whatever is up next; comment anything history-worthy. Landing commit: delete docs/HANDOFF.md; drop CLAUDE.md ritual step 4's HANDOFF clause + baseline override 2; adoption-skill step 4 becomes "delete HANDOFF.md"; move HANDOFF's decisions line to §15 and its 2.3 re-bless note into mw-k7r5's body.
+New frontmatter key `handoff:` (multi-line block): the outgoing session's color commentary to the incoming one — the ONLY authored piece of the view, meaningful solely on up-next tasks. Rewritten freely (history belongs in comments); set via `meshwork set <id> --handoff` or hand-edit — both legal (mw-0f4j superseded the original hand-edit-only ruling, owner 2026-08-06). Lint warns when `handoff:` sits on a done task. Session-end ritual: refresh `handoff:` on whatever is up next; comment anything history-worthy. Landing commit: delete docs/HANDOFF.md; drop CLAUDE.md ritual step 4's HANDOFF clause + baseline override 2; adoption-skill step 4 becomes "delete HANDOFF.md"; move HANDOFF's decisions line to §15 and its 2.3 re-bless note into mw-k7r5's body.
 
 ## 8. GitHub push (append-only view, MW-H*)
 

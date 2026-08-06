@@ -12,6 +12,7 @@ mod lint;
 mod notes;
 mod prime;
 mod query;
+mod set;
 mod show;
 mod stubs;
 mod transition;
@@ -38,6 +39,8 @@ enum Cmd {
     Init,
     /// Create a task file and print its id.
     Add(add::AddArgs),
+    /// Field edits without opening the file: --seq, --docs, --handoff.
+    Set(set::SetArgs),
     /// Full single-task view; last-3 comments by default.
     Show(show::ShowArgs),
     /// Append a comment (self-professed identity, recorded as claimed).
@@ -121,6 +124,7 @@ pub fn run() -> i32 {
     let result = match &cli.cmd {
         Cmd::Init => init::run(cli.json),
         Cmd::Add(args) => add::run(args, cli.json),
+        Cmd::Set(args) => set::run(args, cli.json),
         Cmd::Show(args) => show::run(args, cli.json),
         Cmd::Start(args) => transition::start(args, cli.json),
         Cmd::Block(args) => transition::block(args, cli.json),

@@ -74,3 +74,4 @@ include!("e2e_merge.rs");
 include!("e2e_notes.rs");
 include!("e2e_prime.rs");
 include!("e2e_query.rs");
+include!("e2e_set.rs");

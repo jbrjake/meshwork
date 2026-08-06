@@ -82,6 +82,13 @@ impl RepoStore {
     }
 }
 
+/// Task files live in the store dir itself — `docs/meshwork/`, flat
+/// (mw-acgp). Shared so verbs never re-derive the layout.
+#[must_use]
+pub fn tasks_dir(root: &Path) -> PathBuf {
+    root.join("docs").join("meshwork")
+}
+
 /// Load just the config of a store.
 ///
 /// # Errors

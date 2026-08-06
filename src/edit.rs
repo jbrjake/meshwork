@@ -121,6 +121,99 @@ pub fn set_list(text: &str, key: &str, items: &[String]) -> Result<String, Strin
     Ok(format!("---\n{}{tail}", lines.join("\n")))
 }
 
+/// Replace `key:` and any indented block under it with a literal block
+/// scalar (`key: |` + two-space-indented lines), inserting before the
+/// closing fence when the key is absent (mw-0f4j: `set --handoff`).
+///
+/// # Errors
+/// When fences are missing, like [`set_scalar`].
+pub fn set_block(text: &str, key: &str, block_lines: &[String]) -> Result<String, String> {
+    let Some(rest) = text.strip_prefix("---\n") else {
+        return Err("missing frontmatter fences".to_string());
+    };
+    let Some(end) = rest.find("\n---") else {
+        return Err("missing closing frontmatter fence".to_string());
+    };
+    let fm = &rest[..end];
+    let tail = &rest[end..];
+
+    let mut rendered = format!("{key}: |");
+    for line in block_lines {
+        rendered.push('\n');
+        rendered.push_str("  ");
+        rendered.push_str(line);
+    }
+    let prefix = format!("{key}:");
+    let mut lines: Vec<String> = Vec::new();
+    let mut replaced = false;
+    let mut skipping_block = false;
+    for line in fm.lines() {
+        if skipping_block {
+            if line.starts_with(' ') {
+                continue;
+            }
+            skipping_block = false;
+        }
+        if !replaced && line.starts_with(&prefix) {
+            lines.push(rendered.clone());
+            replaced = true;
+            skipping_block = true;
+        } else {
+            lines.push(line.to_string());
+        }
+    }
+    if !replaced {
+        lines.push(rendered);
+    }
+    Ok(format!("---\n{}{tail}", lines.join("\n")))
+}
+
+/// Append one `  - item` to the indented block list under `key:`, creating
+/// the key when absent. Existing items — including their trailing `# …`
+/// hand comments — are preserved byte-for-byte (mw-0f4j: `set --docs`).
+///
+/// # Errors
+/// When fences are missing, like [`set_scalar`].
+pub fn append_block_item(text: &str, key: &str, item: &str) -> Result<String, String> {
+    let Some(rest) = text.strip_prefix("---\n") else {
+        return Err("missing frontmatter fences".to_string());
+    };
+    let Some(end) = rest.find("\n---") else {
+        return Err("missing closing frontmatter fence".to_string());
+    };
+    let fm = &rest[..end];
+    let tail = &rest[end..];
+
+    let prefix = format!("{key}:");
+    let rendered = format!("  - {item}");
+    let fm_lines: Vec<&str> = fm.lines().collect();
+    let mut lines: Vec<String> = Vec::new();
+    let mut inserted = false;
+    let mut i = 0;
+    while i < fm_lines.len() {
+        let line = fm_lines[i];
+        lines.push(line.to_string());
+        if !inserted && line.starts_with(&prefix) {
+            // copy the existing block, then append after its last item
+            let mut j = i + 1;
+            while j < fm_lines.len() && fm_lines[j].starts_with(' ') {
+                lines.push(fm_lines[j].to_string());
+                j += 1;
+            }
+            lines.push(rendered.clone());
+            inserted = true;
+            i = j;
+            continue;
+        }
+        i += 1;
+    }
+    if !inserted {
+        lines.push(format!("{key}:"));
+        lines.push(rendered);
+    }
+    Ok(format!("---\n{}{tail}", lines.join("\n")))
+}
+
 /// Append `- entry` at the end of `## section`, creating the section when
 /// missing (`## log` goes before `## comments`; anything else at EOF).
 #[must_use]
