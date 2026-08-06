@@ -15,7 +15,12 @@ it): when a result set contains >=2 tasks interlinked by needs/parent/
 relates/discovered-from, render the induced subgraph as terminal art —
 box-drawing DAG, topological layers, edge glyphs distinguishing hard
 needs from parent nesting from soft relates; cross-repo edges (repo#id)
-marked. Applies to ready/q/tree/why output and the prime handoff view.
+marked. Owner addition 2026-08-06: the art also shows CATEGORY
+HIERARCHY — the slash-path tree (engine/spill etc., MW-B4/B8) groups or
+labels nodes so structure reads at a glance; exact treatment (cluster
+boxes vs
+depth-labeled lanes) decided at implementation with the same budget
+rules. Applies to ready/q/tree/why output and the prime handoff view.
 Constraints that make it non-trivial: prime's 6144B cap includes the
 art (MW-D5). Owner ruling 2026-08-06 (refined): automatic when ALL of
 — more than 1 edge to show, the art fits, and there's room in the
