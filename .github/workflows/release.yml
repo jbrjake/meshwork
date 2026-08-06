@@ -12,7 +12,7 @@ jobs:
   release:
     runs-on: macos-14 # arm64 darwin
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2 — pin by known-good SHA, never tag
       - name: build
         run: cargo build --release --locked
       - name: package
