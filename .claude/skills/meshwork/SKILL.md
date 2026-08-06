@@ -23,6 +23,9 @@ the repo's pinned binary: `~/.meshwork/versions/$(cat .meshwork-version)/meshwor
   frontier. `blocked`, `tree <id>` as needed. Raw SQL: `q "SELECT …" [--json]`.
 - New work discovered mid-session: `meshwork add "title" --verify 'cmd'` — file
   it immediately, never carry it in your head, never append to a TODO.md.
+- Terminal tasks auto-archive to `docs/meshwork/archive/` on close/drop
+  (reopen moves them back). They stay fully queryable — never re-create or
+  hand-move them; `lint --fix` repairs misplacements.
 - Status via verbs: `start`, `block --reason`, `reopen`, `drop`. Close ONLY via
   `meshwork close <id>` — it runs the task's `verify:` and closes on exit 0;
   `--waive "reason"` is the loud escape hatch.

@@ -53,6 +53,7 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
             &format!("{today} {from}→done — waived: {reason}"),
         );
         std::fs::write(&path, out).map_err(|e| e.to_string())?;
+        crate::store::relocate_for_status(&path, true).map_err(|e| e.to_string())?;
         if json {
             crate::cli::emit_json(
                 "close",
@@ -90,6 +91,7 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
         let out =
             append_section_entry(&out, "log", &format!("{today} {from}→done — verify exit 0"));
         std::fs::write(&path, out).map_err(|e| e.to_string())?;
+        crate::store::relocate_for_status(&path, true).map_err(|e| e.to_string())?;
         if json {
             crate::cli::emit_json(
                 "close",

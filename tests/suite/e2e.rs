@@ -46,8 +46,11 @@ fn stdout_of(assert: &assert_cmd::assert::Assert) -> String {
 }
 
 fn task_file(repo: &Path, id: &str) -> std::path::PathBuf {
-    std::fs::read_dir(repo.join("docs/meshwork"))
-        .unwrap()
+    // Root first, then archive/ — terminal tasks move there (mw-45e2qf4).
+    ["docs/meshwork", "docs/meshwork/archive"]
+        .iter()
+        .filter_map(|dir| std::fs::read_dir(repo.join(dir)).ok())
+        .flatten()
         .map(|e| e.unwrap().path())
         .find(|p| {
             p.file_name()
@@ -67,6 +70,7 @@ fn add_id(repo: &Path, args: &[&str]) -> String {
     stdout_of(&out).lines().next().unwrap().to_string()
 }
 
+include!("e2e_archive.rs");
 include!("e2e_graph.rs");
 include!("e2e_lifecycle.rs");
 include!("e2e_lint.rs");

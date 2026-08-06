@@ -6,7 +6,7 @@
 use crate::edit::{append_section_entry, set_scalar};
 use crate::id::{mint_unique, IdGen};
 use crate::lint::{lint_store, Severity};
-use crate::parse::ParsedTask;
+use crate::parse::{ParsedTask, Status};
 use crate::store::{load_repo, RepoStore};
 use std::path::Path;
 
@@ -22,7 +22,8 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     let mut store = load_repo(&root).map_err(|e| e.to_string())?;
 
     if args.fix {
-        let repairs = fix_duplicate_keys(&store)? + fix_duplicate_ids(&store)?;
+        let repairs =
+            fix_duplicate_keys(&store)? + fix_duplicate_ids(&store)? + fix_misplaced(&store)?;
         if repairs > 0 && !json {
             println!("fixed {repairs} file(s)");
         }
@@ -73,6 +74,26 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
 
 /// Union merge's signature damage: the same top-level key twice. Keep the
 /// first value, drop the rest, log the repair in the task (MW-I1/I2).
+/// Move terminal tasks into `archive/` and live ones back out
+/// (mw-45e2qf4) — the `misplaced` warning's mechanical repair.
+fn fix_misplaced(store: &RepoStore) -> Result<usize, String> {
+    let tasks_dir = crate::store::tasks_dir(&store.root);
+    let mut moved = 0;
+    for entry in &store.entries {
+        let ParsedTask::Valid(t) = &entry.parsed else {
+            continue;
+        };
+        let terminal = matches!(t.status, Status::Done | Status::Dropped);
+        let in_archive = entry.file_name.starts_with("archive/");
+        if terminal != in_archive {
+            let path = tasks_dir.join(&entry.file_name);
+            crate::store::relocate_for_status(&path, terminal).map_err(|e| e.to_string())?;
+            moved += 1;
+        }
+    }
+    Ok(moved)
+}
+
 fn fix_duplicate_keys(store: &RepoStore) -> Result<usize, String> {
     let today = crate::clock::today();
     let mut fixed = 0;

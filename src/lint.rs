@@ -78,6 +78,7 @@ pub fn lint_store(store: &RepoStore) -> Vec<Finding> {
     check_cycles(&valid, &mut out);
     check_lifecycle(&valid, &mut out);
     check_budgets(store, &valid, &mut out);
+    check_misplaced(store, &mut out);
 
     out.sort();
     out.dedup();
@@ -303,6 +304,40 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 &t.id,
                 "handoff: on a closed task — the voice belongs on whatever is up next (DESIGN §7b)"
                     .to_string(),
+            ));
+        }
+    }
+}
+
+/// Terminal tasks belong in `archive/`, live tasks in the store root
+/// (mw-45e2qf4); a hand-edit that flips status without moving the file
+/// is mechanical damage `--fix` repairs.
+fn check_misplaced(store: &RepoStore, out: &mut Vec<Finding>) {
+    for entry in &store.entries {
+        let ParsedTask::Valid(t) = &entry.parsed else {
+            continue;
+        };
+        let terminal = matches!(t.status, Status::Done | Status::Dropped);
+        let in_archive = entry.file_name.starts_with("archive/");
+        if terminal && !in_archive {
+            out.push(finding(
+                Severity::Warning,
+                "misplaced",
+                &t.id,
+                format!(
+                    "{} but its file sits in the store root — terminal tasks live in archive/ (lint --fix moves it)",
+                    t.status.as_str()
+                ),
+            ));
+        } else if !terminal && in_archive {
+            out.push(finding(
+                Severity::Warning,
+                "misplaced",
+                &t.id,
+                format!(
+                    "{} but its file sits in archive/ — live tasks belong in the store root (lint --fix moves it)",
+                    t.status.as_str()
+                ),
             ));
         }
     }

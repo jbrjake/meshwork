@@ -8,10 +8,11 @@ Shape in one paragraph: markdown-with-frontmatter task files in each repo's git 
 
 ```
 docs/meshwork/           # store root (owner-ruled 2026-08-06, mw-acgp; was meshwork/tasks/ — old stores migrate via git mv)
-  .gitattributes         # "/*.md merge=union" — committed by init (MW-I1); anchored, flat
+  .gitattributes         # "/*.md" + "/archive/*.md" merge=union — committed by init (MW-I1)
   config.toml            # repo alias ("sz"), defaults, default_author, mirror opt-in, level names
-  sz-k7f3-spill-cliff.md # task files live flat in the store root — no tasks/ level
-  sz-a2m9-arrow-seam.md
+  sz-k7f3-spill-cliff.md # LIVE task files, flat in the store root — no tasks/ level
+  archive/               # terminal (done/dropped) tasks — moved automagically on close/drop,
+    sz-m0v3d-done-thing.md   # moved back on reopen; ALWAYS loaded, fully queryable (mw-45e2qf4)
   attachments/
     sz-k7f3/spill-p99.log          # MW-K2; lint warns >1MB (MW-K3)
   .cache/                # gitignored
@@ -251,3 +252,4 @@ No network anywhere in the gate (MW-J6). The live scratch-GitHub drill (REQUIREM
 7. **No hand-written handoff docs** (2026-08-06, four review rounds): prime IS the handoff (§7b). Current conditions are always derived; the only authored voice is `handoff:` on up-next tasks. Per-commit messages carry rationale; durable decisions land here in §15.
 8. **Minted ID suffix is 7 chars** (owner-ruled 2026-08-06, mw-1b09; was 4). 32^7 ≈ 34.4B combinations retires the parallel-clone collision worry for any realistic store. Length is a minting rule, not a validation rule: parse accepts any suffix, pre-ruling 4-char IDs are legal forever, and no store migration ever happens for this.
 9. **Store root is `docs/meshwork/`, flat** (owner-ruled 2026-08-06, mw-acgp; was `meshwork/tasks/`). Task files sit beside config.toml — only `.md` files are tasks, so no `tasks/` level earns its path segment. The union attribute anchors to the store dir (`/*.md`). Pre-move stores migrate with a `git mv`, nothing else — the tool never migrates layouts itself.
+10. **Terminal tasks auto-archive to `archive/`** (owner-ruled 2026-08-06, mw-45e2qf4). close/drop move the file, reopen moves it back, import routes already-terminal items there, `lint --fix` sweeps strays (`misplaced` warning). Owner-confirmed constraint: archive is ALWAYS loaded — tables, needs-resolution, and prime are location-blind; only the directory tidies. IDs stay collision-checked across root+archive (MW-A4 never-reused). No new verb — automagic rides the existing lifecycle.

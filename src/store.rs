@@ -89,6 +89,41 @@ pub fn tasks_dir(root: &Path) -> PathBuf {
     root.join("docs").join("meshwork")
 }
 
+/// Where terminal (done/dropped) task files live (mw-45e2qf4). Archived
+/// tasks stay fully loaded and queryable — only the clutter moves.
+pub const ARCHIVE_SUBDIR: &str = "archive";
+
+/// Move a task file into (`terminal`) or out of (live) the archive,
+/// returning its new path; a file already in the right place is untouched.
+///
+/// # Errors
+/// I/O failures creating the target dir or renaming.
+pub fn relocate_for_status(path: &Path, terminal: bool) -> std::io::Result<PathBuf> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| std::io::Error::other("task file has no parent dir"))?;
+    let in_archive = parent.file_name().is_some_and(|n| n == ARCHIVE_SUBDIR);
+    if terminal == in_archive {
+        return Ok(path.to_path_buf());
+    }
+    let file_name = path
+        .file_name()
+        .ok_or_else(|| std::io::Error::other("task file has no file name"))?
+        .to_owned();
+    let target_dir = if terminal {
+        parent.join(ARCHIVE_SUBDIR)
+    } else {
+        parent
+            .parent()
+            .ok_or_else(|| std::io::Error::other("archive dir has no parent"))?
+            .to_path_buf()
+    };
+    std::fs::create_dir_all(&target_dir)?;
+    let target = target_dir.join(file_name);
+    std::fs::rename(path, &target)?;
+    Ok(target)
+}
+
 /// Load just the config of a store.
 ///
 /// # Errors
@@ -121,25 +156,32 @@ pub fn load_repo(root: &Path) -> Result<RepoStore, StoreError> {
     let repo = repo_name(root);
     let tasks_dir = root.join("docs").join("meshwork");
     let mut entries = Vec::new();
-    match std::fs::read_dir(&tasks_dir) {
-        Ok(dir) => {
-            for entry in dir {
-                let entry = entry?;
-                let name = entry.file_name().to_string_lossy().into_owned();
-                let is_md = entry
-                    .path()
-                    .extension()
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("md"));
-                if is_md {
-                    entries.push(TaskEntry {
-                        parsed: parse_task_file(&entry.path()),
-                        file_name: name,
-                    });
+    // Root + archive/ every invocation (mw-45e2qf4): archived tasks stay in
+    // every table so needs-resolution and history are location-blind.
+    for (dir, prefix) in [
+        (tasks_dir.clone(), ""),
+        (tasks_dir.join(ARCHIVE_SUBDIR), "archive/"),
+    ] {
+        match std::fs::read_dir(&dir) {
+            Ok(dir) => {
+                for entry in dir {
+                    let entry = entry?;
+                    let name = entry.file_name().to_string_lossy().into_owned();
+                    let is_md = entry
+                        .path()
+                        .extension()
+                        .is_some_and(|ext| ext.eq_ignore_ascii_case("md"));
+                    if is_md {
+                        entries.push(TaskEntry {
+                            parsed: parse_task_file(&entry.path()),
+                            file_name: format!("{prefix}{name}"),
+                        });
+                    }
                 }
             }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {} // fresh store
+            Err(e) => return Err(e.into()),
         }
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {} // fresh store
-        Err(e) => return Err(e.into()),
     }
     entries.sort_by(|a, b| a.file_name.cmp(&b.file_name));
 
@@ -165,9 +207,13 @@ pub fn find_git_root(start: &Path) -> Option<PathBuf> {
 /// the ID prefix exists precisely for this lookup (DESIGN §2/§5).
 #[must_use]
 pub fn find_task_file(tasks_dir: &Path, id: &str) -> Option<PathBuf> {
+    find_in_dir(tasks_dir, id).or_else(|| find_in_dir(&tasks_dir.join(ARCHIVE_SUBDIR), id))
+}
+
+fn find_in_dir(dir: &Path, id: &str) -> Option<PathBuf> {
     let exact = format!("{id}.md");
     let prefix = format!("{id}-");
-    let mut hits: Vec<PathBuf> = std::fs::read_dir(tasks_dir)
+    let mut hits: Vec<PathBuf> = std::fs::read_dir(dir)
         .ok()?
         .filter_map(std::result::Result::ok)
         .map(|e| e.path())

@@ -199,15 +199,23 @@ fn import_todo_golden() {
 
     // Byte-stable task set (seeded ids + fixed date) → one golden blob.
     let tasks_dir = repo.join("docs/meshwork");
-    let mut names: Vec<String> = std::fs::read_dir(&tasks_dir)
-        .unwrap()
-        .map(|e| e.unwrap().path())
-        .filter(|p| {
-            // flat store: skip config/attrs — same filter as the loader
-            p.extension()
-                .is_some_and(|x| x.eq_ignore_ascii_case("md"))
+    // Root + archive/ — done imports land archived (mw-45e2qf4) and must
+    // stay pinned by the golden.
+    let mut names: Vec<String> = [("", tasks_dir.clone()), ("archive/", tasks_dir.join("archive"))]
+        .into_iter()
+        .filter_map(|(prefix, dir)| std::fs::read_dir(dir).ok().map(|rd| (prefix, rd)))
+        .flat_map(|(prefix, rd)| {
+            rd.map(|e| e.unwrap().path())
+                .filter(|p| {
+                    // flat store: skip config/attrs — same filter as the loader
+                    p.extension()
+                        .is_some_and(|x| x.eq_ignore_ascii_case("md"))
+                })
+                .map(move |p| {
+                    format!("{prefix}{}", p.file_name().unwrap().to_string_lossy())
+                })
+                .collect::<Vec<_>>()
         })
-        .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
         .collect();
     names.sort();
     let mut blob = String::new();

@@ -6,9 +6,10 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 /// Files `init` writes, relative to the repo root. The store is flat —
-/// task files live in `docs/meshwork/` itself (mw-acgp), so the union
-/// attribute anchors to the store dir (`/*.md`, gitignore-style).
-const GITATTRIBUTES: &str = "/*.md merge=union\n";
+/// task files live in `docs/meshwork/` itself (mw-acgp) with terminal
+/// tasks under `archive/` (mw-45e2qf4); the union attribute anchors to
+/// both (`/*.md`, gitignore-style).
+const GITATTRIBUTES: &str = "/*.md merge=union\n/archive/*.md merge=union\n";
 const CACHE_GITIGNORE: &str = "*\n!.gitignore\n";
 
 pub(crate) fn run(json: bool) -> Result<(), String> {

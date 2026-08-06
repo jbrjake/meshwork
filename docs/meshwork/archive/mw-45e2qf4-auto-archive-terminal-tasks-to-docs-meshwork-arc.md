@@ -1,7 +1,7 @@
 ---
 id: mw-45e2qf4
 title: Auto-archive terminal tasks to docs/meshwork/archive/
-status: doing
+status: done
 category: core/store
 verify: cargo test e2e::archive_on_close
 docs:
@@ -27,3 +27,4 @@ existing lifecycle verbs.
 ## log
 - 2026-08-06 created
 - 2026-08-06 open→doing
+- 2026-08-06 doing→done — verify exit 0

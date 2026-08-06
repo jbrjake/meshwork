@@ -183,6 +183,8 @@ handoff: |
 
 Hand-editing is legal and expected but never necessary. Fields can all be set by the CLI — flags on `add` at creation, `meshwork set <id>` after. `meshwork lint` validates the result (schema, cycles, dangling edges, post-merge damage; `lint --fix` repairs the mechanical cases). A file that fails to parse isn't dropped. It shows up as an `invalid` row in every listing until someone fixes it.
 
+When a task reaches `done` or `dropped`, its file moves to `docs/meshwork/archive/` automatically (and moves back on `reopen`). Archived tasks stay loaded and queryable — dependency resolution, SQL, and the digest are location-blind; only the clutter leaves the store root.
+
 Because tasks are files in git, concurrency is git's problem. Two sessions in separate worktrees can create tasks, comment on the *same* task, and close tasks, then merge without manual conflict resolution. The one merge artifact git can produce (a duplicated frontmatter key from union-merge) is repaired by `lint --fix`.
 
 The `seq` field is the prioritization: integers with gaps of 10, lower runs sooner.

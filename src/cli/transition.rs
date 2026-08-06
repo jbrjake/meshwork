@@ -124,6 +124,10 @@ fn transition(
     }
     let text = append_section_entry(&text, "log", &entry);
     std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    // Terminal tasks live in archive/; reopen brings the file back
+    // (mw-45e2qf4 — the graph never notices, only the directory does).
+    let terminal = matches!(to, Status::Done | Status::Dropped);
+    crate::store::relocate_for_status(&path, terminal).map_err(|e| e.to_string())?;
 
     if json {
         crate::cli::emit_json(

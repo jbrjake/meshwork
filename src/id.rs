@@ -130,7 +130,12 @@ pub fn mint_unique(alias: &str, tasks_dir: &Path, gen: &mut IdGen) -> std::io::R
 }
 
 fn id_taken(id: &str, tasks_dir: &Path) -> std::io::Result<bool> {
-    let entries = match std::fs::read_dir(tasks_dir) {
+    // Archived ids count as taken — never reused (MW-A4, mw-45e2qf4).
+    Ok(id_in_dir(id, tasks_dir)? || id_in_dir(id, &tasks_dir.join("archive"))?)
+}
+
+fn id_in_dir(id: &str, dir: &Path) -> std::io::Result<bool> {
+    let entries = match std::fs::read_dir(dir) {
         Ok(entries) => entries,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
         Err(e) => return Err(e),

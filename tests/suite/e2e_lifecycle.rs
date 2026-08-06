@@ -31,7 +31,7 @@ fn init_layout() {
     );
     assert_eq!(
         std::fs::read_to_string(mw.join(".gitattributes")).unwrap(),
-        "/*.md merge=union\n",
+        "/*.md merge=union\n/archive/*.md merge=union\n",
         "the committed union attr is MW-I1's whole mechanism"
     );
     assert_eq!(
@@ -355,8 +355,9 @@ fn transitions() {
     );
 
     // drop; dropped is terminal for reopen (DESIGN §6: blocked|doing|done).
+    // The file archives on drop (mw-45e2qf4) — re-locate it.
     meshwork(&repo).args(["drop", &id]).assert().success();
-    assert!(std::fs::read_to_string(&path)
+    assert!(std::fs::read_to_string(task_file(&repo, &id))
         .unwrap()
         .contains("status: dropped"));
     meshwork(&repo).args(["reopen", &id]).assert().failure();

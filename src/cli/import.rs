@@ -42,9 +42,23 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
         let id = mint_unique(&config.alias, &tasks_dir, &mut gen).map_err(|e| e.to_string())?;
         let file = render(item, &id, &today);
         let name = format!("{id}-{}.md", slugify(&item.title));
-        std::fs::write(tasks_dir.join(&name), file).map_err(|e| e.to_string())?;
+        // Already-terminal imports go straight to archive/ (mw-45e2qf4).
+        let terminal = matches!(
+            item.status,
+            crate::parse::Status::Done | crate::parse::Status::Dropped
+        );
+        let (dir, rel) = if terminal {
+            (
+                tasks_dir.join(crate::store::ARCHIVE_SUBDIR),
+                format!("docs/meshwork/archive/{name}"),
+            )
+        } else {
+            (tasks_dir.clone(), format!("docs/meshwork/{name}"))
+        };
+        std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+        std::fs::write(dir.join(&name), file).map_err(|e| e.to_string())?;
         *counts.entry(item.status.as_str()).or_default() += 1;
-        created.push(serde_json::json!({ "id": id, "path": format!("docs/meshwork/{name}") }));
+        created.push(serde_json::json!({ "id": id, "path": rel }));
     }
 
     if json {

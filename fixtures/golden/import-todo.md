@@ -1,3 +1,16 @@
+=== archive/wo-te8w1ns-migrate-config-to-toml.md
+---
+id: wo-te8w1ns
+title: Migrate config to toml
+status: done
+verify: "cargo test -p sazed-config toml::"
+created: 2026-08-04
+---
+landed 2026-07-29.
+
+## log
+- 2026-08-04 imported from TODO.md
+
 === wo-2ga2bx2-bump-datafusion-to-52.md
 ---
 id: wo-2ga2bx2
@@ -36,19 +49,6 @@ seq: 10
 created: 2026-08-04
 ---
 p99 collapses past 600M; repro in bench/spill_cliff.rs.
-
-## log
-- 2026-08-04 imported from TODO.md
-
-=== wo-te8w1ns-migrate-config-to-toml.md
----
-id: wo-te8w1ns
-title: Migrate config to toml
-status: done
-verify: "cargo test -p sazed-config toml::"
-created: 2026-08-04
----
-landed 2026-07-29.
 
 ## log
 - 2026-08-04 imported from TODO.md
