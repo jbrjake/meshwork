@@ -1,0 +1,44 @@
+# Cache warmer for release builds (mw-z0vh). GitHub cache scoping: a
+# tag-triggered run can only restore caches saved on its own ref or the
+# default branch — tags never see each other's caches. So release.yml
+# restores-only (save-if: false) and this workflow owns the writes from main.
+# Runs only when the dependency set can actually change: datafusion cold-builds
+# ~1h per runner, everything else is a no-op re-save that rust-cache skips.
+name: warm-cache
+on:
+  push:
+    branches: [main]
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/warm-cache.yml
+concurrency:
+  group: warm-cache
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  warm:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-14
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-24.04
+          - target: x86_64-pc-windows-msvc
+            os: windows-2025
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2 — pin by known-good SHA, never tag
+      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable 2026-08 — arm/partner runner images ship without Rust
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2 — pin by known-good SHA, never tag
+        with:
+          shared-key: release-${{ matrix.target }}
+      - name: build
+        run: cargo build --release --locked
