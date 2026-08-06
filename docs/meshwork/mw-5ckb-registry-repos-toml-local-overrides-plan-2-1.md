@@ -3,7 +3,7 @@ id: mw-5ckb
 title: "Registry: repos.toml + local overrides (PLAN 2.1)"
 status: open
 category: plan/m2
-needs: [mw-ntt5]
+needs: [mw-ntt5, mw-mrjccx2]
 verify: cargo test e2e::registry_overrides
 seq: 20
 docs:

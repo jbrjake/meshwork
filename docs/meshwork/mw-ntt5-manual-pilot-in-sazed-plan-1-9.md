@@ -10,7 +10,7 @@ docs:
   - DESIGN-meshwork.md#§-7-session-integration
   - DESIGN-meshwork.md#§-10-migration   # MW-J3
 created: 2026-08-05
-needs: [mw-der3, mw-a8tv, mw-0pj8qgv]
+needs: [mw-der3, mw-a8tv, mw-0pj8qgv, mw-zp1h12d, mw-n6nvzpa, mw-3wnhhvp]
 handoff: |
   v0.1.4 is TAGGED (74d65e2) but NOT RELEASED — the pilot now needs
   mw-0pj8qgv, whose blocked-reason carries the exact unblock commands.
