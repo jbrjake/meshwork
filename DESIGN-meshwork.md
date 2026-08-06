@@ -133,6 +133,18 @@ Every verb: `--json`, stable schema, versioned with the binary (MW-C3).
 
 `prime` emits, capped at 6KB ≈ 1.5K tokens (normative approximation: 4 bytes/token; the gate measures bytes — MW-D3/D5): ready top-10 (one line each) · in-progress with last log line · blocked with reasons · counts (`12 open, 3 blocked, 41 done`). Injected via SessionStart hook (the giles `session_context.py` pattern) or run as the session's first command per CLAUDE.md ritual. Task selection then goes `prime → show <id> [--docs]` — flat two-level disclosure (MW-D1), replacing the ~22K-token full-file read measured in ~95% of sessions. Session end: `close`/`block`/`comment` on touched tasks only. HANDOFF.md shrinks to a ≤2KB pointer (current-session context only; bytes, MW-D5); durable state lives in task logs and comments.
 
+### 7b. prime as materialized handoff (owner-ruled 2026-08-06, four rounds; lands with mw-a8tv)
+
+Hand-written HANDOFF.md is retired: it duplicates graph state. prime becomes the full handoff view, same 6KB cap, sections in order:
+
+1. **headline** — counts + category rollup capped at top 5 groups (group by first two category segments; rank by min seq among open members — seq is the priority primitive, there is no priority field; rest collapses to `… +N`, MW-D2 pattern).
+2. **weather** — all derived, never stored: freshest comments across the active frontier (ready+doing+blocked, newest first, byte-capped) + blocked-with-reasons.
+3. **next** — top ready task: its `handoff:` commentary FIRST, then category, blocks-line (what it unblocks), verify, docs: refs, body head verbatim, last-2 comment tail (MW-K4).
+4. **also-ready** one-liners with blocks-lines.
+5. **recently done** — last ~5 closed (id, title, done-date from log lines).
+
+New frontmatter key `handoff:` (multi-line block): the outgoing session's color commentary to the incoming one — the ONLY authored piece of the view, meaningful solely on up-next tasks. Rewritten freely (history belongs in comments); hand-edit only, no verb — §6 unchanged. Lint warns when `handoff:` sits on a done task. Session-end ritual: refresh `handoff:` on whatever is up next; comment anything history-worthy. Landing commit: delete docs/HANDOFF.md; drop CLAUDE.md ritual step 4's HANDOFF clause + baseline override 2; adoption-skill step 4 becomes "delete HANDOFF.md"; move HANDOFF's decisions line to §15 and its 2.3 re-bless note into mw-k7r5's body.
+
 ## 8. GitHub push (append-only view, MW-H*)
 
 Per-repo opt-in (`config.toml`), via the `gh` CLI (house auth), dry-run by default with `--yes`.
