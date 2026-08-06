@@ -34,7 +34,7 @@ None of this is hypothetical.
 
 One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
-> Every terminal transcript below is pasted from a real run of the released binary, with one exception queued in the store: the field-setter surface (`--seq` on `add`, `meshwork set`) isn't shipped yet.
+> Every terminal transcript below is pasted from a real run of the released binary.
 
 ---
 
@@ -59,12 +59,12 @@ File work as tasks with real dependencies and a runnable definition of done.
 
 ```
 $ meshwork add "Reproduce the 600M-row spill cliff" --cat engine/spill --verify "test -f repro.log"
-sa-n20tv1b
-  docs/meshwork/sa-n20tv1b-reproduce-the-600m-row-spill-cliff.md
+sa-k733xy9
+  docs/meshwork/sa-k733xy9-reproduce-the-600m-row-spill-cliff.md
 
-$ cat docs/meshwork/sa-n20tv1b-reproduce-the-600m-row-spill-cliff.md
+$ cat docs/meshwork/sa-k733xy9-reproduce-the-600m-row-spill-cliff.md
 ---
-id: sa-n20tv1b
+id: sa-k733xy9
 title: Reproduce the 600M-row spill cliff
 status: open
 category: engine/spill
@@ -79,47 +79,47 @@ created: 2026-08-06
 We can also add tasks with dependencies and an explicit `seq` (the priority weight). And note how categories are hierarchical, with slashes separating the levels:
 
 ```
-$ meshwork add "Fix spill batch sizing" --cat engine/spill --needs sa-n20tv1b --seq 10 --verify "cargo test spill::batch"
-sa-e9eyg9n
-  docs/meshwork/sa-e9eyg9n-fix-spill-batch-sizing.md
+$ meshwork add "Fix spill batch sizing" --cat engine/spill --needs sa-k733xy9 --seq 10 --verify "cargo test spill::batch"
+sa-q07thzc
+  docs/meshwork/sa-q07thzc-fix-spill-batch-sizing.md
 $ meshwork add "Write the spill postmortem" --cat docs --verify "test -f docs/postmortem.md"
-sa-15pthrw
-  docs/meshwork/sa-15pthrw-write-the-spill-postmortem.md
+sa-dv8y8wa
+  docs/meshwork/sa-dv8y8wa-write-the-spill-postmortem.md
 ```
 
 Then you can ask it what's actionable:
 
 ```
 $ meshwork ready
-sa-15pthrw  Write the spill postmortem
-sa-n20tv1b  Reproduce the 600M-row spill cliff
+sa-dv8y8wa  Write the spill postmortem
+sa-k733xy9  Reproduce the 600M-row spill cliff
 ```
 
 The blocked task doesn't appear, and you can ask why:
 
 ```
-$ meshwork why sa-e9eyg9n
-sa-e9eyg9n blocked by 1:
-- sa-n20tv1b (open) — verify: test -f repro.log
+$ meshwork why sa-q07thzc
+sa-q07thzc blocked by 1:
+- sa-k733xy9 (open) — verify: test -f repro.log
 ```
 
 Try to close something that isn't actually done, and the tool declines. A task's `verify:` command must exit 0, observed, right now.
 
 ```
-$ meshwork close sa-15pthrw
-meshwork: sa-15pthrw stays open: verify exit 1 (`test -f docs/postmortem.md`)
+$ meshwork close sa-dv8y8wa
+meshwork: sa-dv8y8wa stays open: verify exit 1 (`test -f docs/postmortem.md`)
 ```
 
 So let's get to work:
 
 ```
-$ meshwork start sa-n20tv1b
-sa-n20tv1b open→doing
-$ meshwork comment sa-n20tv1b --as claude "cliff reproduces at batch=64k; tracks the governor wakeup interval, not batch size"
-sa-n20tv1b: comment added as [claude]
+$ meshwork start sa-k733xy9
+sa-k733xy9 open→doing
+$ meshwork comment sa-k733xy9 --as claude "cliff reproduces at batch=64k; tracks the governor wakeup interval, not batch size"
+sa-k733xy9: comment added as [claude]
 $ touch repro.log        # stand-in for the actual work
-$ meshwork close sa-n20tv1b
-sa-n20tv1b doing→done (verify exit 0)
+$ meshwork close sa-k733xy9
+sa-k733xy9 doing→done (verify exit 0)
 ```
 
 As you can see, there are limits to enforcement. An agent absolutely will reach for that stand-in and just touch the file to hit the requirement. meshwork isn't guaranteeing anything more than that the provided validation passes.
@@ -129,8 +129,8 @@ As you can see, there are limits to enforcement. An agent absolutely will reach 
 Session's over. Before wrapping up, leave a note on whichever task is up next — the one authored piece of the handoff:
 
 ```
-$ meshwork set sa-e9eyg9n --handoff "Cliff is governor wakeup, not batch size — don't burn a session re-deriving that (comment on sa-n20tv1b has the repro). Try wakeup=250ms before touching batch math."
-sa-e9eyg9n handoff set
+$ meshwork set sa-q07thzc --handoff "Cliff is governor wakeup, not batch size — don't burn a session re-deriving that (comment on sa-k733xy9 has the repro). Try wakeup=250ms before touching batch math."
+sa-q07thzc handoff set
 ```
 
 The benefit of working this way isn't any magical belief that your vibe-coded slop works. That's what testing is for. It's so the next session doesn't have to read files to catch up or waste time at the end of sessions rotating tasks in text files. It gets `prime` — injected automatically by a SessionStart hook — which materializes the handoff from the store:
@@ -139,16 +139,16 @@ The benefit of working this way isn't any magical belief that your vibe-coded sl
 $ meshwork prime
 sazed — 2 open, 1 done
 engine/spill 1 · docs 1
-next → sa-e9eyg9n Fix spill batch sizing
-  » Cliff is governor wakeup, not batch size — don't burn a session re-deriving
-  » that (comment on sa-n20tv1b has the repro). Try wakeup=250ms before touching
-  » batch math.
+next → sa-q07thzc Fix spill batch sizing
+  » Cliff is governor wakeup, not batch size — don't burn a session
+  » re-deriving that (comment on sa-k733xy9 has the repro). Try wakeup=250ms
+  » before touching batch math.
   [engine/spill]
   verify: cargo test spill::batch
 also ready (1 more, top 1):
-- sa-15pthrw Write the spill postmortem
+- sa-dv8y8wa Write the spill postmortem
 recently done:
-- 2026-08-06 sa-n20tv1b Reproduce the 600M-row spill cliff
+- 2026-08-06 sa-k733xy9 Reproduce the 600M-row spill cliff
 ```
 
 Almost everything in that digest is derived from the task files — counts, the category rollup, what's next and why, what just finished. The exception is the `»` lines. That's the `handoff:` block, the outgoing session's voice to the incoming one, and it's the only authored part of the handoff. It lives on whichever task is up next. Linting warns if you leave one on a task you close.
@@ -159,22 +159,22 @@ The digest is capped at 6KB ≈ 1.5K tokens versus the 22K-token ritual it repla
 
 ## Files are the API
 
-A task is one markdown file. This is the entire storage format — `sa-e9eyg9n`, the blocked task from the session loop, verbatim:
+A task is one markdown file. This is the entire storage format — `sa-q07thzc`, the blocked task from the session loop, verbatim:
 
 ```markdown
 ---
-id: sa-e9eyg9n
+id: sa-q07thzc
 title: Fix spill batch sizing
 status: open
 category: engine/spill
-needs: [sa-n20tv1b]
+needs: [sa-k733xy9]
 verify: cargo test spill::batch
-handoff: |
-  Cliff is governor wakeup, not batch size — don't burn a session re-deriving
-  that (comment on sa-n20tv1b has the repro). Try wakeup=250ms before touching
-  batch math.
 seq: 10
 created: 2026-08-06
+handoff: |
+  Cliff is governor wakeup, not batch size — don't burn a session
+  re-deriving that (comment on sa-k733xy9 has the repro). Try wakeup=250ms
+  before touching batch math.
 ---
 
 ## log
@@ -215,7 +215,7 @@ Every verb also takes `--json` with a stable schema, for scripts and agents.
 Each consuming repo pins its own version:
 
 ```bash
-echo "v0.1.3" > .meshwork-version     # commit this
+echo "v0.1.4" > .meshwork-version     # commit this
 
 VER=$(cat .meshwork-version)
 DEST=~/.meshwork/versions/$VER

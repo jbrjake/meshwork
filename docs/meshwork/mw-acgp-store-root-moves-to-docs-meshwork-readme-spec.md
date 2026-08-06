@@ -1,7 +1,7 @@
 ---
 id: mw-acgp
 title: Store root moves to docs/meshwork/ (README spec)
-status: doing
+status: done
 category: meta/readme
 verify: cargo test e2e::store_at_docs_meshwork
 seq: 220
@@ -22,3 +22,4 @@ before mw-ntt5 so the sazed store never needs migrating.
 ## log
 - 2026-08-06 created
 - 2026-08-06 open→doing
+- 2026-08-06 doing→done — verify exit 0

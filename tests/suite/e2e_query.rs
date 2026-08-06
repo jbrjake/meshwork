@@ -201,8 +201,13 @@ fn import_todo_golden() {
     let tasks_dir = repo.join("docs/meshwork");
     let mut names: Vec<String> = std::fs::read_dir(&tasks_dir)
         .unwrap()
-        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
-        .filter(|n| n.ends_with(".md")) // flat store: skip config/attrs
+        .map(|e| e.unwrap().path())
+        .filter(|p| {
+            // flat store: skip config/attrs — same filter as the loader
+            p.extension()
+                .is_some_and(|x| x.eq_ignore_ascii_case("md"))
+        })
+        .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
         .collect();
     names.sort();
     let mut blob = String::new();

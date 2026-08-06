@@ -1,7 +1,7 @@
 ---
 id: mw-0f4j
 title: "Field setters: --seq/--docs on add + meshwork set verb (README spec)"
-status: open
+status: done
 category: meta/readme
 verify: cargo test e2e::field_setters
 seq: 230
@@ -21,3 +21,4 @@ when this lands, and drop the README footnote's setter exception.
 
 ## log
 - 2026-08-06 created
+- 2026-08-06 open→done — verify exit 0

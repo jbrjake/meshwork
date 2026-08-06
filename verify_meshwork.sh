@@ -92,7 +92,7 @@ fi
 
 # ---------------------------------------------------------------- §8 self-host (arrives M1)
 section 8 "self-host: meshwork lint + prime on this repo's own store"
-if [[ -d meshwork/tasks ]]; then
+if [[ -f docs/meshwork/config.toml ]]; then
   BIN=target/debug/meshwork
   [[ -x $BIN ]] || cargo build >/dev/null 2>&1
   if "$BIN" lint >/dev/null 2>&1; then pass "lint"; else fail "self lint"; fi

@@ -25,3 +25,4 @@ the new binary. lint --fix re-slug and import inherit via IdGen for free.
 
 ## comments
 - 2026-08-06 [claude] v0.1.3 tag is on GitHub (f334986) but both tag pushes landed during a GitHub Actions major outage — no release run was created. When Actions recovers: check gh run list for a materialized run first; if none, delete + re-push the tag to re-fire. Release assets not yet published.
+- 2026-08-06 [claude] Superseded: v0.1.3 was never released (GitHub Actions outage swallowed both tag pushes). mw-acgp + mw-0f4j landed after the tag, so the pilot release is v0.1.4 — tag it when Actions recovers; the v0.1.3 tag stays as unreleased history.
