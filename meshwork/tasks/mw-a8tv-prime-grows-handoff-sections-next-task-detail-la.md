@@ -15,7 +15,11 @@ docs/HANDOFF.md twice restating what tasks already record). Current
 conditions is a MATERIALIZATION, never a maintained field. The one authored
 piece is color commentary, and it lives ONLY on up-next tasks.
 prime becomes the full handoff view inside the same 6KB budget (MW-D3):
-  1 headline: counts + plan/m* milestone rollup from categories
+  1 headline: counts + category rollup CAPPED at top 5 groups (group by
+    first two category segments; rank groups by min seq among their open
+    tasks — where the soonest work lives; rest collapses to "… +N", the
+    MW-D2 cap pattern). No priority field exists: seq IS the priority
+    primitive (owner ruling 08-06, round four)
   2 weather (all derived): freshest comments across the active frontier
     (ready+doing+blocked, newest first, byte-capped) + blocked-with-reasons
   3 next: top ready task — its `handoff:` commentary FIRST (the voice), then
