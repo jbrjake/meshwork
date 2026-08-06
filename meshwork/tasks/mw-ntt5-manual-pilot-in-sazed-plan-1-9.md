@@ -11,6 +11,15 @@ docs:
   - DESIGN-meshwork.md#§-10-migration   # MW-J3
 created: 2026-08-05
 needs: [mw-der3, mw-a8tv]
+handoff: |
+  Everything you need is live: v0.1.0 released, pinned install proven end
+  to end (mw-der3's comment has the evidence), the meshwork skill carries
+  the step-by-step. In sazed: pin the version, init, import TODO.md and
+  READ the generated diff, wire the SessionStart hook, then delete
+  TODO.md + check-todo.sh + HANDOFF.md in ONE commit — prime is the
+  handoff now (DESIGN §7b). The two real work sessions are the acceptance
+  evidence and cannot be delegated; checklist = REQUIREMENTS §4 clauses
+  1+5, recorded in the sazed commit message.
 ---
 
 ## log

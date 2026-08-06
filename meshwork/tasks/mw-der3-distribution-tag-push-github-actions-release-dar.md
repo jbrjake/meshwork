@@ -1,19 +1,12 @@
 ---
 id: mw-der3
 title: "Distribution: tag-push GitHub Actions release (darwin binary) + per-project pinned install"
-status: open
+status: done
 category: meta/distribution
 verify: test -f .github/workflows/release.yml
 docs:
   - REQUIREMENTS-meshwork.md#§-j-non-functional   # MW-J3 adoptable-in-one-session
 created: 2026-08-06
-handoff: |
-  Remote exists now (jbrjake/meshwork) — that was the blocker. Ship the
-  workflow minimal: tag push → build darwin arm64 → attach tar.gz to the
-  release; no matrix, no cross-compile, nobody else consumes this yet.
-  The pin contract is .meshwork-version + ~/.meshwork/versions/<tag>/ —
-  the adoption skill already documents it, keep the paths in sync. CI is
-  the one thing the gate can't verify; watch the first run to completion.
 ---
 Owner ruling 2026-08-06: NO global cargo install — each consuming repo chooses
 its own meshwork version. Model: repo commits a version pin (e.g.
@@ -27,3 +20,7 @@ Blocks mw-ntt5 — the sazed pilot must install the pinned way, not ad hoc.
 
 ## log
 - 2026-08-06 created
+- 2026-08-06 open→done — verify exit 0
+
+## comments
+- 2026-08-06 [claude] v0.1.0 released: pinned checkout SHA workflow (unpinned first run canceled + re-tagged), darwin arm64 asset live. Pinned install verified end-to-end in a scratch repo: .meshwork-version -> gh release download -> ~/.meshwork/versions/v0.1.0/ -> init/add/prime all green. Follow-ups filed: mw-k5fc (linux/windows matrix), mw-z0vh (cargo cache).
