@@ -10,6 +10,7 @@ pub mod edit;
 pub mod id;
 pub mod lint;
 pub mod parse;
+pub mod registry;
 pub mod store;
 pub mod tables;
 pub mod trust;

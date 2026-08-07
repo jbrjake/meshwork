@@ -1,7 +1,7 @@
 ---
 id: mw-mrjccx2
 title: "Registry durability: repo rename aliases + ID-alias collision lint"
-status: open
+status: done
 category: core/portfolio
 verify: cargo test e2e::registry_rename_alias
 docs:
@@ -23,3 +23,8 @@ decision, so it lands with/before 2.1 (mw-5ckb needs this).
 
 ## log
 - 2026-08-06 created
+- 2026-08-07T02:42Z open→doing — claimed by claude
+- 2026-08-07T02:46Z doing→done — verify exit 0
+
+## comments
+- 2026-08-07T02:45Z [claude] Landed: src/registry.rs (model, arch-guarded) — repos.toml [[repo]] entries gain aliases = ["oldname"]; resolve() accepts canonical then alias (flagged); registry_findings() = registry-collision error (name claimed twice across names+aliases), alias-collision error (two locally-present repos minting one config.toml ID prefix; absent repos skipped, never guessed), renamed-repo warning on cross-repo refs through a former name, message carries the exact rewrite. Wired into lint behind MESHWORK_PORTFOLIO=<dir> (a named-but-broken registry errors loudly, no silent skip); repos.local.toml [paths] table read for checkout locations, default ~/Documents/code/<name> — full override semantics stay 2.1 (mw-5ckb). DESIGN §9 + §15.6 amended.

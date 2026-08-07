@@ -30,7 +30,16 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
         store = load_repo(&root).map_err(|e| e.to_string())?;
     }
 
-    let findings = lint_store(&store);
+    let mut findings = lint_store(&store);
+    // Registry-aware checks (mw-mrjccx2) join when a portfolio is named —
+    // `MESHWORK_PORTFOLIO=<dir>` until M2 wires proper discovery. A named
+    // but broken registry is a loud error, never a silent skip.
+    if let Some(portfolio) = std::env::var_os("MESHWORK_PORTFOLIO").filter(|v| !v.is_empty()) {
+        let registry = crate::registry::load(Path::new(&portfolio))?;
+        findings.extend(crate::registry::registry_findings(&registry, &store));
+        findings.sort();
+        findings.dedup();
+    }
     let errors = findings
         .iter()
         .filter(|f| f.severity == Severity::Error)
