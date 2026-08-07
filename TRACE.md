@@ -31,7 +31,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-E2 | `e2e::close_gating`, `e2e::close_waive_recorded` | done |
 | MW-E3 | `e2e::log_append_on_transitions`, `e2e::log_table_minted_forms` (mw-3wnhhvp: the record made queryable) | done |
 | MW-E4 | `e2e::discovered_from_edge` | done |
-| MW-E5 | `e2e::verify_trust` (lands with mw-9rc4vs6; ruling + threat model DESIGN §12b) | planned |
+| MW-E5 | `e2e::verify_trust_gate_refuses_unapproved`, `e2e::verify_trust_changed_text_revokes`, `e2e::verify_trust_env_grant_for_ci` | done |
 | MW-F1 | `parse::docs_links` | done |
 | MW-F2 | `e2e::show_docs_excerpts` | planned |
 | MW-F3 | `lint::anchor_missing_warn` | planned |

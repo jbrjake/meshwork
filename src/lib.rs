@@ -12,4 +12,5 @@ pub mod lint;
 pub mod parse;
 pub mod store;
 pub mod tables;
+pub mod trust;
 pub mod write;

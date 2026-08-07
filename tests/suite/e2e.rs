@@ -34,6 +34,10 @@ fn fixture_repo(name: &str) -> (tempfile::TempDir, std::path::PathBuf) {
 fn meshwork(dir: &Path) -> Command {
     let mut cmd = Command::cargo_bin("meshwork").unwrap();
     cmd.current_dir(dir);
+    // The suite's checkout is the reviewed one by definition — grant the
+    // MW-E5 env trust so every non-trust test runs ungated. The trust
+    // tests themselves strip this (e2e_verify_trust.rs `untrusted`).
+    cmd.env("MESHWORK_TRUST", "1");
     cmd
 }
 
@@ -86,3 +90,4 @@ include!("e2e_prime.rs");
 include!("e2e_prime_provenance.rs");
 include!("e2e_query.rs");
 include!("e2e_set.rs");
+include!("e2e_verify_trust.rs");

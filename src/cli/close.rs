@@ -1,6 +1,8 @@
 //! `meshwork close` (PLAN 0.7; MW-E2): run `verify:` via `sh -c` from the
 //! repo root, record exit + date in the log, close on exit 0 only.
 //! `--waive` skips the check but is recorded — loud and queryable.
+//! Shell execution sits behind the MW-E5 trust gate (mw-9rc4vs6): an
+//! unapproved verify text refuses before anything runs (DESIGN §12b).
 
 use crate::edit::{append_section_entry, remove_scalar, set_scalar};
 use crate::parse::{parse_task_file, ParsedTask, Status};
@@ -15,6 +17,39 @@ pub(crate) struct CloseArgs {
     /// column (`WHERE waived IS NOT NULL`, §15.3).
     #[arg(long, value_name = "REASON")]
     waive: Option<String>,
+    /// Show the verify text and record this clone's approval of it before
+    /// running (MW-E5 trust gate; approval is per-clone, DESIGN §12b).
+    #[arg(long)]
+    approve: bool,
+}
+
+/// MW-E5 (DESIGN §12b): never hand untrusted task content to a shell.
+/// Trusted = the `MESHWORK_TRUST=1` reviewed-checkout grant or a recorded
+/// per-clone approval of exactly this (id, text); `--approve` records one
+/// with the text on screen. Refusal is loud and names the approval step.
+fn require_trusted(
+    root: &std::path::Path,
+    id: &str,
+    verify: &str,
+    approve: bool,
+) -> Result<(), String> {
+    if crate::trust::env_trusted() || crate::trust::is_approved(root, id, verify) {
+        return Ok(());
+    }
+    if approve {
+        println!("approving verify for {id} (this clone only, MW-E5):\n  verify: {verify}");
+        crate::trust::record_approval(root, id, verify)
+            .map_err(|e| format!("recording approval: {e}"))
+    } else {
+        Err(format!(
+            "refusing unapproved verify for {id} (MW-E5, DESIGN §12b)\n  \
+             verify: {verify}\n  \
+             task files arrive via merge and are untrusted; review the \
+             command, then:\n  \
+             meshwork close {id} --approve   (records approval for this clone)\n  \
+             reviewed checkouts (CI, gates) may grant MESHWORK_TRUST=1 instead"
+        ))
+    }
 }
 
 pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
@@ -83,6 +118,8 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
             args.id
         ));
     };
+
+    require_trusted(&root, &args.id, verify, args.approve)?;
 
     // From the repo root, always — verify commands are written repo-relative.
     let output = std::process::Command::new("sh")

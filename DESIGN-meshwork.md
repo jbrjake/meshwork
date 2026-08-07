@@ -120,7 +120,7 @@ LIMIT 20;
 | `comment <id> [--as <author>] "text"` | append comment; `--as` falls back to `$MESHWORK_AUTHOR`, then config `default_author`, else error (MW-K1) |
 | `attach <id> <path>` | copy file into `attachments/<id>/`, record in frontmatter; refuses overwrite without `--force` (MW-K2) |
 | `start [--as <author>] / block --reason / drop / reopen <id>` | status transitions + log line; `start` records an advisory `claimed-by:` when the MW-K1 chain resolves an identity (no identity = no claim, never an error); close/drop/reopen release the claim, block keeps it (mw-tb6gdr9); `reopen`: blocked\|doing\|done → open (the missing inverse — without it every unblock is a hand-edit) |
-| `close <id> [--waive "reason"]` | run `verify:`, close on exit 0 only (MW-E2) |
+| `close <id> [--waive "reason"] [--approve]` | run `verify:`, close on exit 0 only (MW-E2); shell runs sit behind the MW-E5 trust gate — `--approve` shows the text and records this clone's approval, `MESHWORK_TRUST=1` is the reviewed-checkout grant (§12b, mw-9rc4vs6) |
 | `dep add / dep rm <a> --needs <b>` | edge edits without opening the file |
 | `ready / blocked / tree / why` | §5 |
 | `q "SELECT …" [--json]` | raw SQL (MW-C1) |
