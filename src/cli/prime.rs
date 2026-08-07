@@ -33,6 +33,45 @@ const BLOCKS_NAMED: usize = 3;
 /// Visible marker when the budget forces a cut.
 const TAIL: &str = "… truncated (6KB budget, MW-D3)";
 
+/// Store provenance, one line (mw-3jwwh5d): HEAD short-sha, uncommitted
+/// task-file edits, commits ahead of upstream — status and rev-list scoped
+/// to docs/meshwork/, local refs only (zero network, MW-J6). Any git
+/// failure (no repo, unborn HEAD, no upstream) degrades to omission —
+/// the digest never fails over a nicety (MW-D5).
+fn provenance_line(root: &std::path::Path) -> Option<String> {
+    let git = |args: &[&str]| -> Option<String> {
+        let out = std::process::Command::new("git")
+            .args(args)
+            .current_dir(root)
+            .output()
+            .ok()?;
+        out.status
+            .success()
+            .then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
+    };
+    let sha = git(&["rev-parse", "--short", "HEAD"])?;
+    let mut line = format!("store @ {sha}");
+    let dirty =
+        git(&["status", "--porcelain", "--", "docs/meshwork"]).map_or(0, |s| s.lines().count());
+    if dirty > 0 {
+        let s = if dirty == 1 { "" } else { "s" };
+        let _ = write!(line, " \u{b7} {dirty} uncommitted task edit{s}");
+    }
+    if let Some(ahead) = git(&[
+        "rev-list",
+        "--count",
+        "@{upstream}..HEAD",
+        "--",
+        "docs/meshwork",
+    ])
+    .and_then(|s| s.parse::<u64>().ok())
+    .filter(|n| *n > 0)
+    {
+        let _ = write!(line, " \u{b7} {ahead} ahead of upstream");
+    }
+    Some(line)
+}
+
 /// A category's first two segments — `engine/spill/budget` rolls up into
 /// `engine/spill` (§7b: display grain, not a model change).
 fn group_of(category: &str) -> &str {
@@ -304,12 +343,23 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         let next_task = ready
             .first()
             .and_then(|r| tasks.iter().find(|t| t.id == r[0]).copied());
-        emit_prime_json(&counts, &ready, &ranked, &weather, next_task, &dones);
+        emit_prime_json(
+            &counts,
+            &ready,
+            &ranked,
+            &weather,
+            next_task,
+            &dones,
+            provenance_line(&root).as_deref(),
+        );
         return Ok(());
     }
 
     // Assemble lines, then enforce the byte budget with a loud tail.
     let mut lines: Vec<String> = vec![counts_line(&counts, invalid, &store.repo)];
+    if let Some(p) = provenance_line(&root) {
+        lines.push(clamp_bytes(&p, LINE_CLAMP));
+    }
     if let Some(r) = rollup_line {
         lines.push(clamp_bytes(&r, LINE_CLAMP));
     }
@@ -361,6 +411,7 @@ fn emit_prime_json(
     weather: &[String],
     next: Option<&Task>,
     dones: &[(&str, &str, &str)],
+    provenance: Option<&str>,
 ) {
     let ready_rows: Vec<_> = ready
         .iter()
@@ -386,7 +437,8 @@ fn emit_prime_json(
     crate::cli::emit_json(
         "prime",
         &serde_json::json!({
-            "counts": counts, "ready_total": ready.len(), "ready": ready_rows,
+            "counts": counts, "provenance": provenance,
+            "ready_total": ready.len(), "ready": ready_rows,
             "rollup": rollup_rows, "rollup_total": rollup.len(),
             "weather": weather, "next": next_row, "recently_done": done_rows,
         }),

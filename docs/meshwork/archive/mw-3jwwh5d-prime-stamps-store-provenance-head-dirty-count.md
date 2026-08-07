@@ -1,7 +1,7 @@
 ---
 id: mw-3jwwh5d
 title: prime stamps store provenance (HEAD + dirty count)
-status: open
+status: done
 category: core/session
 verify: cargo test e2e::prime_provenance
 docs:
@@ -20,3 +20,5 @@ everything else (MW-D5). Filed from the 2026-08-06 review.
 
 ## log
 - 2026-08-06 created
+- 2026-08-07T00:40Z open→doing — claimed by claude
+- 2026-08-07T00:42Z doing→done — verify exit 0
