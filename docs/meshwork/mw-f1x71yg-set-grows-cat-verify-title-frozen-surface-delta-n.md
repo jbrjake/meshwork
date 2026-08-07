@@ -1,0 +1,26 @@
+---
+id: mw-f1x71yg
+title: "set grows --cat/--verify/--title (frozen-surface delta — needs the §6 ruling)"
+status: open
+category: core/lifecycle
+verify: cargo test e2e::set_cat_verify
+discovered-from: mw-ntt5
+seq: 250
+docs:
+  - DESIGN-meshwork.md#§-6-cli-surface
+created: 2026-08-07T13:47Z
+---
+Pilot evidence (sazed), both sessions. Migration: enriching 94 imported
+tasks with categories and verifies — the NORMAL path after any import —
+had no CLI route; a Python script rewrote frontmatter directly. Work
+session: THREE python hand-edits of store files in 65 minutes — retitle
+(after `set --seq 1 --title "…"` was rejected wholesale, losing the seq
+change with it, and the task stayed mis-ranked), a verify replacement
+(the vacuous→red fix), and a body repair. `set` §6 purpose is "field
+edits without opening the file"; --cat/--verify/--title are field edits.
+Surface is frozen, so this files as a proposal: OWNER RULING REQUIRED
+before any code. If rejected, the playbook should document the hand-edit
+as sanctioned instead.
+
+## log
+- 2026-08-07T13:47Z created

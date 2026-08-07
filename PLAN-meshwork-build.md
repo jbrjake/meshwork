@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 1.9 (MANUAL — owner).** (Through 1.8 done 2026-08-04. Self-host LIVE: `meshwork/` initialized (alias mw), 15 tasks = remaining plan items chained with needs so `ready` mirrors this Position line (currently: mw-ntt5, the pilot); gate §8 green — lint clean, prime 82B/6144B. 1.9 is the sazed pilot: owner-driven, cannot be automated from this repo. Post-M1 rule now active: new work files as meshwork tasks, not plan edits.) (2026-08-06: 1.9 gained `needs: mw-der3` — per-project pinned distribution via tagged releases, owner ruling; `meshwork ready` shows the live next item.)
+**Position: next = 2.1 (repos.toml), via `meshwork ready`.** (Through 1.9 done 2026-08-07: the sazed pilot ran — migration + first pure meshwork-tasked session, both transcripts reviewed; checklist in sazed abe358b; REQUIREMENTS §4 clauses 1+5 observed (prime 2,968B vs 116,119B retired reading, hook-injected; HANDOFF.md deleted, check-todo.sh never existed). M1 COMPLETE. 10 pilot findings filed as mw tasks — worst: `import todo` silently drops nested checkboxes (mw-17hnhzk), must land before leras migrates in M2; the store's seq ranks it against 2.1.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -47,7 +47,7 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | 1.6 ✓ | CLI-surface freeze test: `--help` output lists exactly DESIGN §6 — the non-goals fence, enforced (D4, §3 non-goals) | `cargo test e2e::cli_surface_frozen` ✓ 2026-08-04 |
 | 1.7 ✓ | `import todo`: baseline checkbox format from committed sazed-format sample → golden (J3) | `cargo test e2e::import_todo_golden` ✓ 2026-08-04 |
 | 1.8 ✓ | Gate §8 self-host activates: meshwork's own `meshwork/` initialized, its TODO items imported | `./verify_meshwork.sh` ✓ 2026-08-04 (§8 PASS: lint + prime 82B) |
-| 1.9 | **Manual pilot (sazed):** import real TODO.md; SessionStart hook injects `prime`; run 2 real sessions; `check-todo.sh` retired; HANDOFF.md deleted (prime is the handoff, DESIGN §7b) | pilot checklist in sazed commit message; REQUIREMENTS §4 clauses 1+5 |
+| 1.9 ✓ | **Manual pilot (sazed):** import real TODO.md; SessionStart hook injects `prime`; run 2 real sessions; `check-todo.sh` retired; HANDOFF.md deleted (prime is the handoff, DESIGN §7b) | pilot checklist in sazed commit message ✓ 2026-08-07 (sazed abe358b; REQUIREMENTS §4 clauses 1+5: prime 2,968B replaced 116,119B, 39×; check-todo.sh never existed; both transcripts reviewed, 10 findings filed as mw tasks) |
 
 ### M2 — portfolio (stop-line: leras joins)
 
