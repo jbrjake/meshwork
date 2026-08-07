@@ -5,7 +5,8 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 ## Doc map (read in this order when cold)
 
 - `REQUIREMENTS-meshwork.md` — WHAT/WHY. `MW-*` IDs are normative; §3 non-goals is the anti-scope-creep fence (changing it requires an owner ruling).
-- `DESIGN-meshwork.md` — HOW. File format §2, SQL contract §4–5, CLI surface §6 (frozen: anything not there is a non-goal), test architecture §13, gate §14, decisions §15.
+- `DESIGN-meshwork.md` — HOW. File format §2, SQL contract §4–5, CLI surface §6 (frozen: anything not there is a non-goal), trust boundary §12b, test architecture §13, gate §14, decisions §15.
+- `FORMAT.md` — the on-disk format + projection contract, versioned and self-contained; third-party readers implement from this, never from the binary.
 - `PLAN-meshwork-build.md` — THE WORKLIST. Ordered items, each with a `verify:` command. The **Position** line at top marks the next item. Work top-to-bottom; no skipping ahead.
 - `TRACE.md` — requirement → test map, machine-checked by the gate.
 
