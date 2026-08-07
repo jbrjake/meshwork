@@ -278,12 +278,14 @@ fn comments_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
         utf8(false, "date"),
         utf8(false, "author"),
         utf8(false, "text"),
+        utf8(false, "hash"),
     ]));
     let mut gid = Vec::new();
     let mut ord = Vec::new();
     let mut date = Vec::new();
     let mut author = Vec::new();
     let mut text = Vec::new();
+    let mut hash = Vec::new();
     for store in stores {
         for entry in &store.entries {
             if let ParsedTask::Valid(t) = &entry.parsed {
@@ -293,6 +295,7 @@ fn comments_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
                     date.push(c.date.clone());
                     author.push(c.author.clone());
                     text.push(c.text.clone());
+                    hash.push(c.hash());
                 }
             }
         }
@@ -303,6 +306,7 @@ fn comments_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
         Arc::new(StringArray::from(date)),
         Arc::new(StringArray::from(author)),
         Arc::new(StringArray::from(text)),
+        Arc::new(StringArray::from(hash)),
     ];
     Ok(RecordBatch::try_new(schema, columns)?)
 }

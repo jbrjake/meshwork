@@ -117,6 +117,30 @@ pub struct Comment {
     pub text: String,
 }
 
+impl Comment {
+    /// The spec-level comment identity (mw-xvtf5jx, FORMAT.md):
+    /// `SHA-256(date NUL author NUL text)` as lowercase hex. The mirror's
+    /// idempotency markers abbreviate it to the first 8 chars (DESIGN §8);
+    /// UI and replication layers dedup on it. Frozen — changing the tuple
+    /// encoding desyncs every consumer at once.
+    #[must_use]
+    pub fn hash(&self) -> String {
+        use sha2::{Digest, Sha256};
+        use std::fmt::Write as _;
+        let mut h = Sha256::new();
+        h.update(self.date.as_bytes());
+        h.update([0]);
+        h.update(self.author.as_bytes());
+        h.update([0]);
+        h.update(self.text.as_bytes());
+        let mut hex = String::with_capacity(64);
+        for b in h.finalize() {
+            let _ = write!(hex, "{b:02x}");
+        }
+        hex
+    }
+}
+
 /// A fully parsed, schema-valid task file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Task {

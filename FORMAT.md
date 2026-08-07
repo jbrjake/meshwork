@@ -85,7 +85,7 @@ Parsing is positional and never validates history: token one is the date as writ
 entry = "- " date " [" author "] " text
 ```
 
-Neither date nor author may be empty; a nonconforming entry is a warning, and the line is skipped, not fatal. A comment's identity is the tuple (date, author, text); a canonical content hash over that tuple (mirror dedup, replication) is specified when it lands (mw-xvtf5jx) — until then the tuple itself is the identity.
+Neither date nor author may be empty; a nonconforming entry is a warning, and the line is skipped, not fatal. A comment's identity is `SHA-256(date NUL author NUL text)` as lowercase hex — date and author as written, text with continuations joined by `\n`, `NUL` a single zero byte (mw-xvtf5jx). Every consumer that dedups comments (the mirror, UI layers, replication) MUST use this hash; the mirror's issue-comment markers abbreviate it to the first 8 hex chars. Minute-resolution stamps are what make it trustworthy: same-day identical text no longer collides.
 
 ## Merge semantics
 
@@ -108,7 +108,7 @@ The projection is six tables. `repo` is the registry name from the portfolio's `
 | `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status` (the five values, or `invalid`), `category`, `verify`, `waived`, `seq`, `created`, `blocked_reason`, `claimed_by`, `github`, `path`, `error` (invalid rows only) |
 | `edges` | `src_gid`, `dst_gid`, `kind` (`needs`\|`parent`\|`discovered-from`\|`relates`), `resolved` (dst present in the loaded/registered set); `parent` edges stored child→parent; bare targets qualify with the declaring repo |
 | `labels` | `gid`, `label` (exploded) |
-| `comments` | `gid`, `ord` (1-based file position), `date`, `author`, `text` |
+| `comments` | `gid`, `ord` (1-based file position), `date`, `author`, `text`, `hash` (the identity hash above) |
 | `log` | `gid`, `ord` (1-based file position), `date` (as written; NULL if the entry has none), `from_status`, `to_status` (NULL for free text), `note` — the `## log` grammar above, exactly |
 | `repos` | `repo`, `path`, `remote`, `present` |
 
