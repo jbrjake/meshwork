@@ -1,7 +1,7 @@
 ---
 id: mw-af4kbjy
 title: "Batch add with template refs: wire edges between not-yet-minted tasks"
-status: open
+status: done
 category: core/authoring
 verify: cargo test e2e::add_batch
 seq: 250
@@ -32,3 +32,5 @@ entries accept every §2 field, so this lands after mw-0f4j.
 
 ## log
 - 2026-08-06 created
+- 2026-08-06 open→doing — claimed by claude
+- 2026-08-07 doing→done — verify exit 0

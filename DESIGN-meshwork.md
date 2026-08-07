@@ -113,6 +113,7 @@ LIMIT 20;
 |---|---|
 | `init` | create `docs/meshwork/` + config in a repo |
 | `add "title" [--cat p] [--label l] [--needs id..] [--parent id] [--from id] [--verify cmd] [--seq n] [--docs link..]` | create task file, print id; missing `--verify` = lint warning until set (MW-E2) |
+| `add --batch <file\|-> [--dry-run]` | several tasks atomically (mw-af4kbjy): concatenated §2 documents, `id:` omitted, local-only `handle: <name>` — `@name` legal anywhere an id is (needs/parent/from/relates); ids minted, refs rewritten, all files or none; `--dry-run` prints the would-be files, writes nothing |
 | `set <id> [--seq n] [--docs link..] [--handoff "text"]` | field edits without opening the file (mw-0f4j); `--docs` appends, `--handoff` replaces the block |
 | `show <id> [--docs] [--comments]` | full task; last-3 comments by default (MW-K4); `--docs` = anchor-scoped excerpts, capped ~4KB/link (bytes, MW-D5/F2) |
 | `comment <id> [--as <author>] "text"` | append comment; `--as` falls back to `$MESHWORK_AUTHOR`, then config `default_author`, else error (MW-K1) |

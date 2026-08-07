@@ -70,6 +70,7 @@ fn add_id(repo: &Path, args: &[&str]) -> String {
     stdout_of(&out).lines().next().unwrap().to_string()
 }
 
+include!("e2e_add_batch.rs");
 include!("e2e_archive.rs");
 include!("e2e_claim.rs");
 include!("e2e_graph.rs");

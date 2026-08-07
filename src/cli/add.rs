@@ -9,7 +9,16 @@ use std::fmt::Write as _;
 #[derive(clap::Args)]
 pub(crate) struct AddArgs {
     /// One-line title.
-    title: String,
+    #[arg(required_unless_present = "batch")]
+    title: Option<String>,
+    /// Several tasks at once from a file ("-" = stdin): concatenated §2
+    /// documents, `id:` omitted, local `handle:` names usable as @refs in
+    /// needs/parent/from/relates — atomic, all files or none (mw-af4kbjy).
+    #[arg(long, value_name = "FILE", conflicts_with_all = ["title", "cat", "label", "needs", "parent", "from", "verify", "seq", "docs"])]
+    batch: Option<String>,
+    /// Print the would-be task files, write nothing.
+    #[arg(long, requires = "batch")]
+    dry_run: bool,
     /// Category slash-path, e.g. engine/spill (MW-B4).
     #[arg(long = "cat", value_name = "PATH")]
     cat: Option<String>,
@@ -37,6 +46,9 @@ pub(crate) struct AddArgs {
 }
 
 pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
+    if let Some(source) = &args.batch {
+        return super::add_batch::run(source, args.dry_run, json);
+    }
     let root = crate::cli::require_store_root()?;
     let config = crate::store::load_config(&root).map_err(|e| e.to_string())?;
     if args.parent.as_deref().is_some_and(|p| p.contains('#')) {
@@ -53,7 +65,11 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     let id = mint_unique(&config.alias, &tasks_dir, &mut idgen).map_err(|e| e.to_string())?;
 
     let today = crate::clock::today();
-    let title = args.title.replace(['\n', '\r'], " ");
+    let title = args
+        .title
+        .as_deref()
+        .unwrap_or_default()
+        .replace(['\n', '\r'], " ");
     let mut fm = String::new();
     let _ = writeln!(fm, "id: {id}");
     let _ = writeln!(fm, "title: {}", yaml_scalar(&title));

@@ -3,6 +3,7 @@
 //! milestone by milestone; this module holds clap types + dispatch only.
 
 mod add;
+mod add_batch;
 mod close;
 mod dep;
 mod graph;
