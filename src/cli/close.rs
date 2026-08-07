@@ -40,7 +40,7 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
         ));
     }
 
-    let today = crate::clock::today();
+    let today = crate::clock::stamp();
     let from = task.status.as_str();
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
 

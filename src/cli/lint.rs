@@ -95,7 +95,7 @@ fn fix_misplaced(store: &RepoStore) -> Result<usize, String> {
 }
 
 fn fix_duplicate_keys(store: &RepoStore) -> Result<usize, String> {
-    let today = crate::clock::today();
+    let today = crate::clock::stamp();
     let mut fixed = 0;
     for entry in &store.entries {
         let ParsedTask::Invalid(inv) = &entry.parsed else {
@@ -165,7 +165,7 @@ fn drop_duplicate_keys(text: &str) -> Option<(String, Vec<String>)> {
 /// file content can say which side a reference meant.
 fn fix_duplicate_ids(store: &RepoStore) -> Result<usize, String> {
     let tasks_dir = store.root.join("docs").join("meshwork");
-    let today = crate::clock::today();
+    let today = crate::clock::stamp();
     let seed = std::env::var("MESHWORK_ID_SEED").ok();
     let mut gen = IdGen::from_seed_str(seed.as_deref());
 

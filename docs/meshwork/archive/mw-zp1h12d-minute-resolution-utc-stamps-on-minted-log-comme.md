@@ -1,7 +1,7 @@
 ---
 id: mw-zp1h12d
 title: Minute-resolution UTC stamps on minted log/comment lines
-status: doing
+status: done
 category: core/format
 verify: cargo test e2e::minute_stamps
 docs:
@@ -9,7 +9,6 @@ docs:
   - REQUIREMENTS-meshwork.md#§-i-concurrency-merge
 seq: 3
 created: 2026-08-06
-claimed-by: claude
 ---
 Owner-accepted 2026-08-06 (format-hardening review; DESIGN §2
 amendment lands here). Every stamp today is a civil date. Three costs,
@@ -30,3 +29,4 @@ guesswork after stores multiply.
 ## log
 - 2026-08-06 created
 - 2026-08-07 open→doing — claimed by claude
+- 2026-08-07T00:25Z doing→done — verify exit 0

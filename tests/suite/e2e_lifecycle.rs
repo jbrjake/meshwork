@@ -409,8 +409,9 @@ fn log_append_on_transitions() {
     assert!(log[1].contains("open→doing"));
     assert!(log[2].contains("doing→blocked — repro needed"));
     assert!(log[3].contains("blocked→open"));
+    // Minute-resolution stamps (mw-zp1h12d) still lead with the civil date.
     let date = meshwork::clock::today();
-    assert!(log[1].starts_with(&format!("- {date} ")), "dated entries");
+    assert!(log[1].starts_with(&format!("- {date}")), "dated entries");
 }
 
 /// PLAN 0.7 / MW-E2: `close` runs verify: via `sh -c` from the repo root,

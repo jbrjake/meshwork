@@ -34,7 +34,7 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
     std::fs::create_dir_all(&tasks_dir).map_err(|e| e.to_string())?;
     let seed = std::env::var("MESHWORK_ID_SEED").ok();
     let mut gen = IdGen::from_seed_str(seed.as_deref());
-    let today = crate::clock::today();
+    let today = crate::clock::stamp();
 
     let mut created = Vec::new();
     let mut counts: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();

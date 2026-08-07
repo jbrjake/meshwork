@@ -16,10 +16,10 @@ fn comment_attach() {
         .assert()
         .success();
     let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
-    assert!(
-        text.contains(&format!("- {today} [maya] hand-checked the numbers")),
-        "{text}"
-    );
+    // Minted stamps are minute-resolution (mw-zp1h12d) — assert the civil
+    // date prefix and the payload separately.
+    assert!(text.contains(&format!("- {today}")), "{text}");
+    assert!(text.contains("[maya] hand-checked the numbers"), "{text}");
 
     // $MESHWORK_AUTHOR is next.
     meshwork(&repo)

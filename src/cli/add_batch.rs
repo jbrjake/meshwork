@@ -69,7 +69,7 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
 
     // Resolve refs + inject defaults, then validate EVERY document before
     // writing ANY file (partial failure writes nothing).
-    let today = crate::clock::today();
+    let today = crate::clock::stamp();
     let mut files: Vec<(std::path::PathBuf, String, String)> = Vec::new(); // (path, rel, text)
     for (i, (entry, id)) in entries.iter().zip(&ids).enumerate() {
         let n = i + 1;

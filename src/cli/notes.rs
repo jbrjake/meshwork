@@ -72,7 +72,7 @@ pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
          default_author to docs/meshwork/config.toml (MW-K1)",
     )?;
 
-    let today = crate::clock::today();
+    let today = crate::clock::stamp();
     let text_flat = args.text.replace('\r', "");
     let entry = format!("{today} [{author}] {}", text_flat.replace('\n', "\n  "));
     let file = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;

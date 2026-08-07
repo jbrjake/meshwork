@@ -77,6 +77,7 @@ include!("e2e_graph.rs");
 include!("e2e_lifecycle.rs");
 include!("e2e_lint.rs");
 include!("e2e_merge.rs");
+include!("e2e_minute_stamps.rs");
 include!("e2e_notes.rs");
 include!("e2e_prime.rs");
 include!("e2e_query.rs");

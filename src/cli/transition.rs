@@ -142,7 +142,7 @@ fn transition(
         text = remove_scalar(&text, "claimed-by")?;
     }
 
-    let today = crate::clock::today();
+    let today = crate::clock::stamp();
     let mut entry = format!("{today} {}→{}", task.status.as_str(), to.as_str());
     if let Some(reason) = reason {
         use std::fmt::Write as _;

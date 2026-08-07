@@ -64,7 +64,7 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     let mut idgen = IdGen::from_seed_str(seed.as_deref());
     let id = mint_unique(&config.alias, &tasks_dir, &mut idgen).map_err(|e| e.to_string())?;
 
-    let today = crate::clock::today();
+    let today = crate::clock::stamp();
     let title = args
         .title
         .as_deref()
