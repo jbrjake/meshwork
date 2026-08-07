@@ -12,14 +12,22 @@ docs:
 created: 2026-08-05
 needs: [mw-der3, mw-a8tv, mw-0pj8qgv, mw-zp1h12d, mw-n6nvzpa, mw-3wnhhvp]
 handoff: |
-  v0.1.4 is TAGGED (74d65e2) but NOT RELEASED — the pilot now needs
-  mw-0pj8qgv, whose blocked-reason carries the exact unblock commands.
-  Everything the pilot wants is in that tag: 7-char ids, docs/meshwork
-  flat store with auto-archive, add --seq/--docs, set verb. Once the
-  release ships: pin v0.1.4, init, import TODO.md and READ the diff, wire
-  the SessionStart hook, delete TODO.md + check-todo.sh + HANDOFF.md in
-  ONE commit. Two real work sessions are the acceptance evidence;
-  checklist = REQUIREMENTS §4 clauses 1+5 in the sazed commit message.
+  Owner-driven pilot (PLAN 1.9, MANUAL — no session can do this for
+  you). Stale-text correction: v0.1.4 DID ship 2026-08-07; the mw-0pj8qgv
+  release blocker is resolved and the chapter is closed. What changed
+  since that tag: main is now 10 commits ahead — the whole
+  format-hardening review closed 2026-08-07 (log grammar + log as sixth
+  SQL table, MW-E5 TOFU trust gate, FORMAT.md spec, registry rename
+  aliases, mirror default-branch guard, comment identity hash,
+  commit-trace anchors) plus the close ritual itself changed: first close
+  of a task per clone now wants close --approve (or MESHWORK_TRUST=1 on
+  reviewed checkouts). A pilot pinned to v0.1.4 exercises none of that —
+  if the pilot should validate the hardened format, cut a fresh tag first
+  (gotcha from mw-0pj8qgv: deleting a GitHub tag drafts its release; gh
+  release edit --draft=false after re-push). Filed this session, ready
+  behind you: mw-bvxpeef archive compaction (owner request), mw-2pz0zqc
+  path confinement, mw-8fmsws3 terminal escapes, mw-0y66mhb parse.rs
+  split; mw-7cvse76 (ASCII graphs) carries its own handoff.
 ---
 
 ## log
