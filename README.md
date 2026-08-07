@@ -39,9 +39,12 @@ Measured again after sazed — the first repo above — migrated onto meshwork (
 | | before | after |
 |---|---|---|
 | session-start onboarding read | TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens), read in full as the first two tool calls of ~every session | `meshwork prime`: **2,968 bytes** (~700 tokens), injected by the SessionStart hook before the first tool call — **39× less** |
+| tracker busywork per session — every tool call spent reading, editing, or policing the tracker instead of working | **~33.3K tokens**, 28.8% of the session's tool traffic: 1 busywork token per 2.5 of work (average of the final 10 pre-migration sessions) | **~9.8K tokens**, 8.6%: 1 per 10.6 — **3.4× less**, and the freed traffic went to work (82K → 104K work tokens) |
 | getting oriented, observed in the first post-migration session | 2 whole-file reads before any work | four short store reads (`show`, `why`, `git log`), zero doc sweeps, `start` on the recommended task 8 minutes in |
 | handoff corpus | **84 HANDOFF files, 841KB**, accumulated over 5 weeks, plus 27 session-end commits rewriting two files | HANDOFF.md deleted; `handoff:` lives on the task it describes, `prime` materializes the one that's next |
 | worklist fidelity | one 550-line TODO.md, with its own carve-out in the repo's line-cap gate | 123 tasks, 23 dependency edges, 108 runnable `verify:` gates, `lint` 0 errors 0 warnings |
+
+*Busywork counted from the session transcripts by `scripts/admin-tokens.py`: every tool call (input + result) whose command or path touches the tracker — TODO.md/HANDOFF reads, edits, and cap-check thrash before; every meshwork CLI call, store file edit, and console todo mirroring after — at 4 chars/token. The classification errs against meshwork: its whole CLI surface counts as busywork.*
 
 > Every terminal transcript below is pasted from a real run of the binary.
 
