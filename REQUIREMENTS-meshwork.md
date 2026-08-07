@@ -64,6 +64,7 @@ Keywords MUST / SHOULD / MAY per RFC 2119. IDs are stable; cite as `MW-A1`.
 - **MW-E2 (MUST)** Every task carries a `verify:` command (set at creation via `add --verify` or by hand-edit; missing `verify:` is a lint warning while open and forces `close` to demand `--waive`); `meshwork close <id>` runs it via `sh -c` from the repo root, records exit code + date in the log, and closes only on exit 0. `--waive "<reason>"` is recorded, loud, and queryable. Can't write a verify → the task isn't ready; split out a spike whose deliverable IS the verify (baseline rule, preserved verbatim).
 - **MW-E3 (MUST)** Append-only per-task log (dated transitions + one-line notes) in the task body — the durable handoff record, replacing HANDOFF.md narrative.
 - **MW-E4 (SHOULD)** `--from <id>` at creation records `discovered-from` provenance; kills the "audit filed in the wrong file, invisible for a day" routing failure.
+- **MW-E5 (MUST)** Executing a `verify:` never grants arbitrary shell to unreviewed task content (ruled via mw-mjwfvxn; threat model DESIGN §12b). Task files arrive via git merge and are untrusted input; before running a shell `verify:`, the tool MUST require that its exact text was explicitly approved by the operator of *this clone* (content-hash TOFU, per-clone gitignored state — approvals never merge in). `MESHWORK_TRUST=1` is the deliberate whole-checkout grant for CI/gate/test contexts where the checkout itself was reviewed. Git authorship is never a trust signal. Amends MW-E2's `sh -c` sentence; MW-E2 is otherwise intact.
 
 ### F. Wiki / doc drill-through
 
@@ -111,6 +112,8 @@ Keywords MUST / SHOULD / MAY per RFC 2119. IDs are stable; cite as `MW-A1`.
 ## 3. Non-goals (normative — this list is the anti-Jira, anti-nerdsnipe contract)
 
 No web UI. No daemon or background sync. No user accounts, auth, roles, or permissions — identities are self-professed strings (MW-K1). No notifications. No time tracking, estimates, or burndown. No sprint/agile semantics — hierarchy is generic structure only (MW-B8); ceremonies stay in giles. No MCP server in v1. No plugin system. No bespoke query language. No SaaS component. GitHub is never the store and is never mutated beyond append (MW-H2). No two-way sync. Feature requests landing in this list are rejected by default; moving an item out requires an owner ruling recorded here.
+
+Scope ruling (2026-08-07, mw-mjwfvxn): a constrained **verify predicate grammar** (mw-sascrgs — declarative checks that parse instead of shelling out) is NOT the rejected "bespoke query language". That fence bans query DSLs — SQL remains the only query surface — and never covered the execution side; a verify grammar is security posture (MW-E5), in scope. The accompanying trust gate adds no verb and at most one flag (`close --approve`, DESIGN §12b) to the frozen §6 surface.
 
 Ruled out of the reject list (owner 2026-08-06, mw-tb6gdr9): **advisory work claiming.** `start` records a self-professed `claimed-by:` via the MW-K1 chain; close/drop/reopen release it. The accounts/auth fence above holds unchanged — a claim is a string, not a lock: no locking, no enforcement, concurrency stays git's problem; post-merge double-claims are lint findings, reported and never auto-resolved.
 

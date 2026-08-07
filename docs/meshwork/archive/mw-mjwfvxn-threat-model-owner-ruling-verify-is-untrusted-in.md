@@ -1,7 +1,7 @@
 ---
 id: mw-mjwfvxn
 title: "Threat model + owner ruling: verify: is untrusted input"
-status: open
+status: done
 category: core/verify
 parent: mw-6895bkg
 verify: grep -q MW-E5 REQUIREMENTS-meshwork.md
@@ -35,3 +35,8 @@ like MESHWORK_ID_SEED), and which §6 verbs/flags the gate may add.
 
 ## log
 - 2026-08-06 created
+- 2026-08-07T01:52Z open→doing — claimed by claude
+- 2026-08-07T02:27Z doing→done — verify exit 0
+
+## comments
+- 2026-08-07T02:25Z [claude] Ruling recorded: DESIGN §12b (threat model: drive-by merged verify → close → RCE; execution point is close alone; mirror stays fixed-argv), REQUIREMENTS MW-E5 (MUST: TOFU per-clone approval before shell verify; MESHWORK_TRUST=1 reviewed-checkout grant; git authorship never trust), §3 scope ruling (verify DSL ≠ bespoke query language; gate adds at most close --approve), §15.11 pointer. Decisions delegated by the task body were taken as: boundary = clone operator TOFU on exact verify text (matches mw-9rc4vs6's sketch); CI posture = MESHWORK_TRUST=1 env contract joining §15.6; §6 delta = one flag, no verb. Adjacent surfaces filed: mw-2pz0zqc (path confinement), mw-8fmsws3 (terminal escapes). TRACE row MW-E5 planned → e2e::verify_trust.
