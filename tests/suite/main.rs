@@ -3,6 +3,7 @@
 //! Tiers per DESIGN §13: fixtures = corpus honesty, e2e = real binary in a
 //! tempdir. Unit tests live in src/ modules. Everything offline (MW-J6).
 
+mod arch;
 mod common;
 mod e2e;
 mod fixtures;

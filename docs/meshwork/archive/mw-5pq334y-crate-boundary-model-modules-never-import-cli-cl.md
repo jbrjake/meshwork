@@ -1,7 +1,7 @@
 ---
 id: mw-5pq334y
 title: "Crate boundary: model modules never import cli/clap"
-status: open
+status: done
 category: core/arch
 verify: cargo test arch::model_boundary
 docs:
@@ -18,3 +18,5 @@ surgery. Cheap whenever; filed from the 2026-08-06 review.
 
 ## log
 - 2026-08-06 created
+- 2026-08-07T00:43Z open→doing — claimed by claude
+- 2026-08-07T00:46Z doing→done — verify exit 0

@@ -38,3 +38,4 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 - The CLI surface is DESIGN §6, verbatim — `e2e::cli_surface_frozen` enforces it. Feature ideas go to REQUIREMENTS §3's rejection list by default.
 - meshwork-the-tool never installs git hooks, never writes outside the repo (+ portfolio repo), never mutates GitHub beyond append (MW-A3/G1/H2). This repo's own dev hooks are unrelated to that rule.
 - Never lower a threshold to pass a gate (baseline). Fix the code or the measurement.
+- Model modules (src/*.rs) never import `crate::cli` or clap — clap belongs in src/cli/ only; `arch::model_boundary` enforces it (mw-5pq334y).
