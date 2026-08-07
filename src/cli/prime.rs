@@ -108,13 +108,17 @@ fn blocks_suffix(deps: &[&str]) -> String {
     format!("blocks: {}{}", named.join(", "), more)
 }
 
-/// Done-date from the last `→done` log line (entries are `<date> …`).
-fn done_date(t: &Task) -> Option<&str> {
-    t.log
-        .iter()
-        .rev()
-        .find(|l| l.contains("\u{2192}done"))
-        .and_then(|l| l.split_whitespace().next())
+/// Done-date from the last `→done` transition, read through the normative
+/// log grammar (mw-3wnhhvp) — the de-facto substring parse is retired.
+fn done_date(t: &Task) -> Option<String> {
+    t.log.iter().rev().find_map(|l| {
+        let e = crate::parse::parse_log_line(l);
+        if e.to == Some(Status::Done) {
+            e.date
+        } else {
+            None
+        }
+    })
 }
 
 /// Live tasks grouped by first-two category segments, ranked by min seq
@@ -286,13 +290,13 @@ fn also_ready_lines(tasks: &[&Task], ready: &[Vec<String>]) -> Vec<String> {
 }
 
 /// Recently done, newest first, dated from `→done` log lines.
-fn recent_dones<'a>(tasks: &[&'a Task]) -> Vec<(&'a str, &'a str, &'a str)> {
-    let mut dones: Vec<(&str, &str, &str)> = tasks
+fn recent_dones<'a>(tasks: &[&'a Task]) -> Vec<(String, &'a str, &'a str)> {
+    let mut dones: Vec<(String, &str, &str)> = tasks
         .iter()
         .filter(|t| t.status == Status::Done)
         .filter_map(|t| done_date(t).map(|d| (d, t.id.as_str(), t.title.as_str())))
         .collect();
-    dones.sort_by(|a, b| b.0.cmp(a.0).then(a.1.cmp(b.1)));
+    dones.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(b.1)));
     dones.truncate(DONE_ROWS);
     dones
 }
@@ -410,7 +414,7 @@ fn emit_prime_json(
     rollup: &[(&str, i64, usize)],
     weather: &[String],
     next: Option<&Task>,
-    dones: &[(&str, &str, &str)],
+    dones: &[(String, &str, &str)],
     provenance: Option<&str>,
 ) {
     let ready_rows: Vec<_> = ready

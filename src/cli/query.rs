@@ -18,7 +18,7 @@ pub(crate) struct ReadyArgs {
 
 #[derive(clap::Args)]
 pub(crate) struct QArgs {
-    /// SQL over tasks / edges / labels / comments / repos.
+    /// SQL over tasks / edges / labels / comments / log / repos.
     sql: String,
 }
 

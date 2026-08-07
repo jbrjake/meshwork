@@ -46,10 +46,10 @@ async fn edge_kinds() {
     assert_eq!(parent, [["alpha#az-s4g0"]], "src is the child (DESIGN §4)");
 }
 
-/// The five-table SQL contract, including the waived column (MW-E2's
-/// "queryable" made true) and repos.present.
+/// The six-table SQL contract, including the waived column (MW-E2's
+/// "queryable" made true), the log table (mw-3wnhhvp), and repos.present.
 #[tokio::test]
-async fn five_tables_queryable() {
+async fn six_tables_queryable() {
     let ctx = session(&["alpha"]);
     let waived = sql_rows(&ctx, "SELECT id FROM tasks WHERE waived IS NOT NULL").await;
     assert_eq!(waived, [["az-w4v3"]]);
@@ -66,6 +66,22 @@ async fn five_tables_queryable() {
 
     let comments = sql_rows(&ctx, "SELECT count(*) FROM comments").await;
     assert!(comments[0][0].parse::<i64>().unwrap() >= 5);
+
+    // log: the grammar's two shapes side by side — a dated transition with
+    // note, and free text with NULL from/to (mw-3wnhhvp).
+    let log = sql_rows(
+        &ctx,
+        "SELECT date, from_status, to_status, note FROM log \
+         WHERE gid IN ('alpha#az-b10k','alpha#az-s4g0') ORDER BY gid",
+    )
+    .await;
+    assert_eq!(
+        log,
+        [
+            ["2026-08-02", "open", "blocked", "upstream release pending"],
+            ["2026-08-01", "", "", "created"],
+        ]
+    );
 }
 
 /// `edges.resolved` derives from the loaded set: same-repo hits resolve,

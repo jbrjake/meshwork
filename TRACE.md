@@ -29,7 +29,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-D5 | `unit::budget_bytes_not_lines` | done |
 | MW-E1 | `e2e::transitions` | done |
 | MW-E2 | `e2e::close_gating`, `e2e::close_waive_recorded` | done |
-| MW-E3 | `e2e::log_append_on_transitions` | done |
+| MW-E3 | `e2e::log_append_on_transitions`, `e2e::log_table_minted_forms` (mw-3wnhhvp: the record made queryable) | done |
 | MW-E4 | `e2e::discovered_from_edge` | done |
 | MW-F1 | `parse::docs_links` | done |
 | MW-F2 | `e2e::show_docs_excerpts` | planned |

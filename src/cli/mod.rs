@@ -69,7 +69,7 @@ enum Cmd {
     Tree(transition::IdArg),
     /// The frontier of actually-open blockers for a task.
     Why(transition::IdArg),
-    /// Raw SQL over tasks/edges/labels/comments/repos.
+    /// Raw SQL over tasks/edges/labels/comments/log/repos.
     Q(query::QArgs),
     /// The ≤6KB session-start digest.
     Prime,

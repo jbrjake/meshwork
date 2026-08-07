@@ -40,7 +40,7 @@ enum PortfolioAction {
     Next,
     /// Raw SQL over the unioned portfolio tables.
     Q {
-        /// SQL over the unioned five tables.
+        /// SQL over the unioned six tables.
         sql: String,
     },
     /// Renumber seq weights when gaps exhaust (§15.2).

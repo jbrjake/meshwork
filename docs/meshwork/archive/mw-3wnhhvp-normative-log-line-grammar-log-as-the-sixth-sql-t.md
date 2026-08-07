@@ -1,7 +1,7 @@
 ---
 id: mw-3wnhhvp
 title: Normative log-line grammar + log as the sixth SQL table
-status: open
+status: done
 category: core/format
 needs: [mw-zp1h12d]
 verify: cargo test e2e::log_table
@@ -10,17 +10,6 @@ docs:
   - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
 seq: 5
 created: 2026-08-06
-handoff: |
-  Unblocked when minute stamps (mw-zp1h12d) landed 2026-08-07 — you're
-  first in queue (seq 5), ahead of the threat model. Grammar heads-up:
-  minted log lines now include minute-res stamps (2026-08-06T21:47Z) AND
-  the claim suffix from mw-tb6gdr9 ('… — claimed by X'), plus close's
-  'close attempt — verify exit N' — the normative grammar must cover
-  all minted forms, and old date-only/free-text lines stay legal (parse
-  never validates history). The sixth table joins DESIGN §4's five-table
-  contract — update the doc table + re-bless json goldens (envelope now
-  carries meshwork.version/schema). Tools from this session: file any
-  sub-tasks via add --batch with @handles; start --as <you> to claim.
 ---
 Owner-accepted 2026-08-06 (format-hardening review). Transitions are
 written as prose (`- <date> open→doing — note`) and prime already
@@ -36,3 +25,8 @@ this). The grammar embeds the mw-zp1h12d stamp format.
 
 ## log
 - 2026-08-06 created
+- 2026-08-07T01:28Z open→doing — claimed by claude
+- 2026-08-07T01:51Z doing→done — verify exit 0
+
+## comments
+- 2026-08-07T01:49Z [claude] Shipped: parse_log_line in parse.rs (positional, never validates history — LogEntry{date,from,to,note}), log_batch as the sixth table in tables.rs, prime done_date now reads the grammar instead of the '→done' substring hunt. Grammar frozen in DESIGN §2, table row in §4, corpus gained every log shape (§13 + fixtures::check_alpha_log_lines). No goldens changed — the envelope re-bless the handoff predicted had already landed with mw-5kp033j.

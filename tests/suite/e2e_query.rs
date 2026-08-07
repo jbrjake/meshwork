@@ -39,7 +39,7 @@ fn ready_golden() {
     assert!(text.lines().next().unwrap().starts_with("az-n33d"));
 }
 
-/// MW-C1: real SQL over the five virtual tables — no bespoke language.
+/// MW-C1: real SQL over the six virtual tables — no bespoke language.
 #[test]
 fn raw_sql_tables() {
     let (_g, repo) = fixture_repo("alpha");
@@ -47,6 +47,10 @@ fn raw_sql_tables() {
         ("SELECT count(*) FROM tasks", "33"),
         ("SELECT count(*) FROM edges WHERE kind='needs'", "9"),
         ("SELECT count(*) FROM repos", "1"),
+        (
+            "SELECT date FROM log WHERE gid='alpha#az-d0n3' AND to_status='done'",
+            "2026-08-01",
+        ),
         (
             "SELECT id FROM tasks WHERE waived IS NOT NULL",
             "az-w4v3",

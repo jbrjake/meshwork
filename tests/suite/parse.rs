@@ -234,3 +234,68 @@ fn corpus_parses_as_planted() {
         "exactly the planted YAML-error and union-poison rows"
     );
 }
+
+/// mw-3wnhhvp: the normative log-line grammar, at the unit level — every
+/// minted shape and the lenient positional fallbacks for history.
+#[test]
+fn log_line_grammar() {
+    use meshwork::parse::{parse_log_line, LogEntry};
+    let entry = |date: Option<&str>, from, to, note: Option<&str>| LogEntry {
+        date: date.map(String::from),
+        from,
+        to,
+        note: note.map(String::from),
+    };
+    let some = |s| Some(String::from(s));
+
+    // Minted transitions, with and without the em-dash note.
+    assert_eq!(
+        parse_log_line("2026-08-06T21:47Z open→doing — claimed by maya"),
+        entry(
+            Some("2026-08-06T21:47Z"),
+            Some(Status::Open),
+            Some(Status::Doing),
+            Some("claimed by maya"),
+        )
+    );
+    assert_eq!(
+        parse_log_line("2026-08-02 open→doing"),
+        entry(
+            Some("2026-08-02"),
+            Some(Status::Open),
+            Some(Status::Doing),
+            None
+        )
+    );
+    // Hand-written note without the em dash still counts (lenient).
+    assert_eq!(
+        parse_log_line("2026-08-02 doing→done started passing").note,
+        some("started passing")
+    );
+    // Minted free text: created, and the failed close attempt.
+    assert_eq!(
+        parse_log_line("2026-08-01 created"),
+        entry(Some("2026-08-01"), None, None, Some("created"))
+    );
+    assert_eq!(
+        parse_log_line("2026-08-05T14:03Z close attempt — verify exit 1").note,
+        some("close attempt — verify exit 1")
+    );
+    // History: nonsense statuses stay free text, never an error.
+    assert_eq!(parse_log_line("2026-08-02 fixed→done — x").from, None);
+    // A bare date, a bare word, an empty entry.
+    assert_eq!(
+        parse_log_line("2026-08-03"),
+        entry(Some("2026-08-03"), None, None, None)
+    );
+    assert_eq!(
+        parse_log_line("migrated from TODO.md"),
+        entry(Some("migrated"), None, None, Some("from TODO.md"))
+    );
+    assert_eq!(parse_log_line("  "), entry(None, None, None, None));
+    // Continuations arrive joined with \n; the note keeps them.
+    assert_eq!(
+        parse_log_line("2026-08-02 open→blocked — line one\nline two").note,
+        some("line one\nline two")
+    );
+}

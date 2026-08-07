@@ -12,9 +12,9 @@ use datafusion::prelude::SessionContext;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-/// Build a `SessionContext` with the five-table contract registered:
-/// `tasks`, `edges`, `labels`, `comments`, `repos` (DESIGN §4) — plus the
-/// `category_matches` UDF (MW-B4), so filtering stays plain SQL.
+/// Build a `SessionContext` with the six-table contract registered:
+/// `tasks`, `edges`, `labels`, `comments`, `log`, `repos` (DESIGN §4) —
+/// plus the `category_matches` UDF (MW-B4), so filtering stays plain SQL.
 ///
 /// # Errors
 /// Only Arrow schema/registration failures — which would be a bug, not data.
@@ -24,6 +24,7 @@ pub fn session_for(stores: &[RepoStore]) -> DfResult<SessionContext> {
     ctx.register_batch("edges", edges_batch(stores)?)?;
     ctx.register_batch("labels", labels_batch(stores)?)?;
     ctx.register_batch("comments", comments_batch(stores)?)?;
+    ctx.register_batch("log", log_batch(stores)?)?;
     ctx.register_batch("repos", repos_batch(stores)?)?;
     ctx.register_udf(category_matches_udf());
     Ok(ctx)
@@ -302,6 +303,50 @@ fn comments_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
         Arc::new(StringArray::from(date)),
         Arc::new(StringArray::from(author)),
         Arc::new(StringArray::from(text)),
+    ];
+    Ok(RecordBatch::try_new(schema, columns)?)
+}
+
+/// `## log` entries through the normative grammar (mw-3wnhhvp): transition
+/// lines carry from/to, free text keeps them NULL — the queryable half of
+/// MW-E3's durable record (blocked-duration, cycle time, activity feeds).
+fn log_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
+    let schema = Arc::new(Schema::new(vec![
+        utf8(false, "gid"),
+        Field::new("ord", DataType::Int64, false),
+        utf8(true, "date"),
+        utf8(true, "from_status"),
+        utf8(true, "to_status"),
+        utf8(true, "note"),
+    ]));
+    let mut gid = Vec::new();
+    let mut ord = Vec::new();
+    let mut date: Vec<Option<String>> = Vec::new();
+    let mut from: Vec<Option<String>> = Vec::new();
+    let mut to: Vec<Option<String>> = Vec::new();
+    let mut note: Vec<Option<String>> = Vec::new();
+    for store in stores {
+        for entry in &store.entries {
+            if let ParsedTask::Valid(t) = &entry.parsed {
+                for (i, line) in t.log.iter().enumerate() {
+                    let e = crate::parse::parse_log_line(line);
+                    gid.push(store.gid(&t.id));
+                    ord.push(i64::try_from(i).unwrap_or(i64::MAX - 1) + 1);
+                    date.push(e.date);
+                    from.push(e.from.map(|s| s.as_str().to_string()));
+                    to.push(e.to.map(|s| s.as_str().to_string()));
+                    note.push(e.note);
+                }
+            }
+        }
+    }
+    let columns: Vec<ArrayRef> = vec![
+        Arc::new(StringArray::from(gid)),
+        Arc::new(Int64Array::from(ord)),
+        Arc::new(StringArray::from(date)),
+        Arc::new(StringArray::from(from)),
+        Arc::new(StringArray::from(to)),
+        Arc::new(StringArray::from(note)),
     ];
     Ok(RecordBatch::try_new(schema, columns)?)
 }

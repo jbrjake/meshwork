@@ -246,7 +246,59 @@ fn check_alpha(missing: &mut Vec<String>) {
     );
 
     check_alpha_docs_comments(&tasks, missing);
+    check_alpha_log_lines(&tasks, missing);
     check_alpha_payloads(&tasks, missing);
+}
+
+/// alpha, continued: log lines in every §2 grammar shape (mw-3wnhhvp) —
+/// transition with and without note, free text, date-only and minute-res
+/// stamps. Text-level like everything here: no parser involved.
+fn check_alpha_log_lines(tasks: &[TaskFile], missing: &mut Vec<String>) {
+    let mut need = |ok: bool, what: &str| {
+        if !ok {
+            missing.push(format!("alpha: {what}"));
+        }
+    };
+    let lines: Vec<&str> = tasks
+        .iter()
+        .filter_map(|t| t.body.split("## log").nth(1))
+        .flat_map(|section| {
+            section
+                .lines()
+                .take_while(|l| !l.starts_with("## "))
+                .filter_map(|l| l.strip_prefix("- "))
+        })
+        .collect();
+    let second_token = |l: &&str| l.split_whitespace().nth(1).map(str::to_string);
+    need(
+        lines
+            .iter()
+            .any(|l| second_token(l).is_some_and(|t| t.contains('→')) && l.contains(" — ")),
+        "a transition log line with a note",
+    );
+    need(
+        lines
+            .iter()
+            .any(|l| second_token(l).is_some_and(|t| t.contains('→')) && !l.contains(" — ")),
+        "a transition log line without a note",
+    );
+    need(
+        lines
+            .iter()
+            .any(|l| second_token(l).is_some_and(|t| !t.contains('→'))),
+        "a free-text log line",
+    );
+    let stamp_of = |l: &&str| l.split_whitespace().next().unwrap_or("").to_string();
+    need(
+        lines.iter().any(|l| stamp_of(l).len() == 10),
+        "a date-only log stamp (legacy stays legal)",
+    );
+    need(
+        lines
+            .iter()
+            .any(|l| stamp_of(l).len() == 17 && stamp_of(l).ends_with('Z')),
+        "a minute-res log stamp (mw-zp1h12d)",
+    );
 }
 
 /// alpha, continued: docs drill-through anchors + comment format (MW-F*, K1).

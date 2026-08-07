@@ -38,6 +38,71 @@ impl Status {
             Status::Dropped => "dropped",
         }
     }
+
+    /// Inverse of [`Status::as_str`]; `None` for any other spelling.
+    #[must_use]
+    pub fn parse_str(s: &str) -> Option<Status> {
+        match s {
+            "open" => Some(Status::Open),
+            "doing" => Some(Status::Doing),
+            "blocked" => Some(Status::Blocked),
+            "done" => Some(Status::Done),
+            "dropped" => Some(Status::Dropped),
+            _ => None,
+        }
+    }
+}
+
+/// One `## log` entry per the normative grammar (mw-3wnhhvp, DESIGN §2):
+/// `- <date> <from>→<to>[ — <note>]` is a transition; anything else is free
+/// text. Parsing is positional and NEVER validates history — the date is
+/// the first token as written (minute stamp, date-only, or whatever an old
+/// store holds), from/to fill only when the second token reads
+/// `<status>→<status>`, and free-text entries keep the whole rest as note.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LogEntry {
+    /// First whitespace token as written; `None` only for an empty entry.
+    pub date: Option<String>,
+    /// Transition source, when the entry is a transition line.
+    pub from: Option<Status>,
+    /// Transition target, when the entry is a transition line.
+    pub to: Option<Status>,
+    /// Note after the ` — ` separator (transition) or the whole free text.
+    pub note: Option<String>,
+}
+
+/// Parse one log entry (the text after `- `, continuations already joined).
+#[must_use]
+pub fn parse_log_line(entry: &str) -> LogEntry {
+    let entry = entry.trim();
+    let (date, rest) = match entry.split_once(char::is_whitespace) {
+        Some((d, r)) => (d, r.trim_start()),
+        None => (entry, ""),
+    };
+    let date = (!date.is_empty()).then(|| date.to_string());
+    let (token, tail) = match rest.split_once(char::is_whitespace) {
+        Some((t, r)) => (t, r.trim_start()),
+        None => (rest, ""),
+    };
+    if let Some((f, t)) = token.split_once('\u{2192}') {
+        if let (Some(from), Some(to)) = (Status::parse_str(f), Status::parse_str(t)) {
+            // The `— ` separator is minted; hand-written notes without it
+            // still count — lenient by rule, the grammar binds minting only.
+            let note = tail.strip_prefix('\u{2014}').map_or(tail, str::trim_start);
+            return LogEntry {
+                date,
+                from: Some(from),
+                to: Some(to),
+                note: (!note.is_empty()).then(|| note.to_string()),
+            };
+        }
+    }
+    LogEntry {
+        date,
+        from: None,
+        to: None,
+        note: (!rest.is_empty()).then(|| rest.to_string()),
+    }
 }
 
 /// One comment: `- <date> [<author>] text` with two-space continuations
