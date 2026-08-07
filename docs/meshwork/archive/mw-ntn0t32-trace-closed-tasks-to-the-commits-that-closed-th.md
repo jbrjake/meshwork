@@ -1,7 +1,7 @@
 ---
 id: mw-ntn0t32
 title: Trace closed tasks to the commits that closed them
-status: open
+status: done
 category: core/lifecycle
 verify: cargo test e2e::commit_trace
 docs:
@@ -32,3 +32,8 @@ that makes the convention self-enforcing without hooks.
 
 ## log
 - 2026-08-07T00:27Z created
+- 2026-08-07T03:06Z open→doing — claimed by claude
+- 2026-08-07T03:11Z doing→done — verify exit 0 @ 1359b45+9
+
+## comments
+- 2026-08-07T03:10Z [claude] Landed both halves as the body suggested. (a) close-side: head_anchor() appends ' @ <short-sha>[+N]' to →done notes (verify-0 AND waive paths; N = git status --porcelain line count repo-wide) — unborn HEAD omits silently (mw-3jwwh5d precedent). Anchor is note text under the log grammar, a convention not a parse rule (FORMAT.md updated). (b) read-side: show gains a commits: tail — git log -F --grep=<id> (stuck form; the separated form silently fails), %h %s, capped 10 with the … marker, JSON carries commits[] + commits_total; empty = omitted. (c) the lint warn was deliberately NOT added: fixture/test repos are freshly git-init'd, so every done task in every corpus copy would warn — noise that would train people to ignore lint. The gap is already visible as a missing commits: tail in show; revisit only if real repos show the convention slipping.

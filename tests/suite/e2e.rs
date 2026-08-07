@@ -78,6 +78,7 @@ include!("e2e_add_batch.rs");
 include!("e2e_archive.rs");
 include!("e2e_claim.rs");
 include!("e2e_comment_identity.rs");
+include!("e2e_commit_trace.rs");
 include!("e2e_format_marker.rs");
 include!("e2e_graph.rs");
 include!("e2e_json_envelope.rs");

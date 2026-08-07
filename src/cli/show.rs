@@ -18,6 +18,33 @@ pub(crate) struct ShowArgs {
 }
 
 const COMMENT_CAP: usize = 3;
+/// Commits listed in the `commits:` tail before `… and N more` (MW-D2).
+const COMMIT_CAP: usize = 10;
+
+/// mw-ntn0t32: the closing-work commit set, derived read-side from the
+/// id-in-subject convention — `git log --grep=<id>`, fixed-string, local
+/// refs only (zero network, MW-J6). Works retroactively for every task
+/// ever closed with the id in a commit message; no repo or no matches
+/// degrade to empty, never an error.
+fn commits_for(root: &std::path::Path, id: &str) -> Vec<(String, String)> {
+    let Ok(out) = std::process::Command::new("git")
+        .args(["log", "-F", &format!("--grep={id}"), "--format=%h %s"])
+        .current_dir(root)
+        .output()
+    else {
+        return Vec::new();
+    };
+    if !out.status.success() {
+        return Vec::new();
+    }
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter_map(|l| {
+            l.split_once(' ')
+                .map(|(sha, subject)| (sha.to_string(), subject.to_string()))
+        })
+        .collect()
+}
 
 pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
     if args.docs {
@@ -41,10 +68,11 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
             } else {
                 task.comments.len().saturating_sub(COMMENT_CAP)
             };
+            let commits = commits_for(&root, &args.id);
             if json {
-                emit_json(&task, &rel, shown_from);
+                emit_json(&task, &rel, shown_from, &commits);
             } else {
-                render_text(&task, &rel, shown_from);
+                render_text(&task, &rel, shown_from, &commits);
             }
             Ok(())
         }
@@ -66,7 +94,7 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
     }
 }
 
-fn render_text(t: &Task, rel: &str, shown_from: usize) {
+fn render_text(t: &Task, rel: &str, shown_from: usize, commits: &[(String, String)]) {
     println!("{} — {} [{}]", t.id, t.title, t.status.as_str());
     let kv = |k: &str, v: Option<String>| {
         if let Some(v) = v {
@@ -127,12 +155,25 @@ fn render_text(t: &Task, rel: &str, shown_from: usize) {
             );
         }
     }
+    if !commits.is_empty() {
+        println!("\ncommits ({}):", commits.len());
+        for (sha, subject) in commits.iter().take(COMMIT_CAP) {
+            println!("- {sha} {subject}");
+        }
+        if commits.len() > COMMIT_CAP {
+            println!(
+                "… and {} more (git log --grep={})",
+                commits.len() - COMMIT_CAP,
+                t.id
+            );
+        }
+    }
     for w in &t.warnings {
         eprintln!("warning: {w}");
     }
 }
 
-fn emit_json(t: &Task, rel: &str, shown_from: usize) {
+fn emit_json(t: &Task, rel: &str, shown_from: usize, commits: &[(String, String)]) {
     let shown: Vec<_> = t.comments[shown_from..]
         .iter()
         .map(|c| serde_json::json!({ "date": c.date, "author": c.author, "text": c.text }))
@@ -149,6 +190,10 @@ fn emit_json(t: &Task, rel: &str, shown_from: usize) {
             "claimed_by": t.claimed_by, "waived": t.waived, "handoff": t.handoff,
             "description": t.description, "log": t.log,
             "comments": { "total": t.comments.len(), "shown": shown },
+            "commits": commits.iter().take(COMMIT_CAP)
+                .map(|(sha, subject)| serde_json::json!({ "sha": sha, "subject": subject }))
+                .collect::<Vec<_>>(),
+            "commits_total": commits.len(),
             "path": rel, "warnings": t.warnings,
         }),
     );

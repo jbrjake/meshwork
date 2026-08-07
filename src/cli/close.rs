@@ -52,6 +52,70 @@ fn require_trusted(
     }
 }
 
+/// mw-ntn0t32: anchor the close to the repo moment — ` @ <short-sha>[+N]`
+/// appended to the →done note (N = uncommitted paths). The closing commit
+/// lands after close runs, so the sha names its parent; `show` recovers
+/// the closing-commit set read-side via the id-in-subject convention.
+/// Unborn HEAD degrades to omission — the anchor is a nicety (mw-3jwwh5d
+/// precedent), never a failure.
+fn head_anchor(root: &std::path::Path) -> String {
+    let git = |args: &[&str]| -> Option<String> {
+        let out = std::process::Command::new("git")
+            .args(args)
+            .current_dir(root)
+            .output()
+            .ok()?;
+        out.status
+            .success()
+            .then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
+    };
+    let Some(sha) = git(&["rev-parse", "--short", "HEAD"]) else {
+        return String::new();
+    };
+    let dirty = git(&["status", "--porcelain"]).map_or(0, |s| s.lines().count());
+    if dirty > 0 {
+        format!(" @ {sha}+{dirty}")
+    } else {
+        format!(" @ {sha}")
+    }
+}
+
+/// The `--waive` path: no verify runs (so no trust gate), the reason is
+/// recorded loud and queryable (MW-E2), the anchor still lands.
+#[allow(clippy::too_many_arguments)]
+fn close_waived(
+    path: &std::path::Path,
+    root: &std::path::Path,
+    id: &str,
+    reason: &str,
+    text: &str,
+    today: &str,
+    from: &str,
+    json: bool,
+) -> Result<(), String> {
+    let out = set_scalar(text, "status", Some("done"))?;
+    let out = set_scalar(&out, "waived", Some(&yaml_scalar(reason)))?;
+    let out = append_section_entry(
+        &out,
+        "log",
+        &format!(
+            "{today} {from}→done — waived: {reason}{}",
+            head_anchor(root)
+        ),
+    );
+    std::fs::write(path, out).map_err(|e| e.to_string())?;
+    crate::store::relocate_for_status(path, true).map_err(|e| e.to_string())?;
+    if json {
+        crate::cli::emit_json(
+            "close",
+            &serde_json::json!({ "id": id, "closed": true, "waived": reason }),
+        );
+    } else {
+        println!("{id} {from}→done (waived: {reason})");
+    }
+    Ok(())
+}
+
 pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
@@ -91,24 +155,7 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
 
     if let Some(reason) = &args.waive {
         let out = release_claim(&text)?;
-        let out = set_scalar(&out, "status", Some("done"))?;
-        let out = set_scalar(&out, "waived", Some(&yaml_scalar(reason)))?;
-        let out = append_section_entry(
-            &out,
-            "log",
-            &format!("{today} {from}→done — waived: {reason}"),
-        );
-        std::fs::write(&path, out).map_err(|e| e.to_string())?;
-        crate::store::relocate_for_status(&path, true).map_err(|e| e.to_string())?;
-        if json {
-            crate::cli::emit_json(
-                "close",
-                &serde_json::json!({ "id": args.id, "closed": true, "waived": reason }),
-            );
-        } else {
-            println!("{} {from}→done (waived: {reason})", args.id);
-        }
-        return Ok(());
+        return close_waived(&path, &root, &args.id, reason, &out, &today, from, json);
     }
 
     let Some(verify) = &task.verify else {
@@ -137,8 +184,11 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
     if exit == 0 {
         let out = release_claim(&text)?;
         let out = set_scalar(&out, "status", Some("done"))?;
-        let out =
-            append_section_entry(&out, "log", &format!("{today} {from}→done — verify exit 0"));
+        let out = append_section_entry(
+            &out,
+            "log",
+            &format!("{today} {from}→done — verify exit 0{}", head_anchor(&root)),
+        );
         std::fs::write(&path, out).map_err(|e| e.to_string())?;
         crate::store::relocate_for_status(&path, true).map_err(|e| e.to_string())?;
         if json {

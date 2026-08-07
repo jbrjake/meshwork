@@ -77,7 +77,7 @@ date       = first whitespace-delimited token, as written
 status     = "open"|"doing"|"blocked"|"done"|"dropped"
 ```
 
-Parsing is positional and never validates history: token one is the date as written; a second token reading `<status>→<status>` makes the entry a transition (note = the rest, with one leading `— ` stripped if present); anything else is free text. Writers mint the em-dash separator; parsers accept its absence. Minted free-text forms include `created` and `close attempt — verify exit <N>`; minted transition notes include a block reason, `claimed by <author>`, `verify exit 0`, and `waived: <reason>`.
+Parsing is positional and never validates history: token one is the date as written; a second token reading `<status>→<status>` makes the entry a transition (note = the rest, with one leading `— ` stripped if present); anything else is free text. Writers mint the em-dash separator; parsers accept its absence. Minted free-text forms include `created` and `close attempt — verify exit <N>`; minted transition notes include a block reason, `claimed by <author>`, `verify exit 0`, and `waived: <reason>` — and `→done` notes may end with an ` @ <short-sha>[+N]` anchor (repo HEAD when the close ran, `+N` uncommitted paths; mw-ntn0t32). All of it is note text under the grammar above; the anchor is a convention, not a parse rule.
 
 **`## comments`** — append-only, one entry per line:
 
