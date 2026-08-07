@@ -12,22 +12,12 @@ docs:
 created: 2026-08-05
 needs: [mw-der3, mw-a8tv, mw-0pj8qgv, mw-zp1h12d, mw-n6nvzpa, mw-3wnhhvp]
 handoff: |
-  Owner-driven pilot (PLAN 1.9, MANUAL — no session can do this for
-  you). Stale-text correction: v0.1.4 DID ship 2026-08-07; the mw-0pj8qgv
-  release blocker is resolved and the chapter is closed. What changed
-  since that tag: main is now 10 commits ahead — the whole
-  format-hardening review closed 2026-08-07 (log grammar + log as sixth
-  SQL table, MW-E5 TOFU trust gate, FORMAT.md spec, registry rename
-  aliases, mirror default-branch guard, comment identity hash,
-  commit-trace anchors) plus the close ritual itself changed: first close
-  of a task per clone now wants close --approve (or MESHWORK_TRUST=1 on
-  reviewed checkouts). A pilot pinned to v0.1.4 exercises none of that —
-  if the pilot should validate the hardened format, cut a fresh tag first
-  (gotcha from mw-0pj8qgv: deleting a GitHub tag drafts its release; gh
-  release edit --draft=false after re-push). Filed this session, ready
-  behind you: mw-bvxpeef archive compaction (owner request), mw-2pz0zqc
-  path confinement, mw-8fmsws3 terminal escapes, mw-0y66mhb parse.rs
-  split; mw-7cvse76 (ASCII graphs) carries its own handoff.
+  Pilot is fully unblocked: v0.1.5 is released with darwin arm64 + linux
+  arm64/x86_64 + windows binaries and the skill tarball — pin v0.1.5 in
+  sazed's .meshwork-version. The binary now has the MW-E5 trust gate
+  (first close of each task needs --approve or MESHWORK_TRUST=1), minute
+  stamps, prime provenance, add --batch. README documents the current UX
+  with real transcripts.
 ---
 
 ## log
