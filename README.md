@@ -34,6 +34,15 @@ None of this is hypothetical.
 
 One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
+Measured again after sazed — the first repo above — migrated onto meshwork (2026-08-07, v0.1.5, store of 123 tasks):
+
+| | before | after |
+|---|---|---|
+| session-start onboarding read | TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens), read in full as the first two tool calls of ~every session | `meshwork prime`: **2,968 bytes** (~700 tokens), injected by the SessionStart hook before the first tool call — **39× less** |
+| getting oriented, observed in the first post-migration session | 2 whole-file reads before any work | four short store reads (`show`, `why`, `git log`), zero doc sweeps, `start` on the recommended task 8 minutes in |
+| handoff corpus | **84 HANDOFF files, 841KB**, accumulated over 5 weeks, plus 27 session-end commits rewriting two files | HANDOFF.md deleted; `handoff:` lives on the task it describes, `prime` materializes the one that's next |
+| worklist fidelity | one 550-line TODO.md, with its own carve-out in the repo's line-cap gate | 123 tasks, 23 dependency edges, 108 runnable `verify:` gates, `lint` 0 errors 0 warnings |
+
 > Every terminal transcript below is pasted from a real run of the binary.
 
 ---
