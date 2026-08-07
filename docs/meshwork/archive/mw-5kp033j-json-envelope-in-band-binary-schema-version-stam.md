@@ -1,7 +1,7 @@
 ---
 id: mw-5kp033j
 title: "--json envelope: in-band binary + schema version stamp"
-status: open
+status: done
 category: core/query
 verify: cargo test e2e::json_envelope
 docs:
@@ -20,3 +20,5 @@ external consumers exist, not the day after.
 
 ## log
 - 2026-08-06 created
+- 2026-08-07T00:29Z open→doing — claimed by claude
+- 2026-08-07T00:40Z doing→done — verify exit 0

@@ -47,7 +47,7 @@ Keywords MUST / SHOULD / MAY per RFC 2119. IDs are stable; cite as `MW-A1`.
 
 - **MW-C1 (MUST)** Real SQL: `meshwork q "SELECT …"` over virtual tables `tasks`, `edges`, `labels`, `comments`, `repos` (DataFusion dialect). No bespoke query language.
 - **MW-C2 (MUST)** Canned verbs that expand to defined SQL: `ready`, `blocked`, `tree <id>`, `why <id>` (walks the blocking chain and says what unblocks it).
-- **MW-C3 (MUST)** Every command supports `--json` with a stable, versioned shape.
+- **MW-C3 (MUST)** Every command supports `--json` with a stable, versioned shape. Versioned IN-BAND (amended 2026-08-07, mw-5kp033j): the envelope carries `{"meshwork": {"version": …, "schema": …}}` — per-repo pinning makes aggregating output from different binary versions the normal case, so the stream itself must say who produced it.
 - **MW-C4 (SHOULD)** Cold `ready` ≤100ms at 1,000 tasks/repo on the owned machines; portfolio union over ~20 repos ≤1s.
 
 ### D. Context discipline (the actual point)

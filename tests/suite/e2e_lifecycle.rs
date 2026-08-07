@@ -101,7 +101,8 @@ fn init_json_envelope() {
     let out = meshwork(&repo).args(["init", "--json"]).assert().success();
     let stdout = String::from_utf8(out.get_output().stdout.clone()).unwrap();
     let v: serde_json::Value = serde_json::from_str(&stdout).expect("valid JSON");
-    assert_eq!(v["v"], 1);
+    assert_eq!(v["meshwork"]["schema"], 1);
+    assert_eq!(v["meshwork"]["version"], env!("CARGO_PKG_VERSION"));
     assert_eq!(v["verb"], "init");
     assert!(v["data"]["created"].as_array().unwrap().len() >= 4);
 }

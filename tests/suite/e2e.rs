@@ -75,6 +75,7 @@ include!("e2e_archive.rs");
 include!("e2e_claim.rs");
 include!("e2e_format_marker.rs");
 include!("e2e_graph.rs");
+include!("e2e_json_envelope.rs");
 include!("e2e_lifecycle.rs");
 include!("e2e_lint.rs");
 include!("e2e_merge.rs");

@@ -129,7 +129,7 @@ LIMIT 20;
 | `portfolio ready / next / q / seq` | §9; union pipeline + sequence overlay |
 | `import todo <path>` | §10 migration |
 
-Every verb: `--json`, stable schema, versioned with the binary (MW-C3).
+Every verb: `--json`, stable schema, versioned in-band — the envelope is `{"meshwork": {"version": "<crate>", "schema": 1}, "verb": …, "data": …}` (MW-C3 as amended by mw-5kp033j; `schema` is the former `v`).
 
 ## 7. Session integration (where the savings land)
 
