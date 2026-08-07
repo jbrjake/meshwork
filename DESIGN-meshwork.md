@@ -9,7 +9,7 @@ Shape in one paragraph: markdown-with-frontmatter task files in each repo's git 
 ```
 docs/meshwork/           # store root (owner-ruled 2026-08-06, mw-acgp; was meshwork/tasks/ — old stores migrate via git mv)
   .gitattributes         # "/*.md" + "/archive/*.md" merge=union — committed by init (MW-I1)
-  config.toml            # repo alias ("sz"), defaults, default_author, mirror opt-in, level names
+  config.toml            # repo alias ("sz"), format marker (absent = 1; newer than the binary knows = loud refusal, mw-n6nvzpa), defaults, default_author, mirror opt-in, level names
   sz-k7f3-spill-cliff.md # LIVE task files, flat in the store root — no tasks/ level
   archive/               # terminal (done/dropped) tasks — moved automagically on close/drop,
     sz-m0v3d-done-thing.md   # moved back on reopen; ALWAYS loaded, fully queryable (mw-45e2qf4)

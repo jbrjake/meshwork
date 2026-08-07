@@ -26,12 +26,20 @@ pub enum StoreError {
     },
 }
 
+/// The store format this binary understands (mw-n6nvzpa). The minting-rule
+/// idiom (§15.8) covers additive change; bump this only on a SEMANTIC
+/// format change, so old binaries refuse loudly instead of misreading.
+pub const STORE_FORMAT: u64 = 1;
+
 /// `docs/meshwork/config.toml` (DESIGN §1). Unknown keys are ignored by serde —
 /// config is not the strict surface task files are.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     /// Repo alias used as the ID prefix (`az` → `az-k7f3`).
     pub alias: String,
+    /// Store format version; absent = 1 (every pre-marker store).
+    #[serde(default)]
+    pub format: Option<u64>,
     /// Fallback comment author (MW-K1 chain: `--as` → env → this → error).
     #[serde(default)]
     pub default_author: Option<String>,
@@ -138,10 +146,23 @@ pub fn load_config(root: &Path) -> Result<Config, StoreError> {
         }
         Err(e) => return Err(e.into()),
     };
-    toml::from_str(&config_text).map_err(|e| StoreError::BadConfig {
-        path: config_path,
+    let config: Config = toml::from_str(&config_text).map_err(|e| StoreError::BadConfig {
+        path: config_path.clone(),
         message: e.to_string(),
-    })
+    })?;
+    // Refuse a store from the future, loudly — misreading a newer format
+    // silently is the one unrecoverable failure mode (mw-n6nvzpa).
+    let format = config.format.unwrap_or(1);
+    if format > STORE_FORMAT {
+        return Err(StoreError::BadConfig {
+            path: config_path,
+            message: format!(
+                "store format {format} is newer than this binary understands \
+                 (max {STORE_FORMAT}) — upgrade meshwork"
+            ),
+        });
+    }
+    Ok(config)
 }
 
 /// Load a repo's store from its root directory.

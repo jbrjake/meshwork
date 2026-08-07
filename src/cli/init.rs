@@ -36,6 +36,9 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     config.push_str("# alias prefixes every task ID — pick it before the first `add`;\n");
     config.push_str("# IDs embed it forever.\n");
     let _ = writeln!(config, "alias = \"{alias}\"");
+    // Format marker (mw-n6nvzpa): absent = 1; newer than the binary knows
+    // is refused loudly. Never minted unmarked.
+    let _ = writeln!(config, "format = {}", crate::store::STORE_FORMAT);
     if let Some(author) = &author {
         let _ = writeln!(config, "default_author = \"{author}\"");
     }

@@ -73,6 +73,7 @@ fn add_id(repo: &Path, args: &[&str]) -> String {
 include!("e2e_add_batch.rs");
 include!("e2e_archive.rs");
 include!("e2e_claim.rs");
+include!("e2e_format_marker.rs");
 include!("e2e_graph.rs");
 include!("e2e_lifecycle.rs");
 include!("e2e_lint.rs");

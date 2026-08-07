@@ -1,7 +1,7 @@
 ---
 id: mw-n6nvzpa
 title: Store format version marker in config.toml
-status: open
+status: done
 category: core/format
 verify: cargo test e2e::format_marker
 docs:
@@ -19,3 +19,5 @@ lines now. mw-ntt5 needs this so no store is ever minted unmarked.
 
 ## log
 - 2026-08-06 created
+- 2026-08-07T00:25Z open→doing — claimed by claude
+- 2026-08-07T00:28Z doing→done — verify exit 0
