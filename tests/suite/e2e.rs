@@ -85,6 +85,7 @@ include!("e2e_lint.rs");
 include!("e2e_log_table.rs");
 include!("e2e_merge.rs");
 include!("e2e_minute_stamps.rs");
+include!("e2e_mirror_guard.rs");
 include!("e2e_notes.rs");
 include!("e2e_prime.rs");
 include!("e2e_prime_provenance.rs");

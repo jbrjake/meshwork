@@ -150,7 +150,9 @@ New frontmatter key `handoff:` (multi-line block): the outgoing session's color 
 
 ## 8. GitHub push (append-only view, MW-H*)
 
-Per-repo opt-in (`config.toml`), via the `gh` CLI (house auth), dry-run by default with `--yes`.
+Per-repo opt-in (`config.toml`: `mirror = true` or a `[mirror]` table), via the `gh` CLI (house auth), dry-run by default with `--yes`.
+
+**Branch guard (mw-pvfrpd4).** The store rides branches like code, but the mirror is append-only and unretractable — a push from a feature branch publishes issues/comments for state that may rebase away or never merge. `mirror push` therefore refuses off the repo's default branch, naming both branches, exit nonzero. The default branch is the local `origin/HEAD` ref (zero network, MW-J6); when it's unset the default is indeterminate and the push refuses too, naming the fix (`git remote set-head origin <branch>`). `[mirror] allow_non_default = true` skips the guard but announces itself in output every time — loud, never silent. The guard runs before any M3 push logic and its contract precedes that implementation.
 
 **At creation (once):** search the repo's issues for the `<!-- meshwork:t:<id> -->` marker first — a hit means another clone already created it: adopt that number into frontmatter instead of duplicating. Then create: title, body (description + the task-ID marker + backlink to the task file path), labels incl. `cat:engine/spill`; `needs`→blocked-by and `parent`→sub-issue where gh/GraphQL supports relationship *creation* (additive); if the installed gh can't, skip with a warning — relationships are cosmetic on the mirror.
 **Afterwards (append-only):** task comments push as issue comments prefixed with their self-professed author (the GitHub author is the token owner, so the claimed identity rides in the comment text); status transitions and local title/body edits surface as comments (`meshwork: doing → done (verified exit 0)`), never as edits; attachments are linked by their blob URL on the remote at the pushed commit — the file is already in git, so nothing is uploaded out-of-band.

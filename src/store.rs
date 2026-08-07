@@ -46,9 +46,40 @@ pub struct Config {
     /// Cosmetic category-depth names (MW-B8); zero semantics.
     #[serde(default)]
     pub hierarchy: Option<Hierarchy>,
-    /// Mirror opt-in (MW-H1); absent = off.
+    /// Mirror opt-in (MW-H1): `mirror = true`, or a `[mirror]` table with
+    /// knobs (mw-pvfrpd4). Absent = off.
     #[serde(default)]
-    pub mirror: Option<bool>,
+    pub mirror: Option<MirrorConfig>,
+}
+
+/// `mirror = <bool>` or `[mirror]` — both spellings legal.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum MirrorConfig {
+    /// Plain opt-in flag.
+    Flag(bool),
+    /// Table form with knobs.
+    Table(MirrorTable),
+}
+
+/// `[mirror]` knobs.
+#[derive(Debug, Clone, Deserialize)]
+pub struct MirrorTable {
+    /// Opt-in; absent = the table's presence opts in.
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    /// Loud escape hatch for the default-branch guard (mw-pvfrpd4):
+    /// pushing from a non-default branch publishes unretractable state.
+    #[serde(default)]
+    pub allow_non_default: bool,
+}
+
+impl Config {
+    /// mw-pvfrpd4's escape hatch — table form only, false everywhere else.
+    #[must_use]
+    pub fn mirror_allow_non_default(&self) -> bool {
+        matches!(&self.mirror, Some(MirrorConfig::Table(t)) if t.allow_non_default)
+    }
 }
 
 /// `[hierarchy]` table — display names only (MW-B8).
