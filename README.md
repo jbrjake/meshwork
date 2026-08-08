@@ -48,19 +48,19 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 ### with meshwork
 
-*Measured after Project A migrated onto meshwork (2026-08-07, v0.1.5, store of 123 tasks).*
+*Measured after Project A migrated onto meshwork (2026-08-08, v0.1.5), across the first 8 post-migration working sessions.*
 
-| | avg of last 10 sessions before | after |
+| | before | after |
 |---|---|---|
-| session-start onboarding read | TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens), read in full as the first two tool calls of ~every session | `meshwork prime`: **2,968 bytes** (~700 tokens), injected by the SessionStart hook before the first tool call — **39× less** |
-| todo busywork per session | **~33.3K tokens**, 28.8% of the session's tool traffic: 1 busywork token per 2.5 of work | **~9.8K tokens**, 8.6%: 1 per 10.6 — **3.4× less** |
-| context replay ("turned tokens") | todo content replayed across ~154 turns/session: **4.16M tokens**, 10.5% of the session's 39.7M-token total replay | **0.49M tokens**, 1.5% of 32.2M, **8.5× less** |
+| session-start onboarding read | TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens), read in full as the first two tool calls of ~every session | `meshwork prime`: **3,562 bytes** (~890 tokens) against today's 160-task store, injected by the SessionStart hook, **33× less** |
+| todo busywork per session | **~33.3K tokens**, 28.8% of the session's tool traffic: 1 busywork token per 2.5 of work | **~9.0K tokens**, 8.5%: 1 busywork token per 10.8 of work, **3.7× less** |
+| context replay ("turned tokens") | todo content replayed across ~154 turns/session: **4.16M tokens**, 10.5% of the session's 39.7M-token total replay | replayed across ~202 turns/session: **0.91M tokens**, 1.8% of 51.9M, **4.6× less** |
 | getting oriented, observed in the first post-migration session | 2 whole-file reads before any work | four short store reads (`show`, `why`, `git log`), zero doc sweeps |
-| worklist fidelity | one 550-line TODO.md | 123 tasks, 23 dependency edges |
+| worklist fidelity | one 550-line TODO.md | 160 tasks, 28 dependency edges |
 
-*Busywork is counted from the session transcripts by `scripts/admin-tokens.py` and includes all meshwork calls. It's counting 4 chars/token as a rule of thumb. Context replay is measured by `scripts/turned-tokens.py` from the per-request usage records.*
+*Busywork is counted from the session transcripts by `scripts/admin-tokens.py` and includes all meshwork calls. It's counting 4 chars/token as a rule of thumb. Context replay is measured by `scripts/turned-tokens.py` from the per-request usage records. The token rows average the final 10 pre-migration sessions against the first 8 post-migration working sessions; the migration session itself (one-time, 80% busywork by construction) is excluded.*
 
-28K tokens is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window.
+28K tokens is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork the freed context went to work (82K → 97K work tokens/session), and sessions are running ~30% longer.
 
 ## when meshwork makes sense
 
@@ -117,7 +117,37 @@ sa-jt7zg9w
 
 #### batching
 
-(Filing a whole interlinked batch at once is `add --batch`: a stream of task documents on stdin, `@handle` refs between siblings that don't have ids yet, all files written or none.)
+Filing a whole interlinked batch at once is `add --batch`: a stream of task documents on stdin, `@handle` refs between siblings that don't have ids yet, all files written or none. Each document is the same frontmatter a task file carries, minus the `id:` — meshwork mints those:
+
+```
+$ meshwork add --batch - <<'EOF'
+---
+handle: bench
+title: Benchmark spill at 64k-1M batch sizes
+category: engine/spill
+needs: [sa-38wd6se]
+verify: test -f bench/spill.csv
+---
+Numbers before and after the sizing fix.
+---
+title: Tune the governor wakeup default
+category: engine/governor
+needs: [@bench]
+verify: cargo test governor::wakeup_default
+---
+EOF
+sa-bbds8pt
+  docs/meshwork/sa-bbds8pt-benchmark-spill-at-64k-1m-batch-sizes.md
+sa-8w8m842
+  docs/meshwork/sa-8w8m842-tune-the-governor-wakeup-default.md
+```
+
+The first document names itself `bench` as a local handle; the second depends on it through `@bench` before either has an id. On disk the handle is gone, rewritten to the minted id:
+
+```
+$ grep needs: docs/meshwork/sa-8w8m842-tune-the-governor-wakeup-default.md
+needs: [sa-bbds8pt]
+```
 
 ### exploring tasks
 
@@ -129,7 +159,7 @@ sa-nmvpyqr  Reproduce the 600M-row spill cliff
 sa-jt7zg9w  Write the spill postmortem
 ```
 
-The blocked task doesn't appear, and you can ask why:
+The blocked tasks don't appear, and you can ask why:
 
 ```
 $ meshwork why sa-38wd6se
@@ -196,14 +226,14 @@ The benefit of working this way isn't any magical belief that your vibe-coded sl
 
 ```
 $ meshwork prime
-sazed — 2 open, 1 done
-store @ a4912f1
-engine/spill 1 · docs 1
+demo — 4 open, 1 done
+store @ 15563ae
+engine/spill 2 · docs 1 · engine/governor 1
 next → sa-38wd6se Fix spill batch sizing
   » Cliff is governor wakeup, not batch size — don't burn a session
   » re-deriving that (comment on sa-nmvpyqr has the repro). Try wakeup=250ms
   » before touching batch math.
-  [engine/spill]
+  [engine/spill] · blocks: sa-bbds8pt
   verify: cargo test spill::batch
 also ready (1 more, top 1):
 - sa-jt7zg9w Write the spill postmortem
