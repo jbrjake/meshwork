@@ -21,3 +21,6 @@ trust gate becomes worse than not having it. Extends the TOFU approval
 
 ## log
 - 2026-08-08T14:09Z created
+
+## comments
+- 2026-08-08T16:42Z [claude] Scale check from the field (sazed, 2026-08-08): in-session refusals are few (6 across 8 sessions) because agents pre-emptively close --approve; the treadmill this task targets is per-clone re-approval — the sazed store now carries 100+ shell verifies. mw-2kgkn0j (approve-at-mint) covers the in-session half of the cost; the two compose.

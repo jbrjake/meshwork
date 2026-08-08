@@ -21,3 +21,6 @@ same for comment. Surface delta — rides the §6 ruling alongside
 
 ## log
 - 2026-08-07T13:47Z created
+
+## comments
+- 2026-08-08T16:42Z [claude] Field evidence (sazed, 2026-08-08 review): handoffs routinely arrive as 300-700 char shell strings with embedded newlines and quotes; task bodies have no CLI path at all, so sessions fall back to cat >> (see mw-t01ek6s for the damage that causes) or python heredocs. @file/stdin would absorb all of it. Rule together with mw-s3905fv (add accepts a body).

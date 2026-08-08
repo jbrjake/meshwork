@@ -24,3 +24,6 @@ change; any actual alias rides the §6 ruling on [[set-fields]].
 
 ## log
 - 2026-08-07T13:47Z created
+
+## comments
+- 2026-08-08T16:42Z [claude] Field evidence (sazed, 2026-08-08 review): --category rejected in 2 sessions and --doc in 1; clap's similar-argument tip recovered each, but the retry re-sends the whole command — one add took 3 attempts (--category, then --doc, then success). Alias both.
