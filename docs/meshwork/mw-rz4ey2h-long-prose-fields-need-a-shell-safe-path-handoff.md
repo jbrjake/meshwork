@@ -24,3 +24,4 @@ same for comment. Surface delta — rides the §6 ruling alongside
 
 ## comments
 - 2026-08-08T16:42Z [claude] Field evidence (sazed, 2026-08-08 review): handoffs routinely arrive as 300-700 char shell strings with embedded newlines and quotes; task bodies have no CLI path at all, so sessions fall back to cat >> (see mw-t01ek6s for the damage that causes) or python heredocs. @file/stdin would absorb all of it. Rule together with mw-s3905fv (add accepts a body).
+- 2026-08-09T23:35Z [Jon Rubin] Field evidence (sazed, 2026-08-09, session f1ee9642): handoffs reached ~1.4KB single-quoted shell strings with escaped backticks and emoji, rewritten twice in the one session. The pattern is holding and growing, not shrinking.

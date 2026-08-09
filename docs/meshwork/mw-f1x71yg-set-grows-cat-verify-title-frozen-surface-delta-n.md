@@ -27,3 +27,4 @@ as sanctioned instead.
 
 ## comments
 - 2026-08-08T16:42Z [claude] Field evidence (sazed, first 8 post-migration sessions, reviewed 2026-08-08): set --verify and set --title were attempted in 3 sessions and rejected (v0.1.5 surface), each falling back to a python3 rewrite of the task file; in one session the rejected set --verify was followed by a close that ran the STALE verify (exit 1) before the hand-edit landed. Sessions keep 'set --help | head' as a reflex. Strengthens the §6 case.
+- 2026-08-09T23:35Z [Jon Rubin] Field evidence (sazed, 2026-08-09, session f1ee9642): ninth session, set --verify rejected again. The agent checked set --help, then fell back to a 15-line python script to rewrite the verify: line across two task files — hand-rolling the exactly-one-verify-line assertion the verb would own. The fallback for a missing one-line field edit is now a program.

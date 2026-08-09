@@ -27,3 +27,4 @@ change; any actual alias rides the §6 ruling on [[set-fields]].
 
 ## comments
 - 2026-08-08T16:42Z [claude] Field evidence (sazed, 2026-08-08 review): --category rejected in 2 sessions and --doc in 1; clap's similar-argument tip recovered each, but the retry re-sends the whole command — one add took 3 attempts (--category, then --doc, then success). Alias both.
+- 2026-08-09T23:35Z [Jon Rubin] Field evidence (sazed, 2026-08-09, session 2436461e): --doc rejected again — two adds chained in one command, both failed, retried whole. Compounding detail: the agent's habitual '| tail -3' cut clap's 'unexpected argument' line, so the visible output was bare usage with no tip at all. Agents truncate output routinely; whatever the error must teach has to survive truncation from either end.
