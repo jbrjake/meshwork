@@ -18,3 +18,6 @@ other now, while it's a one-line assert.
 
 ## log
 - 2026-08-08T14:09Z created
+
+## comments
+- 2026-08-09T23:17Z [Jon Rubin] Review finding (2026-08-09) extends this: FORMAT.md never mentions the --json envelope's schema field at all — a reader sees format = 1 on disk and {"meshwork":{"version":…,"schema":…}} in output with no stated relationship. When pinning, state the mapping (or the independence) in FORMAT.md itself, not just in the assert.
