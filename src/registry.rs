@@ -19,7 +19,7 @@ use crate::lint::{Finding, Severity};
 use crate::parse::ParsedTask;
 use crate::store::RepoStore;
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 /// One registered repo.
@@ -204,6 +204,98 @@ pub fn portfolio_dir() -> Result<PathBuf, String> {
             "no portfolio registry: HOME is unset and MESHWORK_PORTFOLIO is not given".to_string(),
         ),
     }
+}
+
+/// A cross-repo target resolved by direct file lookup (DESIGN §5,
+/// mw-k7r5): the registry names the repo, the ID-prefixed filename finds
+/// the file, one parse yields the fields — no full portfolio load
+/// (MW-B3/G5).
+#[derive(Debug, Clone)]
+pub struct ForeignTask {
+    /// The ref exactly as written — edges join on the literal string,
+    /// so a rename-alias ref keeps its spelling here.
+    pub gid: String,
+    /// Canonical repo name (rename aliases resolve, mw-mrjccx2).
+    pub repo: String,
+    /// Bare task id.
+    pub id: String,
+    /// Status string as parsed.
+    pub status: String,
+    /// Title when the file parses.
+    pub title: Option<String>,
+    /// Absolute path of the resolved file (outside this repo, so never
+    /// store-relative like local rows).
+    pub path: String,
+}
+
+/// Quiet registry discovery for single-repo resolution (mw-k7r5): no
+/// registry anywhere is the normal state (`None`, today's conservative
+/// behavior); a FOUND but broken one is loud — never guessed around.
+///
+/// # Errors
+/// A discovered registry that fails to load.
+pub fn quiet_load() -> Result<Option<Registry>, String> {
+    match portfolio_dir() {
+        Ok(dir) => load(&dir).map(Some),
+        Err(_) => Ok(None),
+    }
+}
+
+/// Every cross-repo `needs` ref in the store set — the refs that gate
+/// readiness (DESIGN §5's blocking predicate).
+#[must_use]
+pub fn foreign_refs(stores: &[&RepoStore]) -> BTreeSet<String> {
+    let mut refs = BTreeSet::new();
+    for store in stores {
+        for entry in &store.entries {
+            if let ParsedTask::Valid(t) = &entry.parsed {
+                refs.extend(t.needs.iter().filter(|n| n.contains('#')).cloned());
+            }
+        }
+    }
+    refs
+}
+
+/// Resolve foreign refs by direct file lookup. Refs into `loaded` repos
+/// are those stores' own rows — skipped, or the union would hold the same
+/// task twice. Unregistered repos, absent checkouts, missing files,
+/// unparseable files: skipped too — NULL stays conservative (MW-G5);
+/// nothing here is an error.
+#[must_use]
+pub fn resolve_foreign(
+    registry: &Registry,
+    refs: &BTreeSet<String>,
+    loaded: &BTreeSet<&str>,
+) -> Vec<ForeignTask> {
+    let mut out = Vec::new();
+    for target in refs {
+        let Some((repo_part, id_part)) = target.split_once('#') else {
+            continue;
+        };
+        let Some((entry, _)) = registry.resolve(repo_part) else {
+            continue;
+        };
+        if loaded.contains(entry.name.as_str()) {
+            continue;
+        }
+        let Some(root) = &entry.path else { continue };
+        let tasks_dir = root.join("docs").join("meshwork");
+        let Some(file) = crate::store::find_task_file(&tasks_dir, id_part) else {
+            continue;
+        };
+        let ParsedTask::Valid(t) = crate::parse::parse_task_file(&file) else {
+            continue;
+        };
+        out.push(ForeignTask {
+            gid: target.clone(),
+            repo: entry.name.clone(),
+            id: t.id.clone(),
+            status: t.status.as_str().to_string(),
+            title: Some(t.title.clone()),
+            path: file.display().to_string(),
+        });
+    }
+    out
 }
 
 /// One registered repo the union could not load (MW-G5: reported, never

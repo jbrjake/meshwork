@@ -43,11 +43,26 @@ WHERE t.status = 'open'
 ORDER BY coalesce(t.seq, 999999), t.created";
 
 /// Session over the current repo's store — the same single pipeline the
-/// portfolio unions later (MW-G3).
+/// portfolio unions (MW-G3). Cross-repo `needs` targets resolve through
+/// the registry by direct file lookup (mw-k7r5); only TERMINAL statuses
+/// inject (a done/dropped dep is satisfied — the one delta the frozen
+/// predicate needs; anything else already blocks conservatively as NULL,
+/// and an injected open task would leak into listings).
 fn local_session() -> Result<SessionContext, String> {
     let root = crate::cli::require_store_root()?;
     let store = crate::store::load_repo(&root).map_err(|e| e.to_string())?;
-    crate::tables::session_for(&[store]).map_err(|e| e.to_string())
+    let refs = crate::registry::foreign_refs(&[&store]);
+    let mut foreign = Vec::new();
+    if !refs.is_empty() {
+        if let Some(registry) = crate::registry::quiet_load()? {
+            let loaded = std::iter::once(store.repo.as_str()).collect();
+            foreign = crate::registry::resolve_foreign(&registry, &refs, &loaded)
+                .into_iter()
+                .filter(|f| matches!(f.status.as_str(), "done" | "dropped"))
+                .collect();
+        }
+    }
+    crate::tables::session_for(&[store], &foreign).map_err(|e| e.to_string())
 }
 
 /// Execute SQL, returning column names + batches (schema survives empty

@@ -16,12 +16,21 @@ use std::sync::Arc;
 /// `tasks`, `edges`, `labels`, `comments`, `log`, `repos` (DESIGN §4) —
 /// plus the `category_matches` UDF (MW-B4), so filtering stays plain SQL.
 ///
+/// `foreign` (mw-k7r5): registry-resolved cross-repo targets injected as
+/// thin task rows so the frozen dep predicate sees them. Callers pass
+/// TERMINAL statuses only — that is the one delta the predicate needs
+/// (done/dropped satisfies a dep); an injected open task would leak into
+/// listings, and NULL already blocks conservatively (MW-G5).
+///
 /// # Errors
 /// Only Arrow schema/registration failures — which would be a bug, not data.
-pub fn session_for(stores: &[RepoStore]) -> DfResult<SessionContext> {
+pub fn session_for(
+    stores: &[RepoStore],
+    foreign: &[crate::registry::ForeignTask],
+) -> DfResult<SessionContext> {
     let ctx = SessionContext::new();
-    ctx.register_batch("tasks", tasks_batch(stores)?)?;
-    ctx.register_batch("edges", edges_batch(stores)?)?;
+    ctx.register_batch("tasks", tasks_batch(stores, foreign)?)?;
+    ctx.register_batch("edges", edges_batch(stores, foreign)?)?;
     ctx.register_batch("labels", labels_batch(stores)?)?;
     ctx.register_batch("comments", comments_batch(stores)?)?;
     ctx.register_batch("log", log_batch(stores)?)?;
@@ -86,8 +95,8 @@ fn utf8(nullable: bool, name: &str) -> Field {
     Field::new(name, DataType::Utf8, nullable)
 }
 
-fn tasks_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
-    let schema = Arc::new(Schema::new(vec![
+fn tasks_schema() -> Arc<Schema> {
+    Arc::new(Schema::new(vec![
         utf8(false, "gid"),
         utf8(false, "repo"),
         utf8(false, "id"),
@@ -103,7 +112,14 @@ fn tasks_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
         Field::new("github", DataType::Int64, true),
         utf8(false, "path"),
         utf8(true, "error"),
-    ]));
+    ]))
+}
+
+fn tasks_batch(
+    stores: &[RepoStore],
+    foreign: &[crate::registry::ForeignTask],
+) -> DfResult<RecordBatch> {
+    let schema = tasks_schema();
 
     let mut gid = Vec::new();
     let mut repo = Vec::new();
@@ -160,6 +176,26 @@ fn tasks_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
         }
     }
 
+    // Registry-resolved cross-repo targets (mw-k7r5): thin rows — gid,
+    // repo, id, status, title, and the resolved file's absolute path.
+    for f in foreign {
+        gid.push(f.gid.clone());
+        repo.push(f.repo.clone());
+        id.push(f.id.clone());
+        title.push(f.title.clone());
+        status.push(f.status.clone());
+        category.push(None);
+        verify.push(None);
+        waived.push(None);
+        seq.push(None);
+        created.push(None);
+        blocked_reason.push(None);
+        claimed_by.push(None);
+        github.push(None);
+        path.push(f.path.clone());
+        error.push(None);
+    }
+
     let columns: Vec<ArrayRef> = vec![
         Arc::new(StringArray::from(gid)),
         Arc::new(StringArray::from(repo)),
@@ -190,7 +226,10 @@ fn qualify(store: &RepoStore, target: &str) -> String {
     }
 }
 
-fn edges_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
+fn edges_batch(
+    stores: &[RepoStore],
+    foreign: &[crate::registry::ForeignTask],
+) -> DfResult<RecordBatch> {
     let schema = Arc::new(Schema::new(vec![
         utf8(false, "src_gid"),
         utf8(false, "dst_gid"),
@@ -199,8 +238,8 @@ fn edges_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
     ]));
 
     // `resolved` = dst present in the loaded set (invalid rows count: the
-    // file exists and its status blocks conservatively). Registry lookups
-    // for absent repos arrive with the portfolio (MW-B3/G5, PLAN 2.3).
+    // file exists and its status blocks conservatively), plus registry-
+    // resolved foreign targets (mw-k7r5) — those rows exist in `tasks` too.
     let known: BTreeSet<String> = stores
         .iter()
         .flat_map(|s| {
@@ -209,6 +248,7 @@ fn edges_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
                 ParsedTask::Invalid(inv) => s.gid(&inv.id),
             })
         })
+        .chain(foreign.iter().map(|f| f.gid.clone()))
         .collect();
 
     let mut src = Vec::new();

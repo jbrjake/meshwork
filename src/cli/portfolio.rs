@@ -45,7 +45,9 @@ fn union_session() -> Result<(SessionContext, Vec<SkippedRepo>), String> {
     let dir = registry::portfolio_dir()?;
     let reg = registry::load(&dir)?;
     let (stores, skipped) = registry::load_stores(&reg)?;
-    let ctx = crate::tables::session_for(&stores).map_err(|e| e.to_string())?;
+    // No foreign injection here: every resolvable repo is already loaded
+    // whole; what the union can't load, a file lookup can't reach either.
+    let ctx = crate::tables::session_for(&stores, &[]).map_err(|e| e.to_string())?;
     Ok((ctx, skipped))
 }
 

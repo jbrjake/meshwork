@@ -6,8 +6,17 @@
 /// golden can't drift into nonsense via a careless bless.
 #[test]
 fn ready_golden() {
-    let (_g, repo) = fixture_repo("alpha");
-    let js = stdout_of(&meshwork(&repo).args(["ready", "--json"]).assert().success());
+    // Registry context included since 2.3 (mw-k7r5): the kitchen-sink run
+    // exercises cross-repo resolution — beta present, gamma absent.
+    let (dir, portfolio) = portfolio_fixture();
+    let repo = dir.path().join("alpha");
+    let js = stdout_of(
+        &meshwork(&repo)
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["ready", "--json"])
+            .assert()
+            .success(),
+    );
 
     let v: serde_json::Value = serde_json::from_str(&js).unwrap();
     let ids: Vec<&str> = v["data"]["rows"]
@@ -17,6 +26,10 @@ fn ready_golden() {
         .map(|r| r["id"].as_str().unwrap())
         .collect();
     assert!(ids.contains(&"az-n33d"), "met hard dep → ready: {ids:?}");
+    assert!(
+        ids.contains(&"az-x9b2"),
+        "cross-repo dep on done beta#bz-c0r3 resolves (MW-B3, mw-k7r5): {ids:?}"
+    );
     assert!(
         !ids.contains(&"az-s4g0") && !ids.contains(&"az-e9p2"),
         "containers with live children are not actionable (MW-B6): {ids:?}"
@@ -31,7 +44,8 @@ fn ready_golden() {
         "only status=open is ready: {ids:?}"
     );
     assert_eq!(ids[0], "az-n33d", "seq 20 sorts before seq 80 and unset");
-    assert_eq!(ids[1], "az-r3l8", "seq 80 second");
+    assert_eq!(ids[1], "az-x9b2", "seq 40 slots in once its dep resolves");
+    assert_eq!(ids[2], "az-r3l8", "seq 80 third");
 
     crate::common::assert_golden("ready-alpha.json", &js);
 

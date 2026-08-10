@@ -137,9 +137,23 @@ pub(crate) fn why(args: &super::transition::IdArg, json: bool) -> Result<(), Str
         return Err(format!("{} not found (or not parseable)", args.id));
     }
 
+    // Cross-repo targets resolve by direct file lookup (mw-k7r5) — here
+    // with FULL statuses: a done foreign dep drops out of the frontier, an
+    // open one is named with its real status instead of `unresolved`.
+    let mut foreign: BTreeMap<String, crate::registry::ForeignTask> = BTreeMap::new();
+    let refs = crate::registry::foreign_refs(&[&store]);
+    if !refs.is_empty() {
+        if let Some(registry) = crate::registry::quiet_load()? {
+            let loaded = std::iter::once(store.repo.as_str()).collect();
+            for f in crate::registry::resolve_foreign(&registry, &refs, &loaded) {
+                foreign.insert(f.gid.clone(), f);
+            }
+        }
+    }
+
     let mut frontier: Vec<serde_json::Value> = Vec::new();
     let mut visited = Vec::new();
-    collect_frontier(&args.id, &tasks, &mut visited, &mut frontier);
+    collect_frontier(&args.id, &tasks, &foreign, &mut visited, &mut frontier);
     frontier.sort_by_key(|f| {
         f["id"]
             .as_str()
@@ -176,7 +190,12 @@ pub(crate) fn why(args: &super::transition::IdArg, json: bool) -> Result<(), Str
                     .map_or(String::new(), |v| format!(" — verify: {v}"));
                 println!(
                     "- {} ({}){reason}{verify}",
-                    f["id"].as_str().unwrap_or("?"),
+                    // Local entries carry `id`; registry-resolved foreign
+                    // ones carry the `ref` as written (mw-k7r5).
+                    f["id"]
+                        .as_str()
+                        .or_else(|| f["ref"].as_str())
+                        .unwrap_or("?"),
                     f["status"].as_str().unwrap_or("?"),
                 );
             }
@@ -190,6 +209,7 @@ pub(crate) fn why(args: &super::transition::IdArg, json: bool) -> Result<(), Str
 fn collect_frontier(
     id: &str,
     tasks: &TaskMap<'_>,
+    foreign: &BTreeMap<String, crate::registry::ForeignTask>,
     visited: &mut Vec<String>,
     frontier: &mut Vec<serde_json::Value>,
 ) {
@@ -203,7 +223,7 @@ fn collect_frontier(
             Some(dep) if matches!(dep.status, Status::Done | Status::Dropped) => {}
             Some(dep) => {
                 let before = frontier.len();
-                collect_frontier(target, tasks, visited, frontier);
+                collect_frontier(target, tasks, foreign, visited, frontier);
                 if frontier.len() == before {
                     frontier.push(serde_json::json!({
                         "id": dep.id, "title": dep.title,
@@ -213,9 +233,17 @@ fn collect_frontier(
                     }));
                 }
             }
-            // Cross-repo/dangling: conservative blocking (MW-G5); the
-            // registry resolves what it can at M2.
-            None => frontier.push(serde_json::json!({ "ref": target, "unresolved": true })),
+            // Cross-repo: the registry resolves what it can by direct file
+            // lookup (mw-k7r5) — done/dropped satisfies, anything else is a
+            // real frontier entry with its real status. Unregistered,
+            // absent, or dangling: conservative blocking (MW-G5).
+            None => match foreign.get(target.as_str()) {
+                Some(f) if matches!(f.status.as_str(), "done" | "dropped") => {}
+                Some(f) => frontier.push(serde_json::json!({
+                    "ref": target, "status": f.status, "title": f.title,
+                })),
+                None => frontier.push(serde_json::json!({ "ref": target, "unresolved": true })),
+            },
         }
     }
 }

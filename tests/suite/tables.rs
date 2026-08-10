@@ -10,7 +10,7 @@ fn session(repos: &[&str]) -> datafusion::prelude::SessionContext {
         .iter()
         .map(|r| load_repo(&fixtures_root().join(r)).unwrap())
         .collect();
-    session_for(&stores).unwrap()
+    session_for(&stores, &[]).unwrap()
 }
 
 /// MW-A2: queries run purely in memory — loading and querying a store
@@ -23,7 +23,7 @@ async fn memtable_no_disk() {
     let before = file_inventory(&repo);
 
     let store = load_repo(&repo).unwrap();
-    let ctx = session_for(&[store]).unwrap();
+    let ctx = session_for(&[store], &[]).unwrap();
     let rows = sql_rows(&ctx, "SELECT count(*) FROM tasks").await;
     assert_eq!(rows[0][0], "33");
 

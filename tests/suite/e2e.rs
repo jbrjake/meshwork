@@ -38,6 +38,12 @@ fn meshwork(dir: &Path) -> Command {
     // MW-E5 env trust so every non-trust test runs ungated. The trust
     // tests themselves strip this (e2e_verify_trust.rs `untrusted`).
     cmd.env("MESHWORK_TRUST", "1");
+    // Hermetic by construction (mw-k7r5): single-repo verbs discover the
+    // registry via HOME's default path, so a real portfolio checkout on
+    // the machine must never reach a test. Tests wanting registry context
+    // set MESHWORK_PORTFOLIO (or HOME) explicitly — later env() wins.
+    cmd.env("HOME", dir);
+    cmd.env_remove("MESHWORK_PORTFOLIO");
     cmd
 }
 
@@ -79,6 +85,7 @@ include!("e2e_archive.rs");
 include!("e2e_claim.rs");
 include!("e2e_comment_identity.rs");
 include!("e2e_commit_trace.rs");
+include!("e2e_crossrepo.rs");
 include!("e2e_format_marker.rs");
 include!("e2e_graph.rs");
 include!("e2e_json_envelope.rs");

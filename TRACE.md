@@ -12,7 +12,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-A6 | `parse::unknown_field_warns` | done |
 | MW-B1 | `tables::edge_kinds`, `e2e::dep_edit` | done |
 | MW-B2 | `lint::cycle_needs`, `lint::cycle_parent` | done |
-| MW-B3 | `e2e::crossrepo_resolution`, `lint::parent_crossrepo_error` | planned |
+| MW-B3 | `e2e::crossrepo_resolution`, `lint::parent_crossrepo_error` | done |
 | MW-B4 | `query::category_segment_prefix` | done |
 | MW-B5 | `query::labels_orthogonal` | done |
 | MW-B6 | `e2e::ready_golden` (container-exclusion + unresolved-blocks cases) | done |
@@ -43,7 +43,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-G2 | `e2e::registry_overrides` | done |
 | MW-G3 | `e2e::portfolio_union_golden` | done |
 | MW-G4 | `e2e::portfolio_next_ordering` | planned |
-| MW-G5 | `e2e::absent_repo` | planned |
+| MW-G5 | `e2e::absent_repo` | done |
 | MW-H1 | `e2e::mirror_create`, `e2e::mirror_append` | planned |
 | MW-H2 | `e2e::mirror_never_mutates` | planned |
 | MW-H3 | `e2e::mirror_idempotent` | planned |

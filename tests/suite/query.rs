@@ -36,7 +36,7 @@ fn category_segment_prefix() {
 #[tokio::test]
 async fn labels_orthogonal() {
     let store = load_repo(&fixtures_root().join("alpha")).unwrap();
-    let ctx = session_for(&[store]).unwrap();
+    let ctx = session_for(&[store], &[]).unwrap();
     let rows = sql_rows(
         &ctx,
         "SELECT DISTINCT t.category FROM tasks t \
@@ -50,7 +50,7 @@ async fn labels_orthogonal() {
 #[tokio::test]
 async fn category_labels_sql() {
     let store = load_repo(&fixtures_root().join("alpha")).unwrap();
-    let ctx = session_for(&[store]).unwrap();
+    let ctx = session_for(&[store], &[]).unwrap();
 
     let tools = sql_rows(
         &ctx,

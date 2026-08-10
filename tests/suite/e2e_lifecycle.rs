@@ -285,7 +285,7 @@ fn discovered_from_edge() {
     assert!(shown.contains(&format!("discovered-from: {origin}")));
 
     let store = meshwork::store::load_repo(&repo).unwrap();
-    let ctx = meshwork::tables::session_for(&[store]).unwrap();
+    let ctx = meshwork::tables::session_for(&[store], &[]).unwrap();
     let rows = tokio::runtime::Runtime::new()
         .unwrap()
         .block_on(crate::common::sql_rows(
@@ -499,7 +499,7 @@ fn close_waive_recorded() {
     assert!(text.contains("waived:"), "log too: {text}");
 
     let store = meshwork::store::load_repo(&repo).unwrap();
-    let ctx = meshwork::tables::session_for(&[store]).unwrap();
+    let ctx = meshwork::tables::session_for(&[store], &[]).unwrap();
     let rows = tokio::runtime::Runtime::new()
         .unwrap()
         .block_on(crate::common::sql_rows(
