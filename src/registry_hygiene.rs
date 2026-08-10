@@ -110,6 +110,81 @@ pub fn inbound_needs(registry: &Registry, self_root: &Path, id: &str) -> Option<
     })
 }
 
+/// One `sequence.md` entry autoprune removed, with the terminal status
+/// that satisfied it.
+#[derive(Debug)]
+pub struct PrunedEntry {
+    /// The entry exactly as written (may spell a former repo name).
+    pub target: String,
+    /// `done` or `dropped` — why it no longer belongs in the overlay.
+    pub status: String,
+}
+
+/// Autoprune `sequence.md` (mw-chcqk6g, owner-ruled 2026-08-10: no
+/// --prune flag — running any portfolio verb autoprunes): remove entries
+/// whose task is done/dropped in a loaded, present repo — satisfied state
+/// is dead weight the overlay would otherwise accumulate forever, the
+/// clutter archive/ already solves for task files. Only bullet lines that
+/// resolve to a terminal task go; headings, prose, live, dangling, and
+/// unresolvable entries survive byte-for-byte (an absent checkout is not
+/// evidence of death, MW-G5; dangling is lint's finding, not prune's).
+/// The file is versioned in the portfolio repo — git diff is the review
+/// surface and the undo.
+///
+/// # Errors
+/// A present sequence.md that cannot be read or written back — the prune
+/// half-done or silently skipped would both lie about the overlay.
+pub fn autoprune_sequence(
+    portfolio_dir: &Path,
+    registry: &Registry,
+    stores: &[RepoStore],
+) -> Result<Vec<PrunedEntry>, String> {
+    let path = portfolio_dir.join("sequence.md");
+    let text = match std::fs::read_to_string(&path) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(format!("{}: {e}", path.display())),
+    };
+    let by_name: BTreeMap<&str, &RepoStore> = stores.iter().map(|s| (s.repo.as_str(), s)).collect();
+    let satisfied = |line: &str| -> Option<PrunedEntry> {
+        let target = line.trim_start().strip_prefix("- ")?.trim();
+        let (repo_part, id_part) = target.split_once('#')?;
+        let (entry, _) = registry.resolve(repo_part)?;
+        let store = by_name.get(entry.name.as_str())?;
+        store.entries.iter().find_map(|se| match &se.parsed {
+            ParsedTask::Valid(t)
+                if t.id == id_part && matches!(t.status, Status::Done | Status::Dropped) =>
+            {
+                Some(PrunedEntry {
+                    target: target.to_string(),
+                    status: t.status.as_str().to_string(),
+                })
+            }
+            _ => None,
+        })
+    };
+
+    let mut pruned = Vec::new();
+    let kept: Vec<&str> = text
+        .lines()
+        .filter(|line| match satisfied(line) {
+            Some(entry) => {
+                pruned.push(entry);
+                false
+            }
+            None => true,
+        })
+        .collect();
+    if !pruned.is_empty() {
+        let mut out = kept.join("\n");
+        if text.ends_with('\n') {
+            out.push('\n');
+        }
+        std::fs::write(&path, out).map_err(|e| format!("{}: {e}", path.display()))?;
+    }
+    Ok(pruned)
+}
+
 /// Dangling `sequence.md` entries (mw-2nmsys2): the file is hand-written,
 /// denormalized, cross-repo state, so a typo'd or deleted id is the same
 /// dangling-edge class lint catches inside a repo — and the overlay

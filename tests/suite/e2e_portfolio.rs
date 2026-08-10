@@ -322,6 +322,90 @@ fn drop_inbound_cross_repo_warns() {
     assert!(err.is_empty(), "no registry, no scan, no noise: {err}");
 }
 
+/// mw-chcqk6g (owner-ruled 2026-08-10: no --prune flag — running any
+/// portfolio verb autoprunes): satisfied sequence.md entries — done or
+/// dropped in a registered, PRESENT repo — are removed on every portfolio
+/// run, the clutter fix archive/ already is for task files. Headings and
+/// prose survive byte-for-byte; dangling entries stay (lint's finding);
+/// unresolvable entries stay (an absent checkout is not evidence of
+/// death, MW-G5). Removals are reported: stderr in text mode, a `pruned`
+/// list in JSON data. git diff in the portfolio repo is the review
+/// surface and the undo.
+#[test]
+fn portfolio_sequence_prune() {
+    let (dir, portfolio) = portfolio_fixture();
+    std::fs::write(
+        portfolio.join("sequence.md"),
+        "# sequence\n\n## Tranche 1\n\n\
+         - beta#bz-c0r3\n\
+         - alpha#az-n33d\n\
+         - alpha#az-dr0p\n\n\
+         ## Tranche 2\n\n\
+         - gamma#gm-zzz9\n\
+         - alpha#az-nope9\n",
+    )
+    .unwrap();
+
+    // Text mode: both terminal-status entries prune, reported on stderr.
+    let assert = meshwork(dir.path())
+        .env("MESHWORK_PORTFOLIO", &portfolio)
+        .args(["portfolio", "ready"])
+        .assert()
+        .success();
+    let err = stderr_of(&assert);
+    assert!(
+        err.contains("pruned beta#bz-c0r3") && err.contains("done"),
+        "a done entry prunes and says why: {err}"
+    );
+    assert!(
+        err.contains("pruned alpha#az-dr0p") && err.contains("dropped"),
+        "a dropped entry prunes too: {err}"
+    );
+
+    // The file after: satisfied entries gone, everything else verbatim.
+    let after = std::fs::read_to_string(portfolio.join("sequence.md")).unwrap();
+    assert_eq!(
+        after,
+        "# sequence\n\n## Tranche 1\n\n\
+         - alpha#az-n33d\n\n\
+         ## Tranche 2\n\n\
+         - gamma#gm-zzz9\n\
+         - alpha#az-nope9\n",
+        "headings, prose, live, absent-repo, and dangling entries survive"
+    );
+
+    // Second run: idempotent — nothing left to prune, JSON list empty.
+    let js = stdout_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "next", "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["data"]["pruned"], serde_json::json!([]), "{v}");
+
+    // JSON mode reports the prune structurally: re-add a satisfied entry.
+    std::fs::write(
+        portfolio.join("sequence.md"),
+        "- beta#bz-c0r3\n- alpha#az-n33d\n",
+    )
+    .unwrap();
+    let js = stdout_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "ready", "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(
+        v["data"]["pruned"],
+        serde_json::json!([{ "ref": "beta#bz-c0r3", "status": "done" }]),
+        "{v}"
+    );
+}
+
 /// Discovery + honesty: default is ~/Documents/code/portfolio (§15.4); no
 /// registry anywhere is a loud error; next/seq stay honest stubs until 2.4.
 #[test]

@@ -11,23 +11,21 @@ docs:
   - REQUIREMENTS-meshwork.md#§-g-portfolio
 created: 2026-08-05
 handoff: |
-  Pre-migration queue is COMPLETE as of 2026-08-10 (HEAD, gates green both
-  landings): mw-bds8yq5 (sazed on v0.2.0), mw-2nmsys2 (dangling-sequence
-  lint finding — registry-aware pass, env-opt-in, no §6 delta),
-  mw-kkvs8zq
-  (drop warns on live inbound cross-repo needs, advisory stderr, unscanned
-  repos reported). One straggler intentionally does NOT block this task:
-  mw-chcqk6g (prune satisfied sequence.md entries) is blocked awaiting the
-  owner's §6 nod on its surface — proposal in its comments recommends
-  portfolio seq --prune; it can land before or after the migration.
+  Pre-migration queue is FULLY COMPLETE as of 2026-08-10 (HEAD, gates
+  green on every landing): mw-bds8yq5 (sazed on v0.2.0), mw-2nmsys2
+  (dangling-sequence lint finding), mw-kkvs8zq (drop warns on live inbound
+  cross-repo needs), and mw-chcqk6g (owner ruled same day: no --prune flag
+  — every portfolio verb autoprunes satisfied sequence.md entries;
+  removals reported, git diff in the portfolio repo is the review
+  surface). mw-e6qsjq0 also landed en route (registry.rs split under the
+  500 target — hygiene findings/scans now live in registry_hygiene.rs).
   
-  NOTE: the three code tasks above shipped after v0.2.0 was cut, so the
-  pinned release does NOT carry dangling-sequence lint or the drop
-  warning.
-  Fine for the migration itself (leras needs the import/authoring fixes,
-  which ARE in v0.2.0); the sequence guards protect the portfolio repo,
-  which runs this repo's binary. If the owner wants leras's pinned binary
-  to carry them too, cut v0.2.1 first — otherwise proceed.
+  NOTE: the four guard tasks above shipped after v0.2.0 was cut, so the
+  pinned release carries none of them. Fine for the migration itself
+  (leras needs the import/authoring fixes, which ARE in v0.2.0); the
+  sequence guards + autoprune protect the portfolio repo, which runs this
+  repo's binary. If the owner wants leras's pinned binary to carry them
+  too, cut v0.2.1 first — otherwise proceed.
   
   This task's manual list stands as written (owner present): portfolio
   repo

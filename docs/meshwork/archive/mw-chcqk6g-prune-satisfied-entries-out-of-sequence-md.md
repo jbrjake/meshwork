@@ -7,7 +7,7 @@ needs: [mw-2nmsys2]
 verify: cargo test e2e::portfolio_sequence_prune
 docs:
   - DESIGN-meshwork.md#§-9-portfolio-master-sequencing
-status: open
+status: done
 created: 2026-08-10T16:31Z
 blocked-reason:
 ---
@@ -24,6 +24,8 @@ portfolio repo) is a §6 amendment — needs its own nod.
 - 2026-08-10T16:31Z created
 - 2026-08-10T19:16Z open→blocked — awaits owner §6 nod on the prune surface — proposal in comments (recommend portfolio seq --prune); unblock and implement after the ruling
 - 2026-08-10T19:21Z blocked→open
+- 2026-08-10T19:28Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T19:33Z doing→done — verify exit 0 @ 1089180+6
 
 ## comments
 - 2026-08-10T19:16Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Surface proposal (awaits the §6 nod this body names): recommend portfolio seq --prune. (1) Prune writes portfolio state — inside the MW-A3 write boundary (repo + portfolio repo) but portfolio-repo maintenance by nature, so it belongs in the portfolio verb family: running lint --fix in repo X must never edit a file in the portfolio repo from an unrelated cwd, and satisfied entries are deliberately NOT lint findings (mw-2nmsys2 ruled them prune's business), while --fix repairs only what lint reports. (2) portfolio seq is already the ordering-maintenance verb (§15.2 renumber pending as mw-908n9k2); prune is the same family — one flag, no new verb. (3) Semantics ready to implement on the nod: remove entries resolving to done/dropped in a registered, PRESENT repo (find_task_file already reaches archive/); preserve tranche headings, prose, ordering; leave dangling and unresolvable entries alone — absent checkout is not evidence of death (MW-G5), dangling stays lint's finding. Print each removal one per line; the file is versioned, so git diff is the review surface and the undo.

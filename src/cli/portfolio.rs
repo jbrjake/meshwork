@@ -7,8 +7,11 @@
 //! exhausted gap (§15.2) and errors honestly until then.
 
 use crate::cli::query::{print_q_text, q_payload, run_query, string_rows, READY_SQL};
-use crate::registry::{self, SkippedRepo};
+use crate::registry::{self, Registry, SkippedRepo};
+use crate::registry_hygiene::PrunedEntry;
+use crate::store::RepoStore;
 use datafusion::prelude::SessionContext;
+use std::path::PathBuf;
 
 #[derive(clap::Args)]
 pub(crate) struct PortfolioArgs {
@@ -42,16 +45,43 @@ pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
     }
 }
 
+/// Everything a portfolio verb starts from: registry, loaded stores, the
+/// skip report — and the autoprune already applied (mw-chcqk6g,
+/// owner-ruled: running any portfolio verb prunes satisfied sequence.md
+/// entries; no flag, git diff in the portfolio repo is the review
+/// surface).
+struct Portfolio {
+    dir: PathBuf,
+    reg: Registry,
+    stores: Vec<RepoStore>,
+    skipped: Vec<SkippedRepo>,
+    pruned: Vec<PrunedEntry>,
+}
+
+fn load_portfolio() -> Result<Portfolio, String> {
+    let dir = registry::portfolio_dir()?;
+    let reg = registry::load(&dir)?;
+    let (stores, skipped) = registry::load_stores(&reg)?;
+    let pruned = crate::registry_hygiene::autoprune_sequence(&dir, &reg, &stores)?;
+    Ok(Portfolio {
+        dir,
+        reg,
+        stores,
+        skipped,
+        pruned,
+    })
+}
+
 /// `portfolio next` (MW-G4, mw-jpbv): the first READY task in the total
 /// ordering — sequence.md entries in file order (non-ready and
 /// unresolvable entries skipped, MW-G5), then unsequenced ready tasks by
 /// repos.toml order, then per-repo seq/created/id. Total, deterministic.
 fn next(json: bool) -> Result<(), String> {
-    let dir = registry::portfolio_dir()?;
-    let reg = registry::load(&dir)?;
-    let sequence = registry::load_sequence(&dir)?;
-    let (stores, skipped) = registry::load_stores(&reg)?;
-    let ctx = crate::tables::session_for(&stores, &[]).map_err(|e| e.to_string())?;
+    let p = load_portfolio()?;
+    // Post-prune read: the overlay `next` walks is the surviving one.
+    let sequence = registry::load_sequence(&p.dir)?;
+    let (reg, skipped) = (&p.reg, &p.skipped);
+    let ctx = crate::tables::session_for(&p.stores, &[]).map_err(|e| e.to_string())?;
     let sql = READY_SQL.replacen("SELECT t.id", "SELECT t.repo, t.id, t.seq, t.created", 1);
     let (_, batches) = run_query(&ctx, &sql)?;
     // Columns: repo, id, seq, created, title, claimed_by.
@@ -106,10 +136,12 @@ fn next(json: bool) -> Result<(), String> {
             },
         );
         let mut data = data;
-        data["skipped"] = skips_json(&skipped);
+        data["skipped"] = skips_json(skipped);
+        data["pruned"] = pruned_json(&p.pruned);
         crate::cli::emit_json("portfolio next", &data);
     } else {
-        report_skips(&skipped);
+        report_skips(skipped);
+        report_pruned(&p.pruned);
         match row {
             Some(r) => {
                 let claim = if r[5].is_empty() {
@@ -125,15 +157,13 @@ fn next(json: bool) -> Result<(), String> {
     Ok(())
 }
 
-/// Registry → loaded stores → one `SessionContext` over the union.
-fn union_session() -> Result<(SessionContext, Vec<SkippedRepo>), String> {
-    let dir = registry::portfolio_dir()?;
-    let reg = registry::load(&dir)?;
-    let (stores, skipped) = registry::load_stores(&reg)?;
+/// Loaded portfolio → one `SessionContext` over the union.
+fn union_session() -> Result<(SessionContext, Portfolio), String> {
+    let p = load_portfolio()?;
     // No foreign injection here: every resolvable repo is already loaded
     // whole; what the union can't load, a file lookup can't reach either.
-    let ctx = crate::tables::session_for(&stores, &[]).map_err(|e| e.to_string())?;
-    Ok((ctx, skipped))
+    let ctx = crate::tables::session_for(&p.stores, &[]).map_err(|e| e.to_string())?;
+    Ok((ctx, p))
 }
 
 /// Text-mode skip report — stderr, so piped stdout stays clean.
@@ -141,6 +171,27 @@ fn report_skips(skipped: &[SkippedRepo]) {
     for s in skipped {
         eprintln!("portfolio: skipped {} \u{2014} {}", s.repo, s.detail);
     }
+}
+
+/// Text-mode autoprune report — stderr, like the skip report: a state
+/// change the operator should see, kept out of pipeable stdout.
+fn report_pruned(pruned: &[PrunedEntry]) {
+    for e in pruned {
+        eprintln!(
+            "portfolio: pruned {} ({}) from sequence.md",
+            e.target, e.status
+        );
+    }
+}
+
+/// JSON autoprune list — mirrors the stderr report structurally.
+fn pruned_json(pruned: &[PrunedEntry]) -> serde_json::Value {
+    serde_json::Value::Array(
+        pruned
+            .iter()
+            .map(|e| serde_json::json!({ "ref": e.target, "status": e.status }))
+            .collect(),
+    )
 }
 
 /// JSON skip list: stable tokens only — `detail` carries machine-local
@@ -158,7 +209,7 @@ fn skips_json(skipped: &[SkippedRepo]) -> serde_json::Value {
 const LISTING_CAP: usize = 20;
 
 fn ready(json: bool) -> Result<(), String> {
-    let (ctx, skipped) = union_session()?;
+    let (ctx, p) = union_session()?;
     // The normative §5 ready SQL with the repo column joined in — the
     // predicate is untouched (one semantics, MW-G3).
     let sql = READY_SQL.replacen("SELECT t.id", "SELECT t.repo, t.id", 1);
@@ -177,10 +228,12 @@ fn ready(json: bool) -> Result<(), String> {
             .collect();
         crate::cli::emit_json(
             "portfolio ready",
-            &serde_json::json!({ "total": total, "skipped": skips_json(&skipped), "rows": shown }),
+            &serde_json::json!({ "total": total, "skipped": skips_json(&p.skipped),
+                "pruned": pruned_json(&p.pruned), "rows": shown }),
         );
     } else {
-        report_skips(&skipped);
+        report_skips(&p.skipped);
+        report_pruned(&p.pruned);
         for row in &rows[..cap] {
             let claim = if row[3].is_empty() {
                 String::new()
@@ -203,14 +256,16 @@ fn ready(json: bool) -> Result<(), String> {
 }
 
 fn q(sql: &str, json: bool) -> Result<(), String> {
-    let (ctx, skipped) = union_session()?;
+    let (ctx, p) = union_session()?;
     let (columns, batches) = run_query(&ctx, sql)?;
     if json {
         let mut payload = q_payload(&columns, &batches);
-        payload["skipped"] = skips_json(&skipped);
+        payload["skipped"] = skips_json(&p.skipped);
+        payload["pruned"] = pruned_json(&p.pruned);
         crate::cli::emit_json("portfolio q", &payload);
     } else {
-        report_skips(&skipped);
+        report_skips(&p.skipped);
+        report_pruned(&p.pruned);
         print_q_text(&columns, &batches);
     }
     Ok(())
