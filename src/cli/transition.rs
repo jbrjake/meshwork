@@ -85,7 +85,7 @@ pub(crate) fn drop(args: &IdArg, json: bool) -> Result<(), String> {
     let scan = match crate::registry::quiet_load()? {
         Some(registry) => {
             let root = crate::cli::require_store_root()?;
-            crate::registry::inbound_needs(&registry, &root, &args.id)
+            crate::registry_hygiene::inbound_needs(&registry, &root, &args.id)
         }
         None => None,
     };

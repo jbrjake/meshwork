@@ -13,6 +13,7 @@ const MODEL_MODULES: &[&str] = &[
     "lint.rs",
     "parse.rs",
     "registry.rs",
+    "registry_hygiene.rs",
     "store.rs",
     "tables.rs",
     "trust.rs",
