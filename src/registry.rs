@@ -6,8 +6,12 @@
 //! `alias-collision` when two registered repos claim the same ID prefix
 //! (bare-ID lookup is ambiguous the moment that happens). Local paths come
 //! from the gitignored `repos.local.toml` `[paths]` table, defaulting to
-//! `~/Documents/code/<name>`; full override semantics land with 2.1
-//! (mw-5ckb). Registry context reaches single-repo verbs only through
+//! `~/Documents/code/<name>`. Override semantics (mw-5ckb): absolute
+//! values pass through, `~/` expands against HOME (loud when it can't),
+//! relative values anchor at the portfolio dir; keys share the name+alias
+//! namespace — former names apply but warn, unknown keys warn (the file is
+//! gitignored, no other review surface), two keys on one entry error.
+//! Registry context reaches single-repo verbs only through
 //! `MESHWORK_PORTFOLIO` until M2 wires proper discovery.
 
 use crate::lint::{Finding, Severity};
@@ -35,6 +39,9 @@ pub struct RepoEntry {
 pub struct Registry {
     /// Entries in file order (the MW-G4 fallback ordering).
     pub entries: Vec<RepoEntry>,
+    /// Findings minted while applying `repos.local.toml` overrides —
+    /// carried here so every load path reports them, not just lint's.
+    pub override_findings: Vec<Finding>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -70,20 +77,85 @@ pub fn load(portfolio_dir: &Path) -> Result<Registry, String> {
     let parsed: ReposFile =
         toml::from_str(&text).map_err(|e| format!("{}: {e}", repos_path.display()))?;
 
-    let local: LocalFile = match std::fs::read_to_string(portfolio_dir.join("repos.local.toml")) {
-        Ok(text) => toml::from_str(&text)
-            .map_err(|e| format!("{}: {e}", portfolio_dir.join("repos.local.toml").display()))?,
-        Err(_) => LocalFile::default(),
+    // Absent is the normal state; present-but-unreadable is loud — only
+    // NotFound may pass silently (mw-5ckb).
+    let local_path = portfolio_dir.join("repos.local.toml");
+    let local: LocalFile = match std::fs::read_to_string(&local_path) {
+        Ok(text) => toml::from_str(&text).map_err(|e| format!("{}: {e}", local_path.display()))?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => LocalFile::default(),
+        Err(e) => return Err(format!("{}: {e}", local_path.display())),
     };
+
+    let mut override_findings = Vec::new();
+    // canonical name → (winning key, resolved path); BTreeMap iteration
+    // makes the first-key-wins tiebreak deterministic (the collision is an
+    // error regardless — nothing rides on which side wins).
+    let mut overrides: BTreeMap<String, (String, PathBuf)> = BTreeMap::new();
+    for (key, value) in &local.paths {
+        let hit = parsed
+            .repos
+            .iter()
+            .find(|r| r.name == *key)
+            .map(|r| (r, false))
+            .or_else(|| {
+                parsed
+                    .repos
+                    .iter()
+                    .find(|r| r.aliases.iter().any(|a| a == key))
+                    .map(|r| (r, true))
+            });
+        let Some((repo, via_alias)) = hit else {
+            push(
+                &mut override_findings,
+                Severity::Warning,
+                "unknown-path-override",
+                key,
+                format!(
+                    "`[paths]` key `{key}` in repos.local.toml matches no registered repo — \
+                     a typo, or a repo missing from repos.toml"
+                ),
+            );
+            continue;
+        };
+        if via_alias {
+            push(
+                &mut override_findings,
+                Severity::Warning,
+                "renamed-repo",
+                key,
+                format!(
+                    "`[paths]` key `{key}` uses a former name — repo is now `{}`; \
+                     rename the key",
+                    repo.name
+                ),
+            );
+        }
+        if let Some((first_key, _)) = overrides.get(&repo.name) {
+            push(
+                &mut override_findings,
+                Severity::Error,
+                "override-collision",
+                &repo.name,
+                format!(
+                    "`[paths]` keys `{first_key}` and `{key}` both override `{}` — \
+                     ambiguous; keep one",
+                    repo.name
+                ),
+            );
+            continue;
+        }
+        let path = expand_override(value, portfolio_dir)
+            .map_err(|e| format!("{}: [paths] {key}: {e}", local_path.display()))?;
+        overrides.insert(repo.name.clone(), (key.clone(), path));
+    }
 
     let entries = parsed
         .repos
         .into_iter()
         .map(|r| {
-            let path = local
-                .paths
+            let path = overrides
                 .get(&r.name)
-                .map(PathBuf::from)
+                .map(|(_, p)| p.clone())
                 .or_else(|| default_path(&r.name));
             RepoEntry {
                 name: r.name,
@@ -93,12 +165,51 @@ pub fn load(portfolio_dir: &Path) -> Result<Registry, String> {
             }
         })
         .collect();
-    Ok(Registry { entries })
+    Ok(Registry {
+        entries,
+        override_findings,
+    })
 }
 
 /// `~/Documents/code/<name>` (MW-G2's default), when HOME resolves.
 fn default_path(name: &str) -> Option<PathBuf> {
     std::env::var_os("HOME").map(|h| Path::new(&h).join("Documents").join("code").join(name))
+}
+
+/// Absolute values pass through; `~`/`~/…` expand against HOME; anything
+/// else anchors at the portfolio dir — the only deterministic anchor for a
+/// per-machine file (cwd varies per invocation).
+///
+/// # Errors
+/// `~` that cannot resolve (HOME unset) and `~user` forms — loud, an
+/// explicit override is never guessed around.
+fn expand_override(value: &str, portfolio_dir: &Path) -> Result<PathBuf, String> {
+    let tilde_rest = match value {
+        "~" => Some(""),
+        _ => value.strip_prefix("~/"),
+    };
+    if let Some(rest) = tilde_rest {
+        let home = std::env::var_os("HOME").ok_or_else(|| {
+            format!("`{value}`: HOME is unset, `~` cannot resolve — spell the path out")
+        })?;
+        let home = Path::new(&home);
+        return Ok(if rest.is_empty() {
+            home.to_path_buf()
+        } else {
+            home.join(rest)
+        });
+    }
+    if value.starts_with('~') {
+        return Err(format!(
+            "`{value}`: `~user` expansion is not supported — spell the path out"
+        ));
+    }
+    let p = Path::new(value);
+    Ok(if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        portfolio_dir.join(p)
+    })
 }
 
 impl Registry {
@@ -124,7 +235,7 @@ impl Registry {
 /// repos, and renamed-repo refs in this store's files.
 #[must_use]
 pub fn registry_findings(registry: &Registry, store: &RepoStore) -> Vec<Finding> {
-    let mut out = Vec::new();
+    let mut out = registry.override_findings.clone();
     namespace_collisions(registry, &mut out);
     id_alias_collisions(registry, &mut out);
     renamed_refs(registry, store, &mut out);

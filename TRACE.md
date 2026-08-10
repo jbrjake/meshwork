@@ -40,7 +40,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-K3 | `lint::attachment_size_warn` | done |
 | MW-K4 | `e2e::add_show_roundtrip` | done |
 | MW-G1 | `e2e::repo_self_contained` | planned |
-| MW-G2 | `e2e::registry_overrides` | planned |
+| MW-G2 | `e2e::registry_overrides` | done |
 | MW-G3 | `e2e::portfolio_union_golden` | planned |
 | MW-G4 | `e2e::portfolio_next_ordering` | planned |
 | MW-G5 | `e2e::absent_repo` | planned |
