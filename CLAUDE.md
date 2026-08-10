@@ -29,7 +29,7 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 
 ## Session ritual
 
-1. `meshwork prime` (`target/debug/meshwork`; a SessionStart hook in `.claude/settings.json` injects it automatically). Then `meshwork show <ready-id>` and read its `docs:` refs. The PLAN Position line stays in sync until v1 but the store is the live worklist.
+1. `meshwork prime` (`./meshwork` — a committed shim over `target/debug/meshwork` that also supplies the agent session author, so verbs need no `--as`; a SessionStart hook in `.claude/settings.json` injects prime automatically). Then `meshwork show <ready-id>` and read its `docs:` refs. The PLAN Position line stays in sync until v1 but the store is the live worklist.
 2. Red first: the item's test precedes its code. Golden files change only via `--bless` + a reviewed diff.
 3. An item closes only on its `verify:` exit 0 AND a green `./verify_meshwork.sh` — observed, not predicted. Close via `meshwork close <id>` (it runs the verify).
 4. Same commit: flip the item's TRACE.md rows `planned`→`done`, advance the Position line. Session end: refresh `handoff:` on whatever task is up next (DESIGN §7b) — there is no HANDOFF.md; prime is the handoff.
