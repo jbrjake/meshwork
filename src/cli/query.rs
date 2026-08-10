@@ -51,8 +51,11 @@ fn local_session() -> Result<SessionContext, String> {
 }
 
 /// Execute SQL, returning column names + batches (schema survives empty
-/// results).
-fn run_query(ctx: &SessionContext, sql: &str) -> Result<(Vec<String>, Vec<RecordBatch>), String> {
+/// results). Shared with `portfolio` — same pipeline, N stores (MW-G3).
+pub(crate) fn run_query(
+    ctx: &SessionContext,
+    sql: &str,
+) -> Result<(Vec<String>, Vec<RecordBatch>), String> {
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -128,33 +131,40 @@ pub(crate) fn q(args: &QArgs, json: bool) -> Result<(), String> {
     let (columns, batches) = run_query(&ctx, &args.sql)?;
 
     if json {
-        let mut rows = Vec::new();
-        for batch in &batches {
-            for row in 0..batch.num_rows() {
-                rows.push(serde_json::Value::Array(
-                    (0..batch.num_columns())
-                        .map(|col| cell_to_json(batch, col, row))
-                        .collect(),
-                ));
-            }
-        }
-        crate::cli::emit_json(
-            "q",
-            &serde_json::json!({ "columns": columns, "rows": rows }),
-        );
+        crate::cli::emit_json("q", &q_payload(&columns, &batches));
     } else {
-        println!("{}", columns.join(" | "));
-        let rows = string_rows(&batches);
-        let n = rows.len();
-        for row in rows {
-            println!("{}", row.join(" | "));
-        }
-        println!("({n} rows)");
+        print_q_text(&columns, &batches);
     }
     Ok(())
 }
 
-fn string_rows(batches: &[RecordBatch]) -> Vec<Vec<String>> {
+/// The `q` JSON data shape — `{columns, rows}` with typed cells (MW-C3).
+pub(crate) fn q_payload(columns: &[String], batches: &[RecordBatch]) -> serde_json::Value {
+    let mut rows = Vec::new();
+    for batch in batches {
+        for row in 0..batch.num_rows() {
+            rows.push(serde_json::Value::Array(
+                (0..batch.num_columns())
+                    .map(|col| cell_to_json(batch, col, row))
+                    .collect(),
+            ));
+        }
+    }
+    serde_json::json!({ "columns": columns, "rows": rows })
+}
+
+/// The `q` text rendering: pipe-joined header, rows, count.
+pub(crate) fn print_q_text(columns: &[String], batches: &[RecordBatch]) {
+    println!("{}", columns.join(" | "));
+    let rows = string_rows(batches);
+    let n = rows.len();
+    for row in rows {
+        println!("{}", row.join(" | "));
+    }
+    println!("({n} rows)");
+}
+
+pub(crate) fn string_rows(batches: &[RecordBatch]) -> Vec<Vec<String>> {
     let mut rows = Vec::new();
     for batch in batches {
         for row in 0..batch.num_rows() {

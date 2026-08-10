@@ -11,6 +11,7 @@ mod import;
 mod init;
 mod lint;
 mod notes;
+mod portfolio;
 mod prime;
 mod query;
 mod set;
@@ -78,7 +79,7 @@ enum Cmd {
     /// Append-only GitHub view (M3).
     Mirror(stubs::MirrorArgs),
     /// Union of every registered repo (M2).
-    Portfolio(stubs::PortfolioArgs),
+    Portfolio(portfolio::PortfolioArgs),
     /// Migrate a TODO.md into the store.
     Import(stubs::ImportArgs),
 }
@@ -151,7 +152,7 @@ pub fn run() -> i32 {
         Cmd::Attach(args) => notes::attach(args, cli.json),
         Cmd::Prime => prime::run(cli.json),
         Cmd::Mirror(args) => stubs::mirror(args, cli.json),
-        Cmd::Portfolio(args) => stubs::portfolio(args, cli.json),
+        Cmd::Portfolio(args) => portfolio::run(args, cli.json),
         Cmd::Import(args) => stubs::import(args, cli.json),
     };
     match result {

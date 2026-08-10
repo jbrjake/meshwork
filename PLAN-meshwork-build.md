@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 2.2 (portfolio union), via `meshwork ready`.** (2.1 done 2026-08-09: full repos.local.toml override semantics — `~/` + relative expansion, name+alias keyed, unknown-key/former-name warnings, override-collision error, loud broken-local; `e2e::registry_overrides` 6 tests. Standing constraint: mw-17hnhzk — `import todo` silently drops nested checkboxes — must land before leras migrates (2.6); the store's seq ranks it.)
+**Position: next = 2.3 (cross-repo resolution), via `meshwork ready`.** (2.2 done 2026-08-09: portfolio union live — `portfolio ready`/`q` over N stores, one pipeline (session_for was 1..N from day one); discovery env → ~/Documents/code/portfolio (§15.4); absent repos skip+report (MW-G5); golden portfolio-ready.json. 2.1 same day: full repos.local.toml override semantics. Standing constraint: mw-17hnhzk — `import todo` silently drops nested checkboxes — must land before leras migrates (2.6); the store's seq ranks it.)
 
 ## 1. Bootstrap (B0–B4, first session)
 

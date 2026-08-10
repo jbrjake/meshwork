@@ -322,11 +322,8 @@ fn cli_surface_frozen() {
         .assert()
         .failure()
         .stderr(predicates::str::contains("M3"));
-    meshwork(&repo)
-        .args(["portfolio", "ready"])
-        .assert()
-        .failure()
-        .stderr(predicates::str::contains("M2"));
+    // portfolio ready/q went live at 2.2 (mw-9093); next/seq stay honest
+    // stubs until 2.4 — pinned in e2e_portfolio.rs.
 }
 
 /// PLAN 1.5 / MW-D3, D5: `prime` is the ≤6KB session-start digest — ready

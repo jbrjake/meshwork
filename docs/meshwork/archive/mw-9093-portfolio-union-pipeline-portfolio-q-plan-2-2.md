@@ -1,7 +1,7 @@
 ---
 id: mw-9093
 title: Portfolio union pipeline + portfolio q (PLAN 2.2)
-status: open
+status: done
 category: plan/m2
 needs: [mw-5ckb]
 verify: cargo test e2e::portfolio_union_golden
@@ -25,3 +25,5 @@ handoff: |
 
 ## log
 - 2026-08-05 created
+- 2026-08-10T03:17Z open→doing — claimed by Jon Rubin
+- 2026-08-10T03:30Z doing→done — verify exit 0 @ fc0e936+13

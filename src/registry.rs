@@ -11,8 +11,9 @@
 //! relative values anchor at the portfolio dir; keys share the name+alias
 //! namespace — former names apply but warn, unknown keys warn (the file is
 //! gitignored, no other review surface), two keys on one entry error.
-//! Registry context reaches single-repo verbs only through
-//! `MESHWORK_PORTFOLIO` until M2 wires proper discovery.
+//! Discovery (mw-9093): `MESHWORK_PORTFOLIO` overrides, default
+//! `~/Documents/code/portfolio` (§15.4) — `portfolio` verbs use the
+//! chain; single-repo lint stays env-opt-in (per-repo scope, MW-G1).
 
 use crate::lint::{Finding, Severity};
 use crate::parse::ParsedTask;
@@ -174,6 +175,93 @@ pub fn load(portfolio_dir: &Path) -> Result<Registry, String> {
 /// `~/Documents/code/<name>` (MW-G2's default), when HOME resolves.
 fn default_path(name: &str) -> Option<PathBuf> {
     std::env::var_os("HOME").map(|h| Path::new(&h).join("Documents").join("code").join(name))
+}
+
+/// Locate the portfolio dir (mw-9093): `MESHWORK_PORTFOLIO` overrides
+/// (tests, nonstandard machines — §15.6); the default is
+/// `~/Documents/code/portfolio` (§15.4).
+///
+/// # Errors
+/// Nothing resolves to a registry — loud, names the fix.
+pub fn portfolio_dir() -> Result<PathBuf, String> {
+    if let Some(dir) = std::env::var_os("MESHWORK_PORTFOLIO").filter(|v| !v.is_empty()) {
+        return Ok(PathBuf::from(dir));
+    }
+    let default = std::env::var_os("HOME").map(|h| {
+        Path::new(&h)
+            .join("Documents")
+            .join("code")
+            .join("portfolio")
+    });
+    match default {
+        Some(dir) if dir.join("repos.toml").exists() => Ok(dir),
+        Some(dir) => Err(format!(
+            "no portfolio registry: {} has no repos.toml — create it (MW-G2), or set \
+             MESHWORK_PORTFOLIO=<dir>",
+            dir.display()
+        )),
+        None => Err(
+            "no portfolio registry: HOME is unset and MESHWORK_PORTFOLIO is not given".to_string(),
+        ),
+    }
+}
+
+/// One registered repo the union could not load (MW-G5: reported, never
+/// an error, never guessed around).
+#[derive(Debug, Clone)]
+pub struct SkippedRepo {
+    /// Canonical registry name.
+    pub repo: String,
+    /// Stable machine token: `no-path` | `no-checkout` | `no-store`.
+    pub reason: &'static str,
+    /// Human detail — may contain machine-local paths, so it belongs in
+    /// stderr reports, never in golden-compared output.
+    pub detail: String,
+}
+
+/// Load every registered repo's store for the union (MW-G3). The store's
+/// `repo` becomes the registry name — the `repo#id` namespace is the
+/// registry's, not the checkout dirname's. Absent things skip + report
+/// (MW-G5); a present-but-broken store is a loud error, never a silent
+/// hole in the union.
+///
+/// # Errors
+/// A checkout whose store exists but fails to load — its tasks silently
+/// missing from the union would misreport the portfolio.
+pub fn load_stores(registry: &Registry) -> Result<(Vec<RepoStore>, Vec<SkippedRepo>), String> {
+    let mut stores = Vec::new();
+    let mut skipped = Vec::new();
+    for entry in &registry.entries {
+        let Some(path) = &entry.path else {
+            skipped.push(SkippedRepo {
+                repo: entry.name.clone(),
+                reason: "no-path",
+                detail: "no local path (HOME unset and no repos.local.toml override)".into(),
+            });
+            continue;
+        };
+        if !path.exists() {
+            skipped.push(SkippedRepo {
+                repo: entry.name.clone(),
+                reason: "no-checkout",
+                detail: format!("no checkout at {}", path.display()),
+            });
+            continue;
+        }
+        match crate::store::load_repo(path) {
+            Ok(mut store) => {
+                store.repo.clone_from(&entry.name);
+                stores.push(store);
+            }
+            Err(crate::store::StoreError::NotAStore(p)) => skipped.push(SkippedRepo {
+                repo: entry.name.clone(),
+                reason: "no-store",
+                detail: format!("{} is not a meshwork store", p.display()),
+            }),
+            Err(e) => return Err(format!("{}: {e}", entry.name)),
+        }
+    }
+    Ok((stores, skipped))
 }
 
 /// Absolute values pass through; `~`/`~/…` expand against HOME; anything

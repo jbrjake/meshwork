@@ -1,6 +1,7 @@
 //! Frozen-surface verbs whose behavior lands in later milestones (DESIGN
 //! §6 is complete from day one; unbuilt verbs error honestly instead of
-//! pretending). `mirror` arrives at M3, `portfolio` at M2.
+//! pretending). `mirror` arrives at M3; `portfolio` moved out at M2
+//! (cli/portfolio.rs, mw-9093).
 
 use std::path::PathBuf;
 
@@ -79,31 +80,6 @@ fn branch_guard() -> Result<(), String> {
              set [mirror] allow_non_default = true (loud) in docs/meshwork/config.toml"
         )),
     }
-}
-
-#[derive(clap::Args)]
-pub(crate) struct PortfolioArgs {
-    #[command(subcommand)]
-    action: PortfolioAction,
-}
-
-#[derive(clap::Subcommand)]
-enum PortfolioAction {
-    /// Ready across every registered repo.
-    Ready,
-    /// First task by the total ordering (sequence.md → registry → per-repo).
-    Next,
-    /// Raw SQL over the unioned portfolio tables.
-    Q {
-        /// SQL over the unioned six tables.
-        sql: String,
-    },
-    /// Renumber seq weights when gaps exhaust (§15.2).
-    Seq,
-}
-
-pub(crate) fn portfolio(_args: &PortfolioArgs, _json: bool) -> Result<(), String> {
-    Err("portfolio lands at M2 (PLAN 2.1–2.4); single-repo verbs are complete".into())
 }
 
 #[derive(clap::Args)]
