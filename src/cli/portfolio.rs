@@ -2,8 +2,9 @@
 //! N stores — `tables::session_for` was built for 1..N from day one, so
 //! the union is a loading concern, not a second query path (MW-G1/G3).
 //! Registered-but-absent repos skip + report (MW-G5): stderr in text mode
-//! (stdout stays pipeable), a `skipped` list in the JSON data. `next` and
-//! `seq` land with sequence.md (PLAN 2.4) and error honestly until then.
+//! (stdout stays pipeable), a `skipped` list in the JSON data. `next`
+//! overlays sequence.md (MW-G4, mw-jpbv); `seq` waits for the first
+//! exhausted gap (§15.2) and errors honestly until then.
 
 use crate::cli::query::{print_q_text, q_payload, run_query, string_rows, READY_SQL};
 use crate::registry::{self, SkippedRepo};
@@ -34,10 +35,94 @@ pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
     match &args.action {
         PortfolioAction::Ready => ready(json),
         PortfolioAction::Q { sql } => q(sql, json),
-        PortfolioAction::Next | PortfolioAction::Seq => {
-            Err("portfolio next/seq land with sequence.md (PLAN 2.4); ready and q are live".into())
+        PortfolioAction::Next => next(json),
+        PortfolioAction::Seq => Err("portfolio seq lands with the first exhausted gap (§15.2); \
+             ready, next, and q are live"
+            .into()),
+    }
+}
+
+/// `portfolio next` (MW-G4, mw-jpbv): the first READY task in the total
+/// ordering — sequence.md entries in file order (non-ready and
+/// unresolvable entries skipped, MW-G5), then unsequenced ready tasks by
+/// repos.toml order, then per-repo seq/created/id. Total, deterministic.
+fn next(json: bool) -> Result<(), String> {
+    let dir = registry::portfolio_dir()?;
+    let reg = registry::load(&dir)?;
+    let sequence = registry::load_sequence(&dir)?;
+    let (stores, skipped) = registry::load_stores(&reg)?;
+    let ctx = crate::tables::session_for(&stores, &[]).map_err(|e| e.to_string())?;
+    let sql = READY_SQL.replacen("SELECT t.id", "SELECT t.repo, t.id, t.seq, t.created", 1);
+    let (_, batches) = run_query(&ctx, &sql)?;
+    // Columns: repo, id, seq, created, title, claimed_by.
+    let rows = string_rows(&batches);
+
+    // Sequenced pass — canonicalize each ref (rename aliases resolve) and
+    // take the first that is actually ready.
+    let ready_by_gid: std::collections::BTreeMap<String, &Vec<String>> = rows
+        .iter()
+        .map(|r| (format!("{}#{}", r[0], r[1]), r))
+        .collect();
+    let sequenced_pick = sequence.iter().find_map(|target| {
+        let (repo_part, id_part) = target.split_once('#')?;
+        let canonical = reg
+            .resolve(repo_part)
+            .map_or(repo_part, |(e, _)| e.name.as_str());
+        ready_by_gid.get(&format!("{canonical}#{id_part}")).copied()
+    });
+
+    // Fallback — repos.toml order, then per-repo seq, created, id.
+    let repo_rank: std::collections::BTreeMap<&str, usize> = reg
+        .entries
+        .iter()
+        .enumerate()
+        .map(|(i, e)| (e.name.as_str(), i))
+        .collect();
+    let fallback_pick = || {
+        rows.iter().min_by_key(|r| {
+            (
+                repo_rank.get(r[0].as_str()).copied().unwrap_or(usize::MAX),
+                r[2].parse::<i64>().unwrap_or(i64::MAX),
+                r[3].clone(),
+                r[1].clone(),
+            )
+        })
+    };
+    let (row, sequenced) = match sequenced_pick {
+        Some(row) => (Some(row), true),
+        None => (fallback_pick(), false),
+    };
+
+    if json {
+        let data = row.map_or_else(
+            || {
+                serde_json::json!({ "repo": null, "id": null, "title": null,
+                "claimed_by": null, "sequenced": false })
+            },
+            |r| {
+                serde_json::json!({ "repo": r[0], "id": r[1], "title": r[4],
+                    "claimed_by": (!r[5].is_empty()).then(|| r[5].clone()),
+                    "sequenced": sequenced })
+            },
+        );
+        let mut data = data;
+        data["skipped"] = skips_json(&skipped);
+        crate::cli::emit_json("portfolio next", &data);
+    } else {
+        report_skips(&skipped);
+        match row {
+            Some(r) => {
+                let claim = if r[5].is_empty() {
+                    String::new()
+                } else {
+                    format!("  [claimed: {}]", r[5])
+                };
+                println!("{}#{}  {}{claim}", r[0], r[1], r[4]);
+            }
+            None => println!("nothing ready"),
         }
     }
+    Ok(())
 }
 
 /// Registry → loaded stores → one `SessionContext` over the union.

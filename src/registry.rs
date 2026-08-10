@@ -298,6 +298,29 @@ pub fn resolve_foreign(
     out
 }
 
+/// Parse `sequence.md` (MW-G4, mw-jpbv): `- repo#id` bullets in file
+/// order; tranche headings are cosmetic. An absent file is the normal
+/// state (empty overlay); a present-but-unreadable one is loud. Bullets
+/// without a `repo#id` shape are prose — ignored.
+///
+/// # Errors
+/// A present but unreadable sequence file.
+pub fn load_sequence(portfolio_dir: &Path) -> Result<Vec<String>, String> {
+    let path = portfolio_dir.join("sequence.md");
+    let text = match std::fs::read_to_string(&path) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(format!("{}: {e}", path.display())),
+    };
+    Ok(text
+        .lines()
+        .filter_map(|l| l.trim_start().strip_prefix("- "))
+        .map(str::trim)
+        .filter(|s| s.contains('#'))
+        .map(ToString::to_string)
+        .collect())
+}
+
 /// One registered repo the union could not load (MW-G5: reported, never
 /// an error, never guessed around).
 #[derive(Debug, Clone)]

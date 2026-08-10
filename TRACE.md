@@ -42,7 +42,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-G1 | `e2e::repo_self_contained` | planned |
 | MW-G2 | `e2e::registry_overrides` | done |
 | MW-G3 | `e2e::portfolio_union_golden` | done |
-| MW-G4 | `e2e::portfolio_next_ordering` | planned |
+| MW-G4 | `e2e::portfolio_next_ordering` | done |
 | MW-G5 | `e2e::absent_repo` | done |
 | MW-H1 | `e2e::mirror_create`, `e2e::mirror_append` | planned |
 | MW-H2 | `e2e::mirror_never_mutates` | planned |

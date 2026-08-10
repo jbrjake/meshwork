@@ -128,6 +128,73 @@ fn portfolio_q_repo_column() {
     );
 }
 
+/// mw-jpbv (PLAN 2.4, MW-G4): `portfolio next` = the first READY task in
+/// the total ordering — sequence.md entries first (file order, non-ready
+/// entries skipped), then unsequenced ready tasks by repos.toml order,
+/// then per-repo seq/created. Total and deterministic; resequencing is
+/// editing one file.
+#[test]
+fn portfolio_next_ordering() {
+    let (dir, portfolio) = portfolio_fixture();
+
+    // Sequenced: az-t5k1 (doing → skipped), bz-r34d (open+ready → NEXT),
+    // az-n33d (ready, but later in the sequence).
+    let assert = meshwork(dir.path())
+        .env("MESHWORK_PORTFOLIO", &portfolio)
+        .args(["portfolio", "next"])
+        .assert()
+        .success();
+    let text = stdout_of(&assert);
+    assert!(
+        text.starts_with("beta#bz-r34d"),
+        "first sequenced READY task, non-ready entries skipped: {text}"
+    );
+    crate::common::assert_golden("portfolio-next.txt", &text);
+
+    let js = stdout_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "next", "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["data"]["repo"], "beta", "{v}");
+    assert_eq!(v["data"]["id"], "bz-r34d", "{v}");
+    assert_eq!(v["data"]["sequenced"], true, "{v}");
+
+    // No sequence.md → pure fallback: repos.toml order (alpha first),
+    // then per-repo seq — alpha's lowest-seq ready task wins.
+    std::fs::remove_file(portfolio.join("sequence.md")).unwrap();
+    let text = stdout_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "next"])
+            .assert()
+            .success(),
+    );
+    assert!(
+        text.starts_with("alpha#az-n33d"),
+        "fallback: repos.toml order then per-repo seq (MW-G4): {text}"
+    );
+
+    // A sequence whose every entry is non-ready falls back too — and an
+    // absent-repo entry is skipped, never an error (MW-G5).
+    std::fs::write(
+        portfolio.join("sequence.md"),
+        "## Tranche 1\n\n- alpha#az-t5k1\n- gamma#gm-zzz9\n",
+    )
+    .unwrap();
+    let text = stdout_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "next"])
+            .assert()
+            .success(),
+    );
+    assert!(text.starts_with("alpha#az-n33d"), "{text}");
+}
+
 /// Discovery + honesty: default is ~/Documents/code/portfolio (§15.4); no
 /// registry anywhere is a loud error; next/seq stay honest stubs until 2.4.
 #[test]
@@ -158,14 +225,13 @@ fn portfolio_discovery_default() {
         .assert()
         .success();
 
-    // Unbuilt verbs keep erroring honestly (DESIGN §6 frozen surface).
-    for verb in ["next", "seq"] {
-        let assert = meshwork(dir.path())
-            .env("MESHWORK_PORTFOLIO", &portfolio)
-            .args(["portfolio", verb])
-            .assert()
-            .code(1);
-        let err = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
-        assert!(err.contains("2.4"), "{err}");
-    }
+    // The one unbuilt verb keeps erroring honestly (DESIGN §6 frozen
+    // surface): `portfolio seq` waits for the first exhausted gap (§15.2).
+    let assert = meshwork(dir.path())
+        .env("MESHWORK_PORTFOLIO", &portfolio)
+        .args(["portfolio", "seq"])
+        .assert()
+        .code(1);
+    let err = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
+    assert!(err.contains("15.2"), "names its spec: {err}");
 }
