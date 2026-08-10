@@ -2,6 +2,7 @@
 id: mw-5fekg2q
 title: Replay the README demo transcripts against a scratch store in the gate
 category: meta/readme
+needs: [mw-qe5y2fc]
 verify: ./scripts/check-readme-transcripts.sh
 docs:
   - README.md
