@@ -53,6 +53,9 @@ the repo's committed `./meshwork` shim, which execs the pinned binary
   afterward (`lint --fix` repairs mechanical damage). Every field also has a
   CLI path: flags on `add` at creation (including `--seq`/`--docs`), then
   `meshwork set <id> --seq/--docs/--handoff`.
+- Body prose goes ABOVE the tail sections — `## log` and `## comments` end
+  the file; never append prose after them. A task that needs a real body at
+  creation is a one-document `add --batch -`, not a hand-written file.
 - `seq` is the priority primitive (integers, gaps of 10; lower = sooner). There
   is no priority field and no due date, deliberately.
 - Every task should carry a `verify:` command (lint warns when missing) and
