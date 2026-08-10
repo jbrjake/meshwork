@@ -109,6 +109,17 @@ pub fn slugify(title: &str) -> String {
     }
 }
 
+/// The alias charset contract (mw-a6jdf5s): `[a-z0-9]+`, nothing else. ID
+/// recovery from an invalid file takes the first two dash-segments of the
+/// stem, so a dashed alias (`my-repo`) silently mis-recovers every id.
+#[must_use]
+pub fn valid_alias(alias: &str) -> bool {
+    !alias.is_empty()
+        && alias
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
+}
+
 /// Mint an ID that no local task file already uses (MW-A4): re-roll while
 /// `<dir>/<id>-*.md` (or `<id>.md`) exists. A missing dir collides with
 /// nothing.

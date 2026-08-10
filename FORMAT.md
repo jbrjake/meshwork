@@ -25,7 +25,7 @@ TOML; unknown keys are ignored (config is not the strict surface task files are)
 
 | key | meaning |
 |---|---|
-| `alias` | string, required — the ID prefix for tasks minted in this store |
+| `alias` | string, required, `[a-z0-9]+` — the ID prefix for tasks minted in this store; a dash or uppercase would corrupt filename ID recovery (first two dash-segments of the stem) |
 | `format` | integer — format version; absent = 1 |
 | `default_author` | string — fallback identity for comments/claims |
 | `[hierarchy] levels` | string list — display names for category depths; zero semantics |

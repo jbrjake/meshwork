@@ -7,6 +7,7 @@ mod arch;
 mod common;
 mod e2e;
 mod fixtures;
+mod format;
 mod id;
 mod lint;
 mod parse;

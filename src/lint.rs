@@ -72,6 +72,7 @@ pub fn lint_store(store: &RepoStore) -> Vec<Finding> {
         .collect();
     let ids: Vec<&str> = valid.iter().map(|t| t.id.as_str()).collect();
 
+    check_alias(store, &mut out);
     check_files(store, &mut out);
     check_duplicate_ids(&valid, &mut out);
     check_edges(&valid, &ids, &mut out);
@@ -83,6 +84,24 @@ pub fn lint_store(store: &RepoStore) -> Vec<Finding> {
     out.sort();
     out.dedup();
     out
+}
+
+/// mw-a6jdf5s: the alias is `[a-z0-9]+` — ID recovery takes the first two
+/// dash-segments of an invalid file's stem, so a dashed alias corrupts
+/// recovery for every task in the store.
+fn check_alias(store: &RepoStore, out: &mut Vec<Finding>) {
+    let alias = &store.config.alias;
+    if !crate::id::valid_alias(alias) {
+        out.push(finding(
+            Severity::Error,
+            "alias-charset",
+            "config.toml",
+            format!(
+                "alias `{alias}` must match [a-z0-9]+ — a dash or uppercase \
+                 corrupts ID recovery from invalid files (mw-a6jdf5s)"
+            ),
+        ));
+    }
 }
 
 /// Invalid rows (parse / union damage) + parse warnings (schema, MW-A6).

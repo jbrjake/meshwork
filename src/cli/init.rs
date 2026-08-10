@@ -30,6 +30,9 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     }
 
     let alias = default_alias(&root);
+    if !crate::id::valid_alias(&alias) {
+        return Err(format!("alias `{alias}` must match [a-z0-9]+ (mw-a6jdf5s)"));
+    }
     let author = git_user_name(&root);
     let mut config = String::new();
     config.push_str("# meshwork store config (hand-editable; DESIGN §1).\n");

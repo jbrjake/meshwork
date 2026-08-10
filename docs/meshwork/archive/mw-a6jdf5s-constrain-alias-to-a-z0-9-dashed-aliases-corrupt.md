@@ -6,7 +6,7 @@ verify: cargo test format::alias_charset
 docs:
   - FORMAT.md#configtoml
   - FORMAT.md#task-file
-status: open
+status: done
 created: 2026-08-09T23:17Z
 seq: 30
 ---
@@ -19,3 +19,5 @@ Enforce at `init`/`lint`; existing single-segment aliases are untouched.
 
 ## log
 - 2026-08-09T23:17Z created
+- 2026-08-10T13:59Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T14:02Z doing→done — verify exit 0 @ 3634eee+7
