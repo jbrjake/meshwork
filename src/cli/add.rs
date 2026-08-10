@@ -20,7 +20,7 @@ pub(crate) struct AddArgs {
     #[arg(long)]
     dry_run: bool,
     /// Category slash-path, e.g. engine/spill (MW-B4).
-    #[arg(long = "cat", value_name = "PATH")]
+    #[arg(long = "cat", alias = "category", value_name = "PATH")]
     cat: Option<String>,
     /// Cross-cutting label; repeatable (MW-B5).
     #[arg(long = "label", value_name = "LABEL")]
@@ -41,7 +41,7 @@ pub(crate) struct AddArgs {
     #[arg(long, value_name = "N")]
     seq: Option<i64>,
     /// Doc link `path#§-anchor`; repeatable (MW-F1, mw-0f4j).
-    #[arg(long = "docs", value_name = "LINK")]
+    #[arg(long = "docs", alias = "doc", value_name = "LINK")]
     docs: Vec<String>,
 }
 

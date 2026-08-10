@@ -7,7 +7,7 @@ verify: cargo test e2e::category_doc_aliases
 seq: 57
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface
-status: open
+status: done
 created: 2026-08-10T14:40Z
 ---
 Split out of mw-5hrb22q. Field evidence (3 sazed sessions): --category
@@ -30,3 +30,8 @@ in §15 so it stops being re-proposed.
 
 ## log
 - 2026-08-10T14:40Z created
+- 2026-08-10T14:57Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T14:59Z doing→done — verify exit 0 @ 273405c+5
+
+## comments
+- 2026-08-10T14:57Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Owner ruling 2026-08-10 (in-session, via direct question): YES — --category/--doc land as hidden aliases of --cat/--docs on add and set. Re-land per this task's plan.
