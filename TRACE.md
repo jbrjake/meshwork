@@ -53,7 +53,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-I2 | `e2e::merge_union_poison`, `e2e::invalid_visible` | done |
 | MW-J1 | gate §§1–2 + Cargo.toml dep review (done at B0) | planned |
 | MW-J2 | gate §§4–5 | planned |
-| MW-J3 | `e2e::import_todo_golden` + M1.9 pilot checklist (sazed abe358b, 2026-08-07) | done |
+| MW-J3 | `e2e::import_todo_golden`, `e2e::import_nested_checkboxes` + M1.9 pilot checklist (sazed abe358b, 2026-08-07) | done |
 | MW-J4 | `fixtures::corpus_covers_features` | done |
 | MW-J5 | gate §6 (this file's own checker) | planned |
 | MW-J6 | `e2e::offline_all` + stub-gh harness | done |

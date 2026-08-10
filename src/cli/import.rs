@@ -1,7 +1,11 @@
 //! `meshwork import todo <path>` (PLAN 1.7; MW-J3): the baseline checkbox
 //! format — `[ ]`/`[~]`/`[x]`/`[!]`, bold titles, indented `verify:` lines,
-//! `## Now` ordering → seq — becomes task files. The source is never
-//! touched; archiving it is the migration session's explicit step.
+//! `## Now` ordering → seq — becomes task files. Nested checkboxes are
+//! REAL tasks with `parent:` edges at any depth, status from their own
+//! marker (mw-17hnhzk — the sazed pilot lost 15 of 124 items folded into
+//! parent prose with exit 0; silent loss is the one forbidden outcome).
+//! The source is never touched; archiving it is the migration session's
+//! explicit step.
 
 use crate::id::{mint_unique, slugify, IdGen};
 use crate::parse::Status;
@@ -15,6 +19,9 @@ struct TodoItem {
     context: Vec<String>,
     verify: Option<String>,
     seq: Option<i64>,
+    /// Index of the enclosing checkbox (mw-17hnhzk) — always earlier in
+    /// the document, so its id is minted before this one renders.
+    parent: Option<usize>,
 }
 
 pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
@@ -37,10 +44,12 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
     let today = crate::clock::stamp();
 
     let mut created = Vec::new();
+    let mut ids: Vec<String> = Vec::new();
     let mut counts: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
     for item in &items {
         let id = mint_unique(&config.alias, &tasks_dir, &mut gen).map_err(|e| e.to_string())?;
-        let file = render(item, &id, &today);
+        let parent_id = item.parent.map(|i| ids[i].as_str());
+        let file = render(item, &id, parent_id, &today);
         let name = format!("{id}-{}.md", slugify(&item.title));
         // Already-terminal imports go straight to archive/ (mw-45e2qf4).
         let terminal = matches!(
@@ -58,23 +67,33 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
         std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
         std::fs::write(dir.join(&name), file).map_err(|e| e.to_string())?;
         *counts.entry(item.status.as_str()).or_default() += 1;
-        created.push(serde_json::json!({ "id": id, "path": rel }));
+        created.push(serde_json::json!({
+            "id": id, "path": rel,
+            "parent": item.parent.map(|i| ids[i].clone()),
+        }));
+        ids.push(id);
     }
+    let nested = items.iter().filter(|i| i.parent.is_some()).count();
 
     if json {
         crate::cli::emit_json(
             "import",
             &serde_json::json!({
                 "source": path.display().to_string(),
-                "imported": created.len(), "counts": counts, "tasks": created,
+                "imported": created.len(), "nested": nested,
+                "counts": counts, "tasks": created,
             }),
         );
     } else {
-        let summary = counts
+        let mut summary = counts
             .iter()
             .map(|(k, v)| format!("{v} {k}"))
             .collect::<Vec<_>>()
             .join(", ");
+        if nested > 0 {
+            // Loud by design: nesting used to vanish here (mw-17hnhzk).
+            let _ = write!(summary, "; {nested} nested as children");
+        }
         println!("{} imported ({summary})", created.len());
         println!(
             "next: review with `meshwork ready` + `lint`, then archive the source \
@@ -87,29 +106,46 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
 
 fn parse_todo(text: &str) -> Vec<TodoItem> {
     let mut items: Vec<TodoItem> = Vec::new();
+    // (indent, item index) — enclosing checkboxes; nesting never spans a
+    // heading (mw-17hnhzk).
+    let mut stack: Vec<(usize, usize)> = Vec::new();
     let mut in_now = false;
     let mut now_seq = 0i64;
     for line in text.lines() {
         if let Some(heading) = line.strip_prefix("## ") {
             in_now = heading.trim().eq_ignore_ascii_case("now");
+            stack.clear();
             continue;
         }
-        if let Some(item) = parse_bullet(line) {
+        let trimmed_start = line.trim_start();
+        let indent = line.len() - trimmed_start.len();
+        if let Some(item) = parse_bullet(trimmed_start) {
+            // An indented checkbox is a CHILD of the nearest shallower one
+            // — a real task, never parent-body prose (mw-17hnhzk).
+            while stack.last().is_some_and(|(i, _)| *i >= indent) {
+                stack.pop();
+            }
+            let parent = stack.last().map(|(_, idx)| *idx);
             let seq = in_now.then(|| {
                 now_seq += 10;
                 now_seq
             });
-            items.push(TodoItem { seq, ..item });
-        } else if line.starts_with(' ') && !line.trim().is_empty() {
-            // Continuation of the last item: a verify line or more context.
+            items.push(TodoItem {
+                seq,
+                parent,
+                ..item
+            });
+            stack.push((indent, items.len() - 1));
+        } else if indent > 0 && !trimmed_start.is_empty() {
+            // Continuation of the last item (which may itself be nested):
+            // a verify line or more context.
             let Some(last) = items.last_mut() else {
                 continue;
             };
-            let trimmed = line.trim();
-            if let Some(v) = trimmed.strip_prefix("verify:") {
+            if let Some(v) = trimmed_start.strip_prefix("verify:") {
                 last.verify = Some(extract_command(v));
             } else {
-                last.context.push(trimmed.to_string());
+                last.context.push(trimmed_start.trim_end().to_string());
             }
         }
     }
@@ -151,6 +187,7 @@ fn parse_bullet(line: &str) -> Option<TodoItem> {
         context,
         verify: None,
         seq: None,
+        parent: None,
     })
 }
 
@@ -166,11 +203,14 @@ fn extract_command(v: &str) -> String {
     v.trim_end_matches("exits 0").trim().to_string()
 }
 
-fn render(item: &TodoItem, id: &str, today: &str) -> String {
+fn render(item: &TodoItem, id: &str, parent_id: Option<&str>, today: &str) -> String {
     let mut fm = String::new();
     let _ = writeln!(fm, "id: {id}");
     let _ = writeln!(fm, "title: {}", yaml_scalar(&item.title));
     let _ = writeln!(fm, "status: {}", item.status.as_str());
+    if let Some(pid) = parent_id {
+        let _ = writeln!(fm, "parent: {pid}");
+    }
     if let Some(verify) = &item.verify {
         let _ = writeln!(fm, "verify: {}", yaml_scalar(verify));
     }

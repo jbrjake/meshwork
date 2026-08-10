@@ -88,6 +88,7 @@ include!("e2e_commit_trace.rs");
 include!("e2e_crossrepo.rs");
 include!("e2e_format_marker.rs");
 include!("e2e_graph.rs");
+include!("e2e_import.rs");
 include!("e2e_json_envelope.rs");
 include!("e2e_lifecycle.rs");
 include!("e2e_lint.rs");
