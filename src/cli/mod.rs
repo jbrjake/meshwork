@@ -121,6 +121,30 @@ fn forgiveness(e: &clap::Error) -> Option<String> {
     ))
 }
 
+/// mw-rz4ey2h (§6 ruling 2026-08-10): prose fields are what agents write
+/// longest and most carefully — the pilot had a backticked handoff chunk
+/// EXECUTED by the shell. `@<path>` reads the file, `-` reads stdin,
+/// anything else is the literal text; the payload never transits shell
+/// quoting. Trailing newline trimmed (files end with one; the stored
+/// field shouldn't).
+pub(crate) fn prose_payload(value: &str) -> Result<String, String> {
+    use std::io::Read as _;
+    let text = if value == "-" {
+        let mut buf = String::new();
+        std::io::stdin()
+            .read_to_string(&mut buf)
+            .map_err(|e| format!("reading stdin: {e}"))?;
+        buf
+    } else if let Some(path) = value.strip_prefix('@') {
+        std::fs::read_to_string(path).map_err(|e| {
+            format!("reading @{path}: {e} — for literal text starting with '@', pipe it via `-`")
+        })?
+    } else {
+        value.to_string()
+    };
+    Ok(text.trim_end().to_string())
+}
+
 /// Repo root of an initialized store, or a user-facing error.
 pub(crate) fn require_store_root() -> Result<PathBuf, String> {
     let cwd = std::env::current_dir().map_err(|e| e.to_string())?;

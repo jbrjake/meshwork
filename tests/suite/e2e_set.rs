@@ -116,6 +116,67 @@ fn field_setters() {
         .stderr(predicates::str::contains("wo-zzzzzzz"));
 }
 
+/// mw-rz4ey2h (§6 ruling 2026-08-10): prose fields get a path that never
+/// transits shell quoting — the pilot's inline --handoff had a backticked
+/// chunk EXECUTED as command substitution and the stored body mangled.
+/// `--handoff`/`comment` accept `@file` and `-` (stdin), verbatim.
+#[test]
+fn handoff_from_file() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Prose target");
+
+    // Hostile payload: backticks, $(), quotes, emoji — everything the
+    // shell mangles. Via @file it lands byte-faithful (modulo wrap).
+    let hostile = "Refactor `pub fn spill()` first.\n\nThen $(watch) the \u{2705} gate — don't \"quote\" me.";
+    std::fs::write(repo.join("notes.md"), hostile).unwrap();
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", "@notes.md"])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("`pub fn spill()`"), "backticks survive: {text}");
+    assert!(text.contains("$(watch)"), "substitution inert: {text}");
+    assert!(text.contains('\u{2705}'), "emoji survive: {text}");
+
+    // Stdin spelling replaces the block.
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", "-"])
+        .write_stdin("From stdin, take two.")
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("From stdin, take two."), "{text}");
+    assert!(!text.contains("$(watch)"), "handoff replaced: {text}");
+
+    // comment rides the same rule, both spellings.
+    std::fs::write(repo.join("c.md"), "Comment with `ticks` and $(subst).").unwrap();
+    meshwork(&repo)
+        .args(["comment", &id, "--as", "tester", "@c.md"])
+        .assert()
+        .success();
+    meshwork(&repo)
+        .args(["comment", &id, "--as", "tester", "-"])
+        .write_stdin("Stdin comment.")
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("Comment with `ticks` and $(subst)."), "{text}");
+    assert!(text.contains("Stdin comment."), "{text}");
+
+    // Inline text still works; a missing @file is a loud error, and the
+    // error teaches the literal-@ escape (stdin).
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", "plain inline"])
+        .assert()
+        .success();
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", "@no-such-file.md"])
+        .assert()
+        .code(1)
+        .stderr(predicates::str::contains("no-such-file.md"));
+}
+
 /// mw-f1x71yg (§6 ruling 2026-08-10, surface unfrozen): `set` grows
 /// `--cat`/`--verify`/`--title`. Nine pilot sessions fell back to python
 /// rewrites of task files for exactly these one-line field edits — one

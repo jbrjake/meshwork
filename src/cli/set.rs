@@ -26,7 +26,9 @@ pub(crate) struct SetArgs {
     #[arg(long = "docs", value_name = "LINK")]
     docs: Vec<String>,
     /// Handoff voice to the next session; replaces the block (DESIGN §7b).
-    #[arg(long, value_name = "TEXT")]
+    /// `@<file>` reads the file, `-` reads stdin — prose never transits
+    /// shell quoting (mw-rz4ey2h).
+    #[arg(long, value_name = "TEXT|@FILE|-")]
     handoff: Option<String>,
     /// Category slash-path (MW-B4). Grown under the §6 ruling 2026-08-10
     /// (mw-f1x71yg).
@@ -73,7 +75,8 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
         set_fields.push("docs");
     }
     if let Some(handoff) = &args.handoff {
-        text = set_block(&text, "handoff", &wrap(handoff, HANDOFF_WRAP))?;
+        let payload = crate::cli::prose_payload(handoff)?;
+        text = set_block(&text, "handoff", &wrap(&payload, HANDOFF_WRAP))?;
         set_fields.push("handoff");
     }
     if let Some(cat) = &args.cat {

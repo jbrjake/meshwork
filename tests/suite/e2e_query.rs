@@ -335,6 +335,10 @@ fn cli_surface_frozen() {
     for flag in ["--seq", "--docs", "--handoff", "--cat", "--verify", "--title"] {
         assert!(set_help.contains(flag), "{flag} in set --help:\n{set_help}");
     }
+    // Prose fields advertise the shell-safe spellings (mw-rz4ey2h ruling).
+    assert!(set_help.contains("@FILE"), "{set_help}");
+    let cmt_help = stdout_of(&meshwork(&repo).args(["comment", "--help"]).assert().success());
+    assert!(cmt_help.contains("@FILE"), "{cmt_help}");
 
     // Unbuilt verbs never pretend: honest errors naming their milestone.
     init_store(&repo);

@@ -12,7 +12,9 @@ use std::path::PathBuf;
 pub(crate) struct CommentArgs {
     /// Task id.
     id: String,
-    /// Comment text; newlines become continuation lines.
+    /// Comment text; newlines become continuation lines. `@<file>` reads
+    /// the file, `-` reads stdin (mw-rz4ey2h).
+    #[arg(value_name = "TEXT|@FILE|-")]
     text: String,
     /// Author identity — a free string, a claim (MW-K1). Falls back to
     /// the `MESHWORK_AUTHOR` env var, then config `default_author`.
@@ -73,7 +75,7 @@ pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
     )?;
 
     let today = crate::clock::stamp();
-    let text_flat = args.text.replace('\r', "");
+    let text_flat = crate::cli::prose_payload(&args.text)?.replace('\r', "");
     let entry = format!("{today} [{author}] {}", text_flat.replace('\n', "\n  "));
     let file = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
     let file = append_section_entry(&file, "comments", &entry);
