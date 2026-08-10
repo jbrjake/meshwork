@@ -11,17 +11,32 @@ docs:
   - REQUIREMENTS-meshwork.md#§-g-portfolio
 created: 2026-08-05
 handoff: |
-  Everything you need landed 2026-08-09/10 (2.1-2.5 + mw-17hnhzk, all
-  gates green): registry override semantics, portfolio ready/next/q live
-  (discovery: MESHWORK_PORTFOLIO or ~/Documents/code/portfolio),
-  cross-repo needs resolve in single-repo verbs, import todo now imports
-  nested checkboxes as parent: children (the pilot's data-loss bug —
-  leras can migrate safely). Manual steps: create the real portfolio repo
-  (~/Documents/code/portfolio, git init + private remote, repos.toml with
-  sazed+leras+meshwork), run leras' import migration session (MW-J3
-  ritual), add one real cross-repo needs sazed<->leras, then verify:
-  portfolio ready shows it (REQUIREMENTS §4 clause 3). Gate --strict
-  still fails on 10 planned TRACE rows — M3/M4 work, expected.
+  All 15 sweep prerequisites landed 2026-08-10 (HEAD, gates green):
+  import/bulk fixes (--dry-run, unknown-key rejection + from: alias),
+  store guards (alias charset, merge=union lint MUST + --fix), weather
+  de-noising, did-you-mean + --category/--doc aliases (ruled),
+  needs-verify start gate, set --cat/--verify/--title, @file/stdin prose,
+  ./meshwork shim + automatic session authors, authoring doctrine +
+  tail-section rule in the skill.
+  
+  BLOCKER FIRST: cut and publish a release (tag + binary + skill
+  artifacts) — every fix above is unreleased and leras pins a release,
+  never HEAD. Remember: re-pushing a tag flips its release to draft;
+  undraft after.
+  
+  Then this task's manual list, owner present:
+  1. ~/Documents/code/portfolio — git init, private remote, repos.toml
+  naming sazed + leras + meshwork.
+  2. leras migration per references/adopt.md: pin .meshwork-version to the
+  new release, install binary + skill, drop the committed ./meshwork shim,
+  init (the alias is baked forever at init — [a-z0-9]+ only, lint
+  enforces), import todo, review EVERY generated file (imported doing
+  tasks with no verify are born loud under the start gate), retire
+  TODO/HANDOFF in the same commit.
+  3. One real cross-repo needs between sazed and leras.
+  4. From meshwork: portfolio ready must show the cross-repo edge
+  (REQUIREMENTS §4 clause 3). Then flip PLAN 2.6 to ✓ and advance the
+  Position line in the same commit as the close.
 ---
 
 ## log
