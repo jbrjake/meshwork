@@ -11,25 +11,24 @@ docs:
   - REQUIREMENTS-meshwork.md#§-g-portfolio
 created: 2026-08-05
 handoff: |
-  Pre-migration queue is FULLY COMPLETE as of 2026-08-10 (HEAD, gates
-  green on every landing): mw-bds8yq5 (sazed on v0.2.0), mw-2nmsys2
-  (dangling-sequence lint finding), mw-kkvs8zq (drop warns on live inbound
-  cross-repo needs), and mw-chcqk6g (owner ruled same day: no --prune flag
-  — every portfolio verb autoprunes satisfied sequence.md entries;
-  removals reported, git diff in the portfolio repo is the review
-  surface). mw-e6qsjq0 also landed en route (registry.rs split under the
-  500 target — hygiene findings/scans now live in registry_hygiene.rs).
+  Pre-migration queue is FULLY COMPLETE and RELEASED as of 2026-08-10.
+  v0.2.1 is the tag leras pins: cut at b82b4f4, gates green, 4 platform
+  binaries + skill tarball up, narrative notes applied from
+  RELEASE-NOTES-v0.2.1.md. It carries all four sequence-state guards
+  (dangling-sequence lint, portfolio autoprune — owner ruled no flag,
+  drop
+  inbound cross-repo warning, plus the registry_hygiene split). The
+  v0.2.0/HEAD delta concern from the previous handoff is closed.
   
-  NOTE: the four guard tasks above shipped after v0.2.0 was cut, so the
-  pinned release carries none of them. Fine for the migration itself
-  (leras needs the import/authoring fixes, which ARE in v0.2.0); the
-  sequence guards + autoprune protect the portfolio repo, which runs this
-  repo's binary. If the owner wants leras's pinned binary to carry them
-  too, cut v0.2.1 first — otherwise proceed.
+  Optional, not blocking: sazed still pins v0.2.0 — fine to leave; bump
+  to
+  v0.2.1 whenever a sazed session is open anyway (edit .meshwork-version,
+  reinstall binary + skill per the adoption skill).
   
   This task's manual list stands as written (owner present): portfolio
   repo
-  init + repos.toml, leras migration per references/adopt.md, one real
+  init + repos.toml naming sazed + leras + meshwork, leras migration per
+  references/adopt.md (pin .meshwork-version to v0.2.1), one real
   cross-repo needs, portfolio ready shows the edge, flip PLAN 2.6 ✓ +
   Position in the close commit.
 ---
