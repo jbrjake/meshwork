@@ -178,7 +178,8 @@ fn split_documents(input: &str) -> Result<Vec<Entry>, String> {
             body.push_str(lines.next().unwrap_or_default());
             body.push('\n');
         }
-        docs.push(parse_entry(&fm, body.trim())?);
+        let n = docs.len() + 1;
+        docs.push(parse_entry(&fm, body.trim()).map_err(|e| format!("batch task {n}: {e}"))?);
     }
     if docs.is_empty() {
         return Err("empty batch — no task documents found".to_string());
@@ -209,6 +210,23 @@ fn parse_entry(fm: &str, body: &str) -> Result<Entry, String> {
                     "ids are minted, never supplied — drop `id:` and use `handle:` for local refs"
                         .to_string(),
                 );
+            }
+            if line.chars().next().is_some_and(|c| c.is_ascii_alphabetic()) {
+                let key = line.split(':').next().unwrap_or_default();
+                // `from:` is the slot name the --batch help teaches; the
+                // canonical file key is what `add --from` writes (mw-16pyc5g).
+                if key == "from" {
+                    kept.push_str("discovered-from");
+                    kept.push_str(&line["from".len()..]);
+                    kept.push('\n');
+                    continue;
+                }
+                if !crate::parse::KNOWN_KEYS.contains(&key) {
+                    return Err(format!(
+                        "unknown frontmatter key `{key}` — schema keys only (mw-16pyc5g); \
+                         the whole batch is refused"
+                    ));
+                }
             }
             kept.push_str(line);
             kept.push('\n');

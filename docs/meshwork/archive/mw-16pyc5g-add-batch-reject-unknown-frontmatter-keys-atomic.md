@@ -1,7 +1,7 @@
 ---
 id: mw-16pyc5g
 title: "add --batch: reject unknown frontmatter keys atomically; alias from: → discovered-from:"
-status: open
+status: done
 category: core/format
 verify: cargo test e2e::batch_rejects_unknown_keys
 discovered-from: mw-ntt5
@@ -24,3 +24,5 @@ swallow it.
 
 ## log
 - 2026-08-07T13:47Z created
+- 2026-08-10T13:54Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T13:59Z doing→done — verify exit 0 @ dc210fc+6

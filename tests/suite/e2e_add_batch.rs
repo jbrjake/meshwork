@@ -166,6 +166,48 @@ fn dry_run_writes_nothing() {
     assert_eq!(before, crate::common::file_inventory(&repo), "dry-run wrote files");
 }
 
+/// mw-16pyc5g: the pilot lost 6 of 13 discovered-from links — `from:` (the
+/// slot name the --batch help itself teaches) was accepted verbatim as an
+/// unknown key and produced no edge. Unknown keys refuse the whole batch;
+/// `from:` is an input alias rewritten to the canonical `discovered-from:`.
+#[test]
+fn batch_rejects_unknown_keys() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let before = crate::common::file_inventory(&repo);
+
+    // One bad key in task 2 refuses the whole batch — nothing written.
+    meshwork(&repo)
+        .args(["add", "--batch", "-"])
+        .write_stdin(
+            "---\ntitle: Fine\nverify: \"true\"\n---\n---\ntitle: Broken\nsevrity: high\n---\n",
+        )
+        .assert()
+        .failure()
+        .stderr(predicates::str::contains("batch task 2"))
+        .stderr(predicates::str::contains("sevrity"));
+    assert_eq!(before, crate::common::file_inventory(&repo), "nothing written");
+
+    // `from:` lands as `discovered-from:`, @handle resolved like any edge.
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "--batch", "-"])
+            .write_stdin(
+                "---\nhandle: origin\ntitle: Origin\nverify: \"true\"\n---\n\
+                 ---\ntitle: Child\nfrom: @origin\nverify: \"true\"\n---\n",
+            )
+            .assert()
+            .success(),
+    );
+    let ids: Vec<&str> = out.lines().filter(|l| !l.starts_with(' ')).collect();
+    let child = std::fs::read_to_string(task_file(&repo, ids[1])).unwrap();
+    assert!(
+        child.contains(&format!("discovered-from: {}", ids[0])),
+        "{child}"
+    );
+    assert!(!child.contains("from: @"), "{child}");
+}
+
 #[test]
 fn add_batch_reads_from_file_too() {
     let (_g, repo) = git_repo("work");

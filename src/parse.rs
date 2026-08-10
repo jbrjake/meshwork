@@ -259,7 +259,8 @@ struct Frontmatter {
 }
 
 /// Frontmatter keys the schema knows; anything else warns (MW-A6).
-const KNOWN_KEYS: &[&str] = &[
+/// `add --batch` rejects unknown keys against this same list (mw-16pyc5g).
+pub(crate) const KNOWN_KEYS: &[&str] = &[
     "id",
     "title",
     "status",
