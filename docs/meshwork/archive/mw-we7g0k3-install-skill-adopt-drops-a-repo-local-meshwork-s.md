@@ -5,7 +5,7 @@ category: skill
 verify: grep -qi 'shim' .claude/skills/meshwork/references/install.md
 docs:
   - FORMAT.md#store-layout
-status: open
+status: done
 created: 2026-08-09T23:35Z
 seq: 62
 ---
@@ -21,3 +21,5 @@ worktrees and subdirectory shells both work.
 
 ## log
 - 2026-08-09T23:35Z created
+- 2026-08-10T14:44Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T14:47Z doing→done — verify exit 0 @ 3c1c39e+4

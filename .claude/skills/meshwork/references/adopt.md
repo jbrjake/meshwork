@@ -1,13 +1,13 @@
 # Adopting meshwork in a repo (migration ritual — read only when migrating)
 
-Prerequisite: the pinned binary is installed (`install.md`). Every `meshwork`
-below means that pinned binary.
+Prerequisite: the pinned binary is installed and the `./meshwork` shim is
+committed (`install.md`). Every `meshwork` below means the shim.
 
-1. `meshwork init` — creates `docs/meshwork/` + config. It never installs git hooks
+1. `./meshwork init` — creates `docs/meshwork/` + config. It never installs git hooks
    and never writes outside the repo.
-2. If the repo has a TODO.md: `meshwork import todo TODO.md` — checkboxes
+2. If the repo has a TODO.md: `./meshwork import todo TODO.md` — checkboxes
    become task files. Review every generated file before committing (import is
-   a one-shot migration, not a sync). Then `meshwork lint`.
+   a one-shot migration, not a sync). Then `./meshwork lint`.
 3. Wire the session-start digest into the repo's `.claude/settings.json`
    (merge with existing settings — never replace the file):
 
@@ -16,7 +16,7 @@ below means that pinned binary.
      "hooks": {
        "SessionStart": [
          { "hooks": [ { "type": "command",
-             "command": "~/.meshwork/versions/$(cat \"$CLAUDE_PROJECT_DIR\"/.meshwork-version)/meshwork prime 2>/dev/null || true",
+             "command": "\"$CLAUDE_PROJECT_DIR\"/meshwork prime 2>/dev/null || true",
              "timeout": 30, "statusMessage": "meshwork prime" } ] }
        ]
      }

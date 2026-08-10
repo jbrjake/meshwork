@@ -7,7 +7,8 @@ description: Use meshwork — the portfolio task tracker (markdown task files in
 
 Task graph as markdown-with-frontmatter files under `docs/meshwork/`, one file
 per task. Single Rust binary, zero config, zero network. `meshwork` below means
-the repo's pinned binary: `~/.meshwork/versions/$(cat .meshwork-version)/meshwork`.
+the repo's committed `./meshwork` shim, which execs the pinned binary
+(`~/.meshwork/versions/$(cat .meshwork-version)/meshwork` — install.md).
 
 **Installing the binary or adopting meshwork in a new repo?** Read
 `references/install.md` (pinned install, no globals) and `references/adopt.md`
