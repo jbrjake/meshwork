@@ -292,9 +292,10 @@ SQL lets you ask questions:
 ```
 $ meshwork q "SELECT category, count(*) AS n FROM tasks WHERE status='open' GROUP BY category ORDER BY n DESC"
 category | n
+engine/spill | 2
+engine/governor | 1
 docs | 1
-engine/spill | 1
-(2 rows)
+(3 rows)
 ```
 
 The `## log` lines are a table too, with every status transition timestamped, so that includes questions like 'how long have tasks been blocked?' and 'how long do tasks take to complete?'
