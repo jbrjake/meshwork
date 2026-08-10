@@ -1,7 +1,7 @@
 ---
 id: mw-1dkhj8v
 title: "Skill: task-authoring doctrine from pilot evidence — imperative titles, red verifies, console mirroring"
-status: open
+status: done
 category: skill
 verify: grep -q 'imperative' .claude/skills/meshwork/SKILL.md
 discovered-from: mw-ntt5
@@ -26,3 +26,5 @@ re-derivation), not summaries.
 
 ## log
 - 2026-08-07T13:47Z created
+- 2026-08-10T15:02Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T15:03Z doing→done — verify exit 0 @ 1547ade+2

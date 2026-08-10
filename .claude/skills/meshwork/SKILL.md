@@ -28,7 +28,9 @@ the repo's committed `./meshwork` shim, which execs the pinned binary
   (reopen moves them back). They stay fully queryable — never re-create or
   hand-move them; `lint --fix` repairs misplacements.
 - Status via verbs: `start [--as <author>]`, `block --reason`, `reopen`,
-  `drop`. `start` claims the task for you (`claimed-by:`, advisory; author
+  `drop`. Mirror the task you `start` into your harness's todo/console
+  surface so the human can watch progress — the store stays the record.
+  `start` claims the task for you (`claimed-by:`, advisory; author
   resolves `--as`, then `$MESHWORK_AUTHOR`, then config `default_author`);
   close/drop/reopen release the claim. Respect others' `[claimed: …]`
   annotations in prime/ready — pick unclaimed work. Close ONLY via
@@ -39,9 +41,11 @@ the repo's committed `./meshwork` shim, which execs the pinned binary
   `default_author` stays the human's — outside the shim pass `--as`.
 - Session end: refresh the `handoff:` block (your voice to the next session)
   on whatever task is up next — `meshwork set <id> --handoff "…"`
-  (hand-editing the file works too).
-  Never leave `handoff:` on a task you close (lint warns: handoff-stale).
-  Anything history-worthy goes in a comment instead.
+  (hand-editing the file works too). A handoff is an implementation
+  brief, not a summary: name the files and symbols, state what is proven
+  and what remains — the next session must not re-derive what this one
+  learned. Never leave `handoff:` on a task you close (lint warns:
+  handoff-stale). Anything history-worthy goes in a comment instead.
 
 ## Rules
 
@@ -53,6 +57,10 @@ the repo's committed `./meshwork` shim, which execs the pinned binary
   is no priority field and no due date, deliberately.
 - Every task should carry a `verify:` command (lint warns when missing) and
   `docs:` links (`path#§-anchor`) tying it to requirements/design sections.
+- Author tasks as work orders. The title is an imperative action ("Fix the
+  door check"), never a finding or a status — a finding-shaped title hides
+  the fix it implies. The `verify:` must FAIL while the work is undone; a
+  verify that already passes proves nothing about the work.
 - The CLI surface is frozen by design. If a verb doesn't exist, it's a
   deliberate non-goal — don't script around it; raise it with the owner.
 - meshwork never touches the network (GitHub mirroring is a future explicit
