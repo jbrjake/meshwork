@@ -18,8 +18,9 @@ pub(crate) struct SetArgs {
     /// Per-repo order weight, lower sooner; gaps of 10 (MW-G4).
     #[arg(long, value_name = "N")]
     seq: Option<i64>,
-    /// Doc link `path#§-anchor` to append; repeatable (MW-F1).
-    #[arg(long = "docs", value_name = "LINK")]
+    /// Doc link `path#§-anchor` to append; repeatable (MW-F1). `--doc` is
+    /// a hidden alias (mw-5hrb22q).
+    #[arg(long = "docs", alias = "doc", value_name = "LINK")]
     docs: Vec<String>,
     /// Handoff voice to the next session; replaces the block (DESIGN §7b).
     #[arg(long, value_name = "TEXT")]

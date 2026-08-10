@@ -84,6 +84,43 @@ enum Cmd {
     Import(stubs::ImportArgs),
 }
 
+/// mw-5hrb22q: unknown verbs a session plausibly reaches for fail with a
+/// did-you-mean that carries the reason and the working invocation — the
+/// pilot lost a whole session's progress note to `log` answering with bare
+/// usage. Suggestions only: the verb still fails and the surface stays §6
+/// (MW-D4). The message is two lines TOTAL, because agents habitually pipe
+/// through `tail -3`/`head -3` and whatever the error teaches must survive
+/// truncation from either end. Typos of real verbs aren't listed here —
+/// clap's own similarity tip already covers them.
+fn forgiveness(e: &clap::Error) -> Option<String> {
+    use clap::error::{ContextKind, ContextValue, ErrorKind};
+    if e.kind() != ErrorKind::InvalidSubcommand {
+        return None;
+    }
+    let ContextValue::String(verb) = e.get(ContextKind::InvalidSubcommand)? else {
+        return None;
+    };
+    let (near, hint) = match verb.as_str() {
+        "log" | "note" | "notes" => (
+            "comment",
+            "notes append via `meshwork comment <id> --as <author> \"text\"`",
+        ),
+        "done" | "finish" => (
+            "close",
+            "`meshwork close <id>` runs the task's verify: and closes on exit 0",
+        ),
+        "rm" | "delete" | "remove" => (
+            "drop",
+            "tasks are dropped (recorded forever), never deleted: `meshwork drop <id>`",
+        ),
+        _ => return None,
+    };
+    Some(format!(
+        "error: no verb `{verb}` — did you mean `{near}`? {hint}\n\
+         (the CLI surface is DESIGN §6, frozen — MW-D4)"
+    ))
+}
+
 /// Repo root of an initialized store, or a user-facing error.
 pub(crate) fn require_store_root() -> Result<PathBuf, String> {
     let cwd = std::env::current_dir().map_err(|e| e.to_string())?;
@@ -124,6 +161,10 @@ pub fn run() -> i32 {
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(e) => {
+            if let Some(short) = forgiveness(&e) {
+                eprintln!("{short}");
+                return 2;
+            }
             // clap prints help/usage itself; keep its exit semantics
             // (0 for --help/--version, 2 for usage errors).
             let code = if e.use_stderr() { 2 } else { 0 };

@@ -55,6 +55,10 @@ fn stdout_of(assert: &assert_cmd::assert::Assert) -> String {
     String::from_utf8(assert.get_output().stdout.clone()).unwrap()
 }
 
+fn stderr_of(assert: &assert_cmd::assert::Assert) -> String {
+    String::from_utf8(assert.get_output().stderr.clone()).unwrap()
+}
+
 fn task_file(repo: &Path, id: &str) -> std::path::PathBuf {
     // Root first, then archive/ — terminal tasks move there (mw-45e2qf4).
     ["docs/meshwork", "docs/meshwork/archive"]
@@ -86,6 +90,7 @@ include!("e2e_claim.rs");
 include!("e2e_comment_identity.rs");
 include!("e2e_commit_trace.rs");
 include!("e2e_crossrepo.rs");
+include!("e2e_forgiveness.rs");
 include!("e2e_format_marker.rs");
 include!("e2e_graph.rs");
 include!("e2e_import.rs");

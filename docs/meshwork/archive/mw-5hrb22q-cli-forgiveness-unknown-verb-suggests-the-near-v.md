@@ -1,7 +1,7 @@
 ---
 id: mw-5hrb22q
 title: "CLI forgiveness: unknown verb suggests the near verb (log→comment); --category aliases --cat"
-status: open
+status: done
 category: core/lifecycle
 verify: cargo test e2e::cli_forgiveness
 discovered-from: mw-ntt5
@@ -24,6 +24,8 @@ change; any actual alias rides the §6 ruling on [[set-fields]].
 
 ## log
 - 2026-08-07T13:47Z created
+- 2026-08-10T14:21Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T14:25Z doing→done — verify exit 0 @ ec77b66+7
 
 ## comments
 - 2026-08-08T16:42Z [claude] Field evidence (sazed, 2026-08-08 review): --category rejected in 2 sessions and --doc in 1; clap's similar-argument tip recovered each, but the retry re-sends the whole command — one add took 3 attempts (--category, then --doc, then success). Alias both.
