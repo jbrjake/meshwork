@@ -4,6 +4,8 @@
 
 Opinionated minimalist todo list for clankers. Tasks get their own human-readable markdown files logged in git. There's a Rust CLI to manage them. No database: the CLI runs SQL queries directly against the markdown. And it can materialize them into a byte-budgeted session-start digest to keep agents on track.
 
+It's a mesh twice over: because tasks are modeled as a graph with edges to related tasks, and also because the git repos federate. A task in one project can depend on a task in another, and you can set up a portfolio view targeting multiple repos.
+
 ---
 
 ## why?
@@ -79,7 +81,7 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 ### bootstrapping
 
 Adopt in an existing repo with `meshwork init`.
-Or migrate an existing TODO.md with `meshwork import todo TODO.md`, and each checkbox becomes a task file.
+Or migrate an existing TODO.md with `meshwork import todo TODO.md`, and each checkbox becomes a task file. Nested checkboxes get parent/child relationships.
 
 ### adding tasks
 
@@ -114,6 +116,8 @@ $ meshwork add "Write the spill postmortem" --cat docs --verify "test -f docs/po
 sa-jt7zg9w
   docs/meshwork/sa-jt7zg9w-write-the-spill-postmortem.md
 ```
+
+You can draft a task without `--verify`, but one's got to exist to start it, and the command has to succeed to complete it.
 
 #### batching
 
@@ -220,6 +224,8 @@ $ meshwork set sa-38wd6se --handoff "Cliff is governor wakeup, not batch size �
 sa-38wd6se handoff set
 ```
 
+(`set --handoff` and `comment`'s text argument also accept `@<file>` and `-` for stdin, so long notes don't have the hassle of multi-line shell quoting.)
+
 ### session priming
 
 The benefit of working this way isn't any magical belief that your vibe-coded slop works. That's what testing is for. It's so the next session doesn't have to read files to catch up or waste time at the end of sessions rotating tasks in text files. It gets `meshwork prime` injected automatically by a SessionStart hook, which materializes the handoff from the store:
@@ -295,6 +301,98 @@ The `## log` lines are a table too, with every status transition timestamped, so
 
 The CLI also has a `--json` flag for scripts and agents.
 
+## in a decentralized, federated mesh
+
+Every repo keeps its own store, and one repo's queue doesn't care about another's...until it does.
+
+### portfolio setup
+You can set up a portfolio to look at them together, with a tiny git repo holding a `repos.toml`:
+
+```toml
+[[repo]]
+name = "alpha"
+remote = "git@github.com:example/alpha.git"
+
+[[repo]]
+name = "beta"
+remote = "git@github.com:example/beta.git"
+
+[[repo]]
+name = "gamma"
+remote = "git@github.com:example/gamma.git"
+```
+
+### portfolio usage
+
+`portfolio ready` shows tasks from all repos in the .toml that you've got locally:
+
+```
+$ meshwork portfolio ready | head -4
+portfolio: skipped gamma — no checkout at /Users/dev/Documents/code/gamma
+beta#bz-s3q1  Schema qualifier cleanup
+alpha#az-n33d  Publish spill report
+alpha#az-x9b2  Cross-repo consumer bump
+alpha#az-r3l8  Document spill knobs
+```
+
+### inter-dependencies
+
+Dependencies cross repos: the beta repo shipped its reader rewrite (`bz-c0r3`, done), and the alpha repo's consumer bump depends on it:
+
+```
+$ grep needs: docs/meshwork/az-x9b2-cross-repo-consumer-bump.md
+needs: [beta#bz-c0r3]
+$ meshwork why az-x9b2
+az-x9b2: nothing blocking — every hard dep is done/dropped
+```
+
+That works from inside individual repos, no portfolio command involved. If it can't find the other repo on disk, it'll let you know:
+
+```
+$ meshwork why az-x9b2
+az-x9b2 blocked by 1:
+- beta#bz-c0r3 (unresolved — absent or unregistered repo)
+```
+
+Only a done/dropped task on the other side satisfies the dependency.
+
+### cross-prioritization
+
+The portfolio repo can also hold a `sequence.md`, a list of `repo#id` bullets under cosmetic section headings:
+
+```markdown
+## Tranche 1 — spill cliff before anything
+
+- alpha#az-t5k1
+- beta#bz-r34d
+
+## Tranche 2 — reporting
+
+- alpha#az-n33d
+```
+
+`portfolio next` answers the session-start question across everything: what single task is next? The first *ready* sequenced task wins; `az-t5k1` is already claimed as `doing`, so:
+
+```
+$ meshwork portfolio next
+portfolio: skipped gamma — no checkout at /Users/dev/Documents/code/gamma
+beta#bz-r34d  Retry policy for fetch
+```
+
+Ready tasks missing from the sequence fall back to `repos.toml` order, then per-repo `seq`. Resequencing an entire portfolio is editing one small file in one small repo, reviewed and diffed like everything else.
+
+### unified querying
+
+`portfolio q` is the same SQL surface with a `repo` column.
+
+### portfolio pathing
+
+Per-machine checkout paths live in a gitignored `repos.local.toml` (default: `~/Documents/code/<name>`; the portfolio dir itself defaults to `~/Documents/code/portfolio`, `MESHWORK_PORTFOLIO` overrides).
+
+### portfolio performance
+
+Cold, `ready` over a 1K-task store, and the union across 20 repos, both answer in ~30ms.
+
 ## boundaries
 
 - **Zero network required.** A one-way, append-only GitHub mirror (issues created, comments appended, nothing ever edited or closed remotely) is designed and queued.
@@ -310,7 +408,7 @@ Releases are darwin arm64, linux (arm64/x86_64), and windows x86_64.
 Each consuming repo pins its own version:
 
 ```bash
-echo "v0.1.5" > .meshwork-version     # commit this
+echo "v0.2.0" > .meshwork-version     # commit this
 
 VER=$(cat .meshwork-version)
 DEST=~/.meshwork/versions/$VER
@@ -320,7 +418,7 @@ gh release download "$VER" -R jbrjake/meshwork \
 "$DEST/meshwork" --help
 ```
 
-Hooks and scripts invoke `~/.meshwork/versions/$(cat .meshwork-version)/meshwork`, so two repos can disagree.
+Hooks and scripts invoke `~/.meshwork/versions/$(cat .meshwork-version)/meshwork`, so two repos can disagree. The adoption skill commits a two-line `./meshwork` shim so humans, hooks, and homunculi all reach the pinned version without re-deriving that path.
 
 ### claude skill
 
