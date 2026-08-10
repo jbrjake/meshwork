@@ -28,16 +28,18 @@ the repo's committed `./meshwork` shim, which execs the pinned binary
   (reopen moves them back). They stay fully queryable — never re-create or
   hand-move them; `lint --fix` repairs misplacements.
 - Status via verbs: `start [--as <author>]`, `block --reason`, `reopen`,
-  `drop`. `start` claims the task for you (`claimed-by:`, advisory — MW-K1
-  chain: `--as`, then `$MESHWORK_AUTHOR`, then config `default_author`);
+  `drop`. `start` claims the task for you (`claimed-by:`, advisory; author
+  resolves `--as`, then `$MESHWORK_AUTHOR`, then config `default_author`);
   close/drop/reopen release the claim. Respect others' `[claimed: …]`
   annotations in prime/ready — pick unclaimed work. Close ONLY via
   `meshwork close <id>` — it runs the task's `verify:` and closes on exit 0;
   `--waive "reason"` is the loud escape hatch.
-- Notes: `comment <id> --as <author> "text"`. Files: `attach <id> <path>`.
+- Notes: `comment <id> "text"` (`@file`/`-` for long prose). Files:
+  `attach <id> <path>`. The shim supplies the agent session's author;
+  `default_author` stays the human's — outside the shim pass `--as`.
 - Session end: refresh the `handoff:` block (your voice to the next session)
-  on whatever task is up next — `meshwork set <id> --handoff "…"` (mw-0f4j;
-  hand-editing the file works too).
+  on whatever task is up next — `meshwork set <id> --handoff "…"`
+  (hand-editing the file works too).
   Never leave `handoff:` on a task you close (lint warns: handoff-stale).
   Anything history-worthy goes in a comment instead.
 
@@ -46,7 +48,7 @@ the repo's committed `./meshwork` shim, which execs the pinned binary
 - Task files are plain markdown — hand-edits are legal; run `meshwork lint`
   afterward (`lint --fix` repairs mechanical damage). Every field also has a
   CLI path: flags on `add` at creation (including `--seq`/`--docs`), then
-  `meshwork set <id> --seq/--docs/--handoff` (mw-0f4j).
+  `meshwork set <id> --seq/--docs/--handoff`.
 - `seq` is the priority primitive (integers, gaps of 10; lower = sooner). There
   is no priority field and no due date, deliberately.
 - Every task should carry a `verify:` command (lint warns when missing) and

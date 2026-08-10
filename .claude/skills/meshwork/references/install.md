@@ -23,13 +23,18 @@ fi
 
 ## The shim (committed; what sessions actually run)
 
-Nine pilot sessions re-derived the pinned path in every command
-(`M=~/.meshwork/versions/$(cat .meshwork-version)/meshwork && $M …`) —
-boilerplate in every transcript line (mw-we7g0k3). Commit a two-line shim
-instead, and every invocation becomes `./meshwork <verb>`:
+Commit a small shim so every invocation is just `./meshwork <verb>` —
+never re-derive the pinned path inline:
 
 ```bash
-printf '#!/bin/sh\nexec ~/.meshwork/versions/"$(cat "$(dirname "$0")/.meshwork-version")"/meshwork "$@"\n' > meshwork
+printf '%s\n' \
+  '#!/bin/sh' \
+  '# agent sessions get a session-tagged author; explicit --as still wins' \
+  'if [ -z "$MESHWORK_AUTHOR" ] && [ -n "$CLAUDE_CODE_BRIDGE_SESSION_ID" ]; then' \
+  '  export MESHWORK_AUTHOR="claude ($CLAUDE_CODE_BRIDGE_SESSION_ID)"' \
+  'fi' \
+  'exec ~/.meshwork/versions/"$(cat "$(dirname "$0")/.meshwork-version")"/meshwork "$@"' \
+  > meshwork
 chmod +x meshwork
 git add meshwork
 ```
@@ -39,6 +44,10 @@ so git worktrees and subdirectory shells both work. Hooks and scripts
 invoke the shim too; the raw
 `~/.meshwork/versions/$(cat .meshwork-version)/meshwork` path remains the
 fallback where a repo checkout isn't available.
+
+An explicit `--as` always wins, and a human shell (no session id) falls
+through to `default_author` untouched. Never put `]` in an author — the
+comment grammar closes on it.
 
 ## The skill (into THIS repo, committed)
 

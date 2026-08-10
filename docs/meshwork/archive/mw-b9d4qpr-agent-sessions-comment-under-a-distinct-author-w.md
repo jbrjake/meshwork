@@ -6,7 +6,7 @@ relates: [mw-we7g0k3]
 verify: grep -q 'MESHWORK_AUTHOR' .claude/skills/meshwork/references/install.md
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface
-status: open
+status: done
 created: 2026-08-09T23:52Z
 seq: 64
 ---
@@ -31,3 +31,5 @@ $MESHWORK_AUTHOR before default_author. Two landing spots:
 
 ## log
 - 2026-08-09T23:52Z created
+- 2026-08-10T14:48Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T14:55Z doing→done — verify exit 0 @ 86cf47f+3
