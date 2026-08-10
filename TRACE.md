@@ -21,7 +21,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-C1 | `e2e::raw_sql_tables` | done |
 | MW-C2 | `e2e::tree_why_blocked_golden` | done |
 | MW-C3 | `e2e::json_stable_shapes` | done |
-| MW-C4 | gate §7 (`perf::ready_1k`, `perf::portfolio_20x`) | planned |
+| MW-C4 | gate §7 (`perf::ready_1k_cold`, `perf::portfolio_20_repos`) | done |
 | MW-D1 | `e2e::show_caps`, `e2e::ready_golden` | done |
 | MW-D2 | `e2e::caps_and_more_marker` | done |
 | MW-D3 | `e2e::prime_budget` | done |

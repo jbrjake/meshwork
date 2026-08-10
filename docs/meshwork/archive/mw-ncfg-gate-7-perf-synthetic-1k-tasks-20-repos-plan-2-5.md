@@ -1,7 +1,7 @@
 ---
 id: mw-ncfg
 title: "Gate §7 perf: synthetic 1K tasks / 20 repos (PLAN 2.5)"
-status: open
+status: done
 category: plan/m2
 needs: [mw-jpbv]
 verify: ./verify_meshwork.sh
@@ -24,3 +24,5 @@ handoff: |
 
 ## log
 - 2026-08-05 created
+- 2026-08-10T04:05Z open→doing — claimed by Jon Rubin
+- 2026-08-10T04:29Z doing→done — verify exit 0 @ 7a68f75+9

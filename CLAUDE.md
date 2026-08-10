@@ -18,7 +18,7 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 
 1. **No TODO.md, no check-todo.sh.** `PLAN-meshwork-build.md` is the worklist until M1, when meshwork starts tracking itself (gate §8 self-host). Reason: this project exists to replace TODO.md; duplicating the plan into one would recreate the disease it cures. New work discovered mid-build: file it as a plan item with a `verify:` (pre-M1) or a meshwork task (post-M1) — never carry it in your head.
 2. **Doc budgets are in bytes, not lines** (MW-D5 doctrine — line caps get gamed; this repo's own audit proved it). No HANDOFF.md exists — `prime` materializes the handoff (DESIGN §7b). Code files still use the 500/750 line caps.
-3. **check-perf.sh + bench-baseline.json arrive with the first perf-relevant code** (M2, gate §7) — the baseline's own rule, noted here so its absence isn't read as drift.
+3. **check-perf.sh + bench-baseline.json landed with PLAN 2.5** (gate §7 live since 2026-08-10). The gate owns the absolute MW-C4 budgets; `scripts/check-perf.sh` is the 1.5× drift wall underneath them (`UPDATE_BASELINE=1` reseeds; the baseline is data, reviewed like code).
 
 ## Gates
 

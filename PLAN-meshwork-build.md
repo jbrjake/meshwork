@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 2.5 (gate §7 perf), via `meshwork ready`.** (2.1–2.4 done 2026-08-09/10: override semantics; portfolio union (`ready`/`q`, golden); cross-repo resolution (terminal-only injection, ready-alpha re-blessed with az-x9b2); sequence.md + `portfolio next` — sequenced-first total order, fallback repos.toml→seq/created, golden portfolio-next.txt. `portfolio seq` stays an honest stub until a gap exhausts (§15.2). Standing constraint: mw-17hnhzk — `import todo` nested-checkbox loss — must land before leras migrates (2.6); the store's seq ranks it.)
+**Position: next = 2.6 (manual: leras joins) — BLOCKED on mw-17hnhzk (`import todo` nested-checkbox loss) landing first; the store's seq ranks it next.** (2.1–2.5 done 2026-08-09/10: override semantics; portfolio union (`ready`/`q`, golden); cross-repo resolution (terminal-only injection, ready-alpha re-blessed); sequence.md + `portfolio next` (golden); gate §7 live — perf:: release-only tests, observed medians 31ms ready@1K / 32ms portfolio@20 repos, check-perf.sh + bench-baseline.json seeded (baseline rule). `portfolio seq` = honest stub, filed mw-908n9k2.)
 
 ## 1. Bootstrap (B0–B4, first session)
 

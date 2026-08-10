@@ -85,7 +85,16 @@ fi
 # ---------------------------------------------------------------- §7 perf (MW-C4; N>=7 median; arrives M2)
 section 7 "perf: ready <100ms @1K tasks, portfolio <1s @20 repos"
 if PATH="$TEST_PATH" cargo test -- --list 2>/dev/null | grep -q '^perf::'; then
-  if PATH="$TEST_PATH" cargo test --release -- --ignored perf:: 2>&1 | tail -1 | grep -q 'test result: ok'; then pass; else fail "perf regression"; fi
+  # Exit code, not output-grep: cargo's doc-test phase ends the merged
+  # stream with a blank line, so `tail -1` sees "" and a grep for the ok
+  # line can never match (found the day §7 went live, mw-ncfg). Same
+  # pattern as §3; --nocapture keeps the perf-median evidence in the log.
+  PERF_OUT=$(PATH="$TEST_PATH" cargo test --release -- --ignored --nocapture perf:: 2>&1); PERF_RC=$?
+  if [[ $PERF_RC -eq 0 ]]; then
+    pass "$(printf '%s' "$PERF_OUT" | grep '^perf-median ' | tr '\n' ' ')"
+  else
+    fail "perf regression"; printf '%s\n' "$PERF_OUT" | grep -E 'panicked|FAILED|perf-median' | head -10
+  fi
 else
   skip "no perf:: tests yet (pending M2, PLAN 2.5)"
 fi
