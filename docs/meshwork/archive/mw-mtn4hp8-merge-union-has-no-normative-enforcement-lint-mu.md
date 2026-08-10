@@ -6,7 +6,7 @@ verify: cargo test lint::gitattributes_union_missing
 docs:
   - FORMAT.md#merge-semantics
   - FORMAT.md#store-layout
-status: open
+status: done
 created: 2026-08-09T23:17Z
 seq: 35
 ---
@@ -21,3 +21,5 @@ normative MUST in Merge semantics.
 
 ## log
 - 2026-08-09T23:17Z created
+- 2026-08-10T14:05Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T14:16Z doing→done — verify exit 0 @ 154da1a+11

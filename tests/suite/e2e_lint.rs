@@ -2,8 +2,8 @@
 
 /// PLAN 0.9 / MW-A4, A6, B2, B3, I2: `lint` finds every planted failure in
 /// the broken corpus (golden-pinned), and `--fix` repairs exactly the
-/// mechanical damage — duplicate keys and duplicate IDs — leaving real
-/// modeling errors for humans.
+/// mechanical damage — duplicate keys, duplicate IDs, missing union
+/// attributes (mw-mtn4hp8) — leaving real modeling errors for humans.
 #[test]
 fn lint_broken_corpus() {
     let (_g, repo) = fixture_repo("alpha-broken");

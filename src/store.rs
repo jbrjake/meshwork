@@ -31,6 +31,12 @@ pub enum StoreError {
 /// format change, so old binaries refuse loudly instead of misreading.
 pub const STORE_FORMAT: u64 = 1;
 
+/// `docs/meshwork/.gitattributes` — the committed union attribute is the
+/// store's whole concurrency mechanism (FORMAT.md Merge semantics). `init`
+/// writes it, lint errors when a line is missing, `lint --fix` restores it
+/// (mw-mtn4hp8).
+pub const GITATTRIBUTES: &str = "/*.md merge=union\n/archive/*.md merge=union\n";
+
 /// `docs/meshwork/config.toml` (DESIGN §1). Unknown keys are ignored by serde —
 /// config is not the strict surface task files are.
 #[derive(Debug, Clone, Deserialize)]

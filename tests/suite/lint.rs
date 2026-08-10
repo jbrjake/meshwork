@@ -139,3 +139,44 @@ fn handoff_on_done_warn() {
         "handoff is schema-known: {f:?}"
     );
 }
+
+/// mw-mtn4hp8: the committed union attribute IS the concurrency mechanism —
+/// a clone that lost `.gitattributes` voids FORMAT.md's Merge semantics
+/// invisibly until the first bad merge. Missing or incomplete = lint ERROR.
+#[test]
+fn gitattributes_union_missing() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+
+    // Absent file: error.
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(
+        has(&f, Severity::Error, "gitattributes-union", ".gitattributes"),
+        "{f:?}"
+    );
+
+    // Present but missing the archive pattern (pre-archive stores): error
+    // naming the missing line.
+    std::fs::write(mw.join(".gitattributes"), "/*.md merge=union\n").unwrap();
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(
+        has(&f, Severity::Error, "gitattributes-union", "/archive/*.md"),
+        "{f:?}"
+    );
+
+    // Canonical content (what init writes): clean. Extra attributes on the
+    // same pattern keep the union property and stay clean too.
+    std::fs::write(mw.join(".gitattributes"), meshwork::store::GITATTRIBUTES).unwrap();
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(!f.iter().any(|x| x.code == "gitattributes-union"), "{f:?}");
+
+    std::fs::write(
+        mw.join(".gitattributes"),
+        "/*.md merge=union diff=md\n/archive/*.md  merge=union\n",
+    )
+    .unwrap();
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(!f.iter().any(|x| x.code == "gitattributes-union"), "{f:?}");
+}

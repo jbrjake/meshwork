@@ -22,8 +22,10 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     let mut store = load_repo(&root).map_err(|e| e.to_string())?;
 
     if args.fix {
-        let repairs =
-            fix_duplicate_keys(&store)? + fix_duplicate_ids(&store)? + fix_misplaced(&store)?;
+        let repairs = fix_duplicate_keys(&store)?
+            + fix_duplicate_ids(&store)?
+            + fix_misplaced(&store)?
+            + fix_gitattributes(&store)?;
         if repairs > 0 && !json {
             println!("fixed {repairs} file(s)");
         }
@@ -82,6 +84,31 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
 }
 
 /// Union merge's signature damage: the same top-level key twice. Keep the
+/// Restore the union attribute lines lint errors on (mw-mtn4hp8): append
+/// exactly the missing canonical lines, preserving whatever else the file
+/// carries; create it when absent.
+fn fix_gitattributes(store: &RepoStore) -> Result<usize, String> {
+    let missing = crate::lint::missing_union_lines(&store.root);
+    if missing.is_empty() {
+        return Ok(0);
+    }
+    let path = store
+        .root
+        .join("docs")
+        .join("meshwork")
+        .join(".gitattributes");
+    let mut text = std::fs::read_to_string(&path).unwrap_or_default();
+    if !text.is_empty() && !text.ends_with('\n') {
+        text.push('\n');
+    }
+    for line in missing {
+        text.push_str(line);
+        text.push('\n');
+    }
+    std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    Ok(1)
+}
+
 /// first value, drop the rest, log the repair in the task (MW-I1/I2).
 /// Move terminal tasks into `archive/` and live ones back out
 /// (mw-45e2qf4) — the `misplaced` warning's mechanical repair.

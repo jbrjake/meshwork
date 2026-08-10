@@ -89,7 +89,9 @@ Neither date nor author may be empty; a nonconforming entry is a warning, and th
 
 ## Merge semantics
 
-The store is safe under concurrent edits in separate clones: creation is file-per-task; status edits touch one frontmatter line; log/comments append at end-of-file under the committed `merge=union` attribute. Union's known failure mode — both sides editing the same frontmatter line — produces duplicate YAML keys, which strict parsing rejects into a loud invalid row; repair is mechanical (`lint --fix`). Duplicate IDs minted by parallel clones are detected post-merge and re-slugged. No locks, no daemon, no merge driver beyond the git built-in.
+The store is safe under concurrent edits in separate clones: creation is file-per-task; status edits touch one frontmatter line; log/comments append at end-of-file under the committed `merge=union` attribute.
+
+The attribute is normative, not furniture: `docs/meshwork/.gitattributes` MUST carry `/*.md merge=union` and `/archive/*.md merge=union` (extra attributes on those lines are fine). Writers MUST ensure it exists; `lint` MUST error when either line is missing — a store without them keeps working and silently loses every guarantee in this section until the first concurrent edit — and `lint --fix` restores the missing lines (mw-mtn4hp8). Union's known failure mode — both sides editing the same frontmatter line — produces duplicate YAML keys, which strict parsing rejects into a loud invalid row; repair is mechanical (`lint --fix`). Duplicate IDs minted by parallel clones are detected post-merge and re-slugged. No locks, no daemon, no merge driver beyond the git built-in.
 
 ## Projection
 

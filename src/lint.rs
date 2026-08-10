@@ -73,6 +73,7 @@ pub fn lint_store(store: &RepoStore) -> Vec<Finding> {
     let ids: Vec<&str> = valid.iter().map(|t| t.id.as_str()).collect();
 
     check_alias(store, &mut out);
+    check_gitattributes(store, &mut out);
     check_files(store, &mut out);
     check_duplicate_ids(&valid, &mut out);
     check_edges(&valid, &ids, &mut out);
@@ -84,6 +85,46 @@ pub fn lint_store(store: &RepoStore) -> Vec<Finding> {
     out.sort();
     out.dedup();
     out
+}
+
+/// The canonical union lines absent from the store's `.gitattributes`
+/// (mw-mtn4hp8). A required line counts as present when some line names the
+/// same pattern and carries `merge=union` among its attributes — extra
+/// attributes or spacing don't void the property. Shared by the lint check
+/// and the CLI's `--fix` restore.
+#[must_use]
+pub fn missing_union_lines(root: &std::path::Path) -> Vec<&'static str> {
+    let text = std::fs::read_to_string(root.join("docs").join("meshwork").join(".gitattributes"))
+        .unwrap_or_default();
+    crate::store::GITATTRIBUTES
+        .lines()
+        .filter(|required| {
+            let pattern = required.split_whitespace().next().unwrap_or_default();
+            !text.lines().any(|l| {
+                let mut toks = l.split_whitespace();
+                toks.next() == Some(pattern) && toks.any(|t| t == "merge=union")
+            })
+        })
+        .collect()
+}
+
+/// mw-mtn4hp8: the committed union attribute is the whole concurrency
+/// mechanism (FORMAT.md Merge semantics) — a clone that lost it fails
+/// invisibly at the first concurrent edit, so absence is an ERROR.
+fn check_gitattributes(store: &RepoStore, out: &mut Vec<Finding>) {
+    let missing = missing_union_lines(&store.root);
+    if !missing.is_empty() {
+        out.push(finding(
+            Severity::Error,
+            "gitattributes-union",
+            ".gitattributes",
+            format!(
+                "missing `{}` — merge=union is the store's whole concurrency \
+                 mechanism; lint --fix restores it (mw-mtn4hp8)",
+                missing.join("`, `")
+            ),
+        ));
+    }
 }
 
 /// mw-a6jdf5s: the alias is `[a-z0-9]+` — ID recovery takes the first two

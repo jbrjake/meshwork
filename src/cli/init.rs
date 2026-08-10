@@ -7,9 +7,9 @@ use std::path::{Path, PathBuf};
 
 /// Files `init` writes, relative to the repo root. The store is flat —
 /// task files live in `docs/meshwork/` itself (mw-acgp) with terminal
-/// tasks under `archive/` (mw-45e2qf4); the union attribute anchors to
-/// both (`/*.md`, gitignore-style).
-const GITATTRIBUTES: &str = "/*.md merge=union\n/archive/*.md merge=union\n";
+/// tasks under `archive/` (mw-45e2qf4); the union attribute
+/// (`crate::store::GITATTRIBUTES`) anchors to both (`/*.md`,
+/// gitignore-style).
 const CACHE_GITIGNORE: &str = "*\n!.gitignore\n";
 
 pub(crate) fn run(json: bool) -> Result<(), String> {
@@ -50,7 +50,10 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
 
     let created = [
         ("docs/meshwork/config.toml", Some(config.as_str())),
-        ("docs/meshwork/.gitattributes", Some(GITATTRIBUTES)),
+        (
+            "docs/meshwork/.gitattributes",
+            Some(crate::store::GITATTRIBUTES),
+        ),
         ("docs/meshwork/.cache/.gitignore", Some(CACHE_GITIGNORE)),
         ("docs/meshwork/attachments", None),
     ];
