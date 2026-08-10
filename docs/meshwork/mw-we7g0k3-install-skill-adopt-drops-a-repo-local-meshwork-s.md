@@ -7,6 +7,7 @@ docs:
   - FORMAT.md#store-layout
 status: open
 created: 2026-08-09T23:35Z
+seq: 62
 ---
 Field evidence (sazed, 2026-08-09). Every meshwork invocation across
 every session re-derives the pinned path, usually as

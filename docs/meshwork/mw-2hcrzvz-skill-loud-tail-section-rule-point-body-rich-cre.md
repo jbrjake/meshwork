@@ -7,6 +7,7 @@ docs:
   - FORMAT.md#task-file
 status: open
 created: 2026-08-09T23:35Z
+seq: 68
 ---
 Field evidence (sazed, 2026-08-09). The nine misplaced bodies were
 *authored* wholesale via Write because `add` takes only a title and the

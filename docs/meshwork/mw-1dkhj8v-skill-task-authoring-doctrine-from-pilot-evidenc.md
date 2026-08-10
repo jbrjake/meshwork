@@ -5,7 +5,7 @@ status: open
 category: skill
 verify: grep -q 'imperative' .claude/skills/meshwork/SKILL.md
 discovered-from: mw-ntt5
-seq: 275
+seq: 66
 docs:
   - DESIGN-meshwork.md#§-7-session-integration
 created: 2026-08-07T13:47Z

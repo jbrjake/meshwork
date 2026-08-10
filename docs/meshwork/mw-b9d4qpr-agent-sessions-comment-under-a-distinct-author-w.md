@@ -8,6 +8,7 @@ docs:
   - DESIGN-meshwork.md#§-6-cli-surface
 status: open
 created: 2026-08-09T23:52Z
+seq: 64
 ---
 Owner ruling (2026-08-09): comments minted by an agent session must not
 be attributed to the human default_author — four field-evidence comments
