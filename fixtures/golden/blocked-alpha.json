@@ -1,1 +1,1 @@
-{"data":{"rows":[{"blocked_reason":"needs datafusion 52 release; unblock = bump dep and rerun parquet suite","id":"az-b10k","title":"Upstream fix for parquet reader"}],"total":1},"meshwork":{"schema":1,"version":"0.2.0"},"verb":"blocked"}
+{"data":{"rows":[{"blocked_reason":"needs datafusion 52 release; unblock = bump dep and rerun parquet suite","id":"az-b10k","title":"Upstream fix for parquet reader"}],"total":1},"meshwork":{"schema":1,"version":"0.2.1"},"verb":"blocked"}
