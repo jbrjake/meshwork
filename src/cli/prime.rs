@@ -251,8 +251,14 @@ fn next_block_lines(tasks: &[&Task], ready: &[Vec<String>]) -> Vec<String> {
             LINE_CLAMP,
         ));
     }
-    if let Some(v) = t.verify.as_deref() {
+    if let Some(v) = t.verify.as_deref().filter(|v| !v.trim().is_empty()) {
         out.push(clamp_bytes(&format!("  verify: {v}"), LINE_CLAMP));
+    } else {
+        // mw-6wdpz1b: the gap is the next action, never silence — start
+        // refuses until the done-test exists.
+        out.push(
+            "  verify: (unset \u{2014} needs-verify: write the done-test, then start)".to_string(),
+        );
     }
     if !t.docs.is_empty() {
         out.push(clamp_bytes(
@@ -287,11 +293,14 @@ fn also_ready_lines(tasks: &[&Task], ready: &[Vec<String>]) -> Vec<String> {
     let mut out = Vec::new();
     for r in ready.iter().take(READY_ROWS).skip(1) {
         let deps = dependents(tasks, &r[0]);
-        let suffix = if deps.is_empty() {
+        let mut suffix = if deps.is_empty() {
             String::new()
         } else {
             format!(" \u{2192} {}", blocks_suffix(&deps))
         };
+        if r[3].is_empty() {
+            suffix.push_str(" [needs-verify]"); // mw-6wdpz1b: loud, never hidden
+        }
         out.push(clamp_bytes(
             &format!("- {} {}{}", r[0], r[1], suffix),
             LINE_CLAMP,

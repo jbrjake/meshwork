@@ -1,7 +1,7 @@
 ---
 id: mw-6wdpz1b
 title: "Capture before verifiable: start gates on verify:, needs-verify stays loud"
-status: open
+status: done
 category: core/lifecycle
 verify: cargo test e2e::needs_verify
 docs:
@@ -32,6 +32,8 @@ at start). Surface delta needs the §6 ruling — likely zero new verbs,
 
 ## log
 - 2026-08-07T04:48Z created
+- 2026-08-10T14:29Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T14:34Z doing→done — verify exit 0 @ 9eccb56+10
 
 ## comments
 - 2026-08-07T13:47Z [claude] Pilot field evidence (sazed, 2026-08-07): the predicted vacuous-verify pressure is real — migration tightened 5 of 30 executed verifies that passed on already-green state, and the work session filed its most important task (the door fix) with a verify grepping a doc line the agent had just written, repaired only after the user detonated (sazed 08b2150: 'the exact vacuous-verify failure the store exists to prevent'). Sister task mw-175bn4c now covers the present-but-already-green case; rule on the two together.

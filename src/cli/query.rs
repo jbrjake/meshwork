@@ -29,7 +29,7 @@ const LISTING_CAP: usize = 20;
 /// cap is applied at render time because the `… and N more` marker needs
 /// the true total (MW-D2). Semantics are otherwise verbatim.
 pub(crate) const READY_SQL: &str = "\
-SELECT t.id, t.title, t.claimed_by FROM tasks t
+SELECT t.id, t.title, t.claimed_by, t.verify FROM tasks t
 WHERE t.status = 'open'
   AND NOT EXISTS (
     SELECT 1 FROM edges e
@@ -113,7 +113,8 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
             .iter()
             .map(|r| {
                 serde_json::json!({ "id": r[0], "title": r[1],
-                    "claimed_by": (!r[2].is_empty()).then(|| r[2].clone()) })
+                    "claimed_by": (!r[2].is_empty()).then(|| r[2].clone()),
+                    "needs_verify": r[3].is_empty() })
             })
             .collect();
         crate::cli::emit_json(
@@ -129,7 +130,14 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
             } else {
                 format!("  [claimed: {}]", row[2])
             };
-            println!("{}  {}{claim}", row[0], row[1]);
+            // Verify-less capture stays visible AND loud (mw-6wdpz1b):
+            // writing the done-test is the task's next action.
+            let gap = if row[3].is_empty() {
+                "  [needs-verify]"
+            } else {
+                ""
+            };
+            println!("{}  {}{claim}{gap}", row[0], row[1]);
         }
         if total > cap {
             println!("… and {} more (use --all)", total - cap);

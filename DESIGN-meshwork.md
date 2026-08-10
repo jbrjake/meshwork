@@ -91,7 +91,7 @@ Single-repo commands register the same tables filtered to one repo — one code 
 `ready` (normative, MW-B6):
 
 ```sql
-SELECT t.id, t.title, t.claimed_by FROM tasks t
+SELECT t.id, t.title, t.claimed_by, t.verify FROM tasks t
 WHERE t.status = 'open'
   AND NOT EXISTS (              -- unmet hard deps block (MW-B6)
     SELECT 1 FROM edges e
@@ -119,7 +119,7 @@ LIMIT 20;
 | `show <id> [--docs] [--comments]` | full task; last-3 comments by default (MW-K4); `--docs` = anchor-scoped excerpts, capped ~4KB/link (bytes, MW-D5/F2); `commits:` tail derives the closing work from `git log --grep=<id>` (id-in-subject convention, local refs only, retroactive — mw-ntn0t32; close also anchors HEAD into the `→done` note) |
 | `comment <id> [--as <author>] "text"` | append comment; `--as` falls back to `$MESHWORK_AUTHOR`, then config `default_author`, else error (MW-K1) |
 | `attach <id> <path>` | copy file into `attachments/<id>/`, record in frontmatter; refuses overwrite without `--force` (MW-K2) |
-| `start [--as <author>] / block --reason / drop / reopen <id>` | status transitions + log line; `start` records an advisory `claimed-by:` when the MW-K1 chain resolves an identity (no identity = no claim, never an error); close/drop/reopen release the claim, block keeps it (mw-tb6gdr9); `reopen`: blocked\|doing\|done → open (the missing inverse — without it every unblock is a hand-edit) |
+| `start [--as <author>] / block --reason / drop / reopen <id>` | status transitions + log line; `start` refuses a task with no `verify:` — needs-verify; writing the done-test is the first unit of the work (mw-6wdpz1b, amending MW-E2) — and records an advisory `claimed-by:` when the MW-K1 chain resolves an identity (no identity = no claim, never an error); close/drop/reopen release the claim, block keeps it (mw-tb6gdr9); `reopen`: blocked\|doing\|done → open (the missing inverse — without it every unblock is a hand-edit) |
 | `close <id> [--waive "reason"] [--approve]` | run `verify:`, close on exit 0 only (MW-E2); shell runs sit behind the MW-E5 trust gate — `--approve` shows the text and records this clone's approval, `MESHWORK_TRUST=1` is the reviewed-checkout grant (§12b, mw-9rc4vs6) |
 | `dep add / dep rm <a> --needs <b>` | edge edits without opening the file |
 | `ready / blocked / tree / why` | §5 |

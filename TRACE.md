@@ -28,7 +28,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-D4 | `e2e::cli_surface_frozen` | done |
 | MW-D5 | `unit::budget_bytes_not_lines` | done |
 | MW-E1 | `e2e::transitions` | done |
-| MW-E2 | `e2e::close_gating`, `e2e::close_waive_recorded` | done |
+| MW-E2 | `e2e::close_gating`, `e2e::close_waive_recorded`, `e2e::needs_verify` (mw-6wdpz1b amendment) | done |
 | MW-E3 | `e2e::log_append_on_transitions`, `e2e::log_table_minted_forms` (mw-3wnhhvp: the record made queryable) | done |
 | MW-E4 | `e2e::discovered_from_edge` | done |
 | MW-E5 | `e2e::verify_trust_gate_refuses_unapproved`, `e2e::verify_trust_changed_text_revokes`, `e2e::verify_trust_env_grant_for_ci` | done |

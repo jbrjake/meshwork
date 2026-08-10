@@ -38,6 +38,22 @@ pub(crate) struct BlockArgs {
 
 pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
+    // Capture-before-verifiable gate (mw-6wdpz1b, owner-ruled): filing
+    // without a verify: is legal; STARTING is not — writing the done-test
+    // is the first unit of the work itself. Waive stays a close-time
+    // concept for the genuinely unverifiable; this is the not-yet-specified.
+    let tasks_dir = root.join("docs").join("meshwork");
+    if let Some(path) = find_task_file(&tasks_dir, &args.id) {
+        if let ParsedTask::Valid(t) = parse_task_file(&path) {
+            if t.verify.as_deref().is_none_or(|v| v.trim().is_empty()) {
+                return Err(format!(
+                    "cannot start {}: needs-verify — write the done-test first \
+                     (add a verify: line to the task file), then start (mw-6wdpz1b)",
+                    args.id
+                ));
+            }
+        }
+    }
     let claimant = super::notes::resolve_author(&root, args.author.as_deref())?;
     transition(
         "start",
