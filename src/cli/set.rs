@@ -1,11 +1,15 @@
 //! `meshwork set` (mw-0f4j, README spec): field edits on an existing task
 //! without opening the file. Hand-editing stays legal (MW-A1) — this verb
 //! just means it is never the *only* path (supersedes the §7b hand-edit
-//! ruling for `seq:`, `docs:`, `handoff:`). Edits are surgical (edit.rs),
-//! so union merges stay clean and hand-written `# …` comments survive.
+//! ruling for `seq:`, `docs:`, `handoff:`; extended to `category:`,
+//! `verify:`, `title:` by the §6 ruling 2026-08-10, mw-f1x71yg — nine
+//! pilot sessions python-rewrote task files for exactly these edits).
+//! Edits are surgical (edit.rs), so union merges stay clean and
+//! hand-written `# …` comments survive.
 
 use crate::edit::{append_block_item, set_block, set_scalar};
 use crate::store::find_task_file;
+use crate::write::yaml_scalar;
 
 /// Wrap width for `handoff:` block lines — readable files, readable `»`
 /// rendering in prime (DESIGN §7b).
@@ -25,11 +29,31 @@ pub(crate) struct SetArgs {
     /// Handoff voice to the next session; replaces the block (DESIGN §7b).
     #[arg(long, value_name = "TEXT")]
     handoff: Option<String>,
+    /// Category slash-path (MW-B4); `--category` aliases it (mw-5hrb22q).
+    /// Grown under the §6 ruling 2026-08-10 (mw-f1x71yg).
+    #[arg(long = "cat", alias = "category", value_name = "PATH")]
+    cat: Option<String>,
+    /// Verify command `close` runs (MW-E2); replacing it re-arms the MW-E5
+    /// approval gate automatically (content-hash TOFU).
+    #[arg(long, value_name = "CMD")]
+    verify: Option<String>,
+    /// One-line title. The filename slug is cosmetic and never renamed.
+    #[arg(long, value_name = "TEXT")]
+    title: Option<String>,
 }
 
 pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
-    if args.seq.is_none() && args.docs.is_empty() && args.handoff.is_none() {
-        return Err("nothing to set — pass --seq, --docs, and/or --handoff".to_string());
+    if args.seq.is_none()
+        && args.docs.is_empty()
+        && args.handoff.is_none()
+        && args.cat.is_none()
+        && args.verify.is_none()
+        && args.title.is_none()
+    {
+        return Err(
+            "nothing to set — pass --seq, --docs, --handoff, --cat, --verify, and/or --title"
+                .to_string(),
+        );
     }
     let root = crate::cli::require_store_root()?;
     let tasks_dir = crate::store::tasks_dir(&root);
@@ -52,6 +76,19 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
     if let Some(handoff) = &args.handoff {
         text = set_block(&text, "handoff", &wrap(handoff, HANDOFF_WRAP))?;
         set_fields.push("handoff");
+    }
+    if let Some(cat) = &args.cat {
+        text = set_scalar(&text, "category", Some(&yaml_scalar(cat)))?;
+        set_fields.push("category");
+    }
+    if let Some(verify) = &args.verify {
+        text = set_scalar(&text, "verify", Some(&yaml_scalar(verify)))?;
+        set_fields.push("verify");
+    }
+    if let Some(title) = &args.title {
+        let title = title.replace(['\n', '\r'], " ");
+        text = set_scalar(&text, "title", Some(&yaml_scalar(&title)))?;
+        set_fields.push("title");
     }
     std::fs::write(&path, text).map_err(|e| e.to_string())?;
 

@@ -329,6 +329,13 @@ fn cli_surface_frozen() {
     let show_help = stdout_of(&meshwork(&repo).args(["show", "--help"]).assert().success());
     assert!(show_help.contains("--docs") && show_help.contains("--comments"));
 
+    // set carries the ruled field set: seq/docs/handoff (mw-0f4j) +
+    // cat/verify/title (mw-f1x71yg, §6 ruling 2026-08-10).
+    let set_help = stdout_of(&meshwork(&repo).args(["set", "--help"]).assert().success());
+    for flag in ["--seq", "--docs", "--handoff", "--cat", "--verify", "--title"] {
+        assert!(set_help.contains(flag), "{flag} in set --help:\n{set_help}");
+    }
+
     // Unbuilt verbs never pretend: honest errors naming their milestone.
     init_store(&repo);
     meshwork(&repo)

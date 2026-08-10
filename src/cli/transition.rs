@@ -47,9 +47,9 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
         if let ParsedTask::Valid(t) = parse_task_file(&path) {
             if t.verify.as_deref().is_none_or(|v| v.trim().is_empty()) {
                 return Err(format!(
-                    "cannot start {}: needs-verify — write the done-test first \
-                     (add a verify: line to the task file), then start (mw-6wdpz1b)",
-                    args.id
+                    "cannot start {id}: needs-verify — write the done-test first: \
+                     `meshwork set {id} --verify '<cmd>'`, then start (mw-6wdpz1b)",
+                    id = args.id
                 ));
             }
         }

@@ -115,3 +115,61 @@ fn field_setters() {
         .failure()
         .stderr(predicates::str::contains("wo-zzzzzzz"));
 }
+
+/// mw-f1x71yg (§6 ruling 2026-08-10, surface unfrozen): `set` grows
+/// `--cat`/`--verify`/`--title`. Nine pilot sessions fell back to python
+/// rewrites of task files for exactly these one-line field edits — one
+/// close even ran a STALE verify because the CLI rejected the fresh one.
+#[test]
+fn set_cat_verify() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let out = meshwork(&repo).args(["add", "Rough capture"]).assert().success();
+    let id = stdout_of(&out).lines().next().unwrap().to_string();
+    let original_file = task_file(&repo, &id);
+
+    // The pilot's rejected-wholesale case: mixed old + new flags land
+    // together, atomically.
+    meshwork(&repo)
+        .args([
+            "set", &id,
+            "--seq", "12",
+            "--cat", "engine/scale",
+            "--verify", "cargo test governor",
+            "--title", "Door fix: governor restart",
+        ])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(&original_file).unwrap();
+    assert!(text.contains("seq: 12"), "{text}");
+    assert!(text.contains("category: engine/scale"), "{text}");
+    assert!(text.contains("verify: cargo test governor"), "{text}");
+    assert!(text.contains("title: \"Door fix: governor restart\""), "{text}");
+    assert_eq!(text.matches("verify:").count(), 1, "exactly one verify line: {text}");
+    assert_eq!(text.matches("title:").count(), 1, "exactly one title line: {text}");
+    // The slug is cosmetic and never load-bearing — retitling never renames.
+    assert!(original_file.exists(), "file not renamed by --title");
+
+    // The capture-to-startable flow this exists for (mw-6wdpz1b): the
+    // verify set above unlocks start.
+    meshwork(&repo).args(["start", &id]).assert().success();
+
+    // Replacing an existing verify: surgical, still one line.
+    meshwork(&repo)
+        .args(["set", &id, "--verify", "cargo test governor -- --exact"])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(&original_file).unwrap();
+    assert!(text.contains("verify: cargo test governor -- --exact"), "{text}");
+    assert_eq!(text.matches("verify:").count(), 1, "{text}");
+
+    // JSON names the canonical file keys it set.
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["set", &id, "--cat", "engine/spill", "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["data"]["set"], serde_json::json!(["category"]), "{js}");
+}

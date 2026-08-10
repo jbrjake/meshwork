@@ -1,7 +1,7 @@
 ---
 id: mw-f1x71yg
 title: "set grows --cat/--verify/--title (frozen-surface delta — needs the §6 ruling)"
-status: open
+status: done
 category: core/lifecycle
 verify: cargo test e2e::set_cat_verify
 discovered-from: mw-ntt5
@@ -24,6 +24,8 @@ as sanctioned instead.
 
 ## log
 - 2026-08-07T13:47Z created
+- 2026-08-10T14:35Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T14:38Z doing→done — verify exit 0 @ dfc3c83+6
 
 ## comments
 - 2026-08-08T16:42Z [claude] Field evidence (sazed, first 8 post-migration sessions, reviewed 2026-08-08): set --verify and set --title were attempted in 3 sessions and rejected (v0.1.5 surface), each falling back to a python3 rewrite of the task file; in one session the rejected set --verify was followed by a close that ran the STALE verify (exit 1) before the hand-edit landed. Sessions keep 'set --help | head' as a reflex. Strengthens the §6 case.
