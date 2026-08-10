@@ -19,9 +19,8 @@ pub(crate) struct AddArgs {
     /// Print the would-be task file(s), write nothing (mw-0wvndqa).
     #[arg(long)]
     dry_run: bool,
-    /// Category slash-path, e.g. engine/spill (MW-B4). `--category` is a
-    /// hidden alias — a 2-session field miss (mw-5hrb22q).
-    #[arg(long = "cat", alias = "category", value_name = "PATH")]
+    /// Category slash-path, e.g. engine/spill (MW-B4).
+    #[arg(long = "cat", value_name = "PATH")]
     cat: Option<String>,
     /// Cross-cutting label; repeatable (MW-B5).
     #[arg(long = "label", value_name = "LABEL")]
@@ -41,9 +40,8 @@ pub(crate) struct AddArgs {
     /// Per-repo order weight, lower sooner; gaps of 10 (MW-G4, mw-0f4j).
     #[arg(long, value_name = "N")]
     seq: Option<i64>,
-    /// Doc link `path#§-anchor`; repeatable (MW-F1, mw-0f4j). `--doc` is a
-    /// hidden alias — a 3-session field miss (mw-5hrb22q).
-    #[arg(long = "docs", alias = "doc", value_name = "LINK")]
+    /// Doc link `path#§-anchor`; repeatable (MW-F1, mw-0f4j).
+    #[arg(long = "docs", value_name = "LINK")]
     docs: Vec<String>,
 }
 

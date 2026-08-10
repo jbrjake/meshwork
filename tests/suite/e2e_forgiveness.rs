@@ -41,34 +41,15 @@ fn cli_forgiveness() {
     let err = stderr_of(&meshwork(&repo).args(["redy"]).assert().code(2));
     assert!(err.contains("ready"), "{err}");
 
-    // --category / --doc are aliases of --cat / --docs.
-    let out = stdout_of(
+    // --category / --doc stay REJECTED: the 2026-08-10 §6 ruling covered
+    // set-fields and prose-paths but explicitly NOT the alias half of
+    // mw-5hrb22q ("still awaits its own nod" — mw-42ygb52 tracks it).
+    // Until then, clap's similarity tip must at least name the real flag.
+    let err = stderr_of(
         &meshwork(&repo)
-            .args([
-                "add",
-                "Aliased",
-                "--category",
-                "core/x",
-                "--doc",
-                "FORMAT.md#task-file",
-                "--verify",
-                "true",
-            ])
+            .args(["add", "Aliased", "--category", "core/x", "--verify", "true"])
             .assert()
-            .success(),
+            .code(2),
     );
-    let id = out.lines().next().unwrap();
-    let text = std::fs::read_to_string(task_file(&repo, id)).unwrap();
-    assert!(text.contains("category: core/x"), "{text}");
-    assert!(text.contains("FORMAT.md#task-file"), "{text}");
-
-    meshwork(&repo)
-        .args(["set", id, "--doc", "FORMAT.md#configtoml"])
-        .assert()
-        .success();
-    let text = std::fs::read_to_string(task_file(&repo, id)).unwrap();
-    assert!(
-        text.contains("FORMAT.md#configtoml"),
-        "set --doc appends: {text}"
-    );
+    assert!(err.contains("--cat"), "tip names the real flag: {err}");
 }
