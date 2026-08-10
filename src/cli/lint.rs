@@ -39,6 +39,8 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     if let Some(portfolio) = std::env::var_os("MESHWORK_PORTFOLIO").filter(|v| !v.is_empty()) {
         let registry = crate::registry::load(Path::new(&portfolio))?;
         findings.extend(crate::registry::registry_findings(&registry, &store));
+        let sequence = crate::registry::load_sequence(Path::new(&portfolio))?;
+        findings.extend(crate::registry::sequence_findings(&registry, &sequence));
         findings.sort();
         findings.dedup();
     }

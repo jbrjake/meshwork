@@ -195,6 +195,63 @@ fn portfolio_next_ordering() {
     assert!(text.starts_with("alpha#az-n33d"), "{text}");
 }
 
+/// mw-2nmsys2: sequence.md is hand-maintained cross-repo state, so a
+/// typo'd or deleted id is the dangling-edge class — surfaced by the
+/// registry-aware lint pass (env-opt-in, §9), never silently skipped.
+/// Three cases: resolves nowhere in a registered, present repo → the
+/// `dangling-sequence` warning; repo absent from disk → the skipped-repo
+/// notice's business, no finding; resolves to done/dropped → satisfied,
+/// prune's business, no finding.
+#[test]
+fn portfolio_sequence_dangling() {
+    let (dir, portfolio) = portfolio_fixture();
+    std::fs::write(
+        portfolio.join("sequence.md"),
+        "## Tranche 1\n\n\
+         - alpha#az-t5k1\n\
+         - alpha#az-nope9\n\
+         - gamma#gm-zzz9\n\
+         - zeta#zz-1234\n\
+         - beta#bz-c0r3\n",
+    )
+    .unwrap();
+    let alpha = dir.path().join("alpha");
+
+    // Without registry context lint stays silent — the sequence check is
+    // registry work and keeps the §9 env-opt-in trigger.
+    let plain = stdout_of(&meshwork(&alpha).arg("lint").assert().success());
+    assert!(!plain.contains("dangling-sequence"), "{plain}");
+
+    // A dangling entry is a warning (the overlay still functions — first
+    // ready one wins), so lint still exits 0.
+    let assert = meshwork(&alpha)
+        .env("MESHWORK_PORTFOLIO", &portfolio)
+        .arg("lint")
+        .assert()
+        .success();
+    let out = stdout_of(&assert);
+    assert!(
+        out.contains("dangling-sequence") && out.contains("alpha#az-nope9"),
+        "typo'd id in a registered, present repo is the finding: {out}"
+    );
+    assert!(
+        out.contains("zeta#zz-1234") && out.contains("repos.toml"),
+        "an unregistered repo name can never resolve — found, names the fix: {out}"
+    );
+    assert!(
+        !out.contains("gm-zzz9"),
+        "absent gamma is unresolvable, not dangling (MW-G5): {out}"
+    );
+    assert!(
+        !out.contains("bz-c0r3"),
+        "a done target is satisfied — prune's business, not an error: {out}"
+    );
+    assert!(
+        !out.contains("az-t5k1"),
+        "a live resolving entry is coherent: {out}"
+    );
+}
+
 /// Discovery + honesty: default is ~/Documents/code/portfolio (§15.4); no
 /// registry anywhere is a loud error; next/seq stay honest stubs until 2.4.
 #[test]

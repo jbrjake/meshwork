@@ -433,6 +433,58 @@ impl Registry {
     }
 }
 
+/// Dangling `sequence.md` entries (mw-2nmsys2): the file is hand-written,
+/// denormalized, cross-repo state, so a typo'd or deleted id is the same
+/// dangling-edge class lint catches inside a repo — and the overlay
+/// otherwise skips it silently ("first ready one wins"). The finding fires
+/// only when the entry resolves nowhere it could: an unregistered repo
+/// name, or a registered, PRESENT store without the id. A repo absent from
+/// disk is unresolvable — the skipped-repo notice's business, never
+/// guessed (MW-G5) — and an entry resolving to done/dropped is satisfied:
+/// prune's business, not damage. Warning, not error: ordering degrades,
+/// readiness semantics don't.
+#[must_use]
+pub fn sequence_findings(registry: &Registry, sequence: &[String]) -> Vec<Finding> {
+    let mut out = Vec::new();
+    for target in sequence {
+        let Some((repo_part, id_part)) = target.split_once('#') else {
+            continue;
+        };
+        let Some((entry, _)) = registry.resolve(repo_part) else {
+            push(
+                &mut out,
+                Severity::Warning,
+                "dangling-sequence",
+                target,
+                format!(
+                    "sequence.md entry `{target}` names no registered repo — a typo, \
+                     or a repo missing from repos.toml"
+                ),
+            );
+            continue;
+        };
+        let Some(root) = &entry.path else { continue };
+        let tasks_dir = root.join("docs").join("meshwork");
+        if !tasks_dir.join("config.toml").exists() {
+            continue; // no checkout / no store — unresolvable, not dangling
+        }
+        if crate::store::find_task_file(&tasks_dir, id_part).is_none() {
+            push(
+                &mut out,
+                Severity::Warning,
+                "dangling-sequence",
+                target,
+                format!(
+                    "sequence.md entry `{target}` resolves to no task in `{}` — a \
+                     typo'd or deleted id; edit sequence.md",
+                    entry.name
+                ),
+            );
+        }
+    }
+    out
+}
+
 /// Registry-aware findings for one loaded store: namespace collisions in
 /// the registry itself, ID-alias-prefix collisions across registered
 /// repos, and renamed-repo refs in this store's files.
