@@ -1,7 +1,7 @@
 ---
 id: mw-drrvpsg
 title: "prime weather: import-provenance log lines are noise — surface substance or nothing"
-status: open
+status: done
 category: core/render
 verify: cargo test e2e::weather_skips_import_log
 discovered-from: mw-ntt5
@@ -20,3 +20,5 @@ newest-visible log line on doing tasks.
 
 ## log
 - 2026-08-07T13:47Z created
+- 2026-08-10T14:17Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T14:20Z doing→done — verify exit 0 @ 56e688d+3

@@ -83,3 +83,43 @@ fn prime_handoff_sections() {
     assert!(!rollup.contains("ff/six") && !rollup.contains("gg/seven"), "past-5 cut: {rollup}");
     assert!(rollup.contains("+2"), "cut is loud (MW-D2): {rollup}");
 }
+
+/// mw-drrvpsg: pure provenance stamps (`imported from …`, bare `created`)
+/// carry zero session information — the sazed pilot spent 8 of prime's
+/// weather lines on the identical import stamp. The doing-tail is the
+/// newest SUBSTANTIVE log entry, or nothing after the title.
+#[test]
+fn weather_skips_import_log() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let mw = repo.join("docs/meshwork");
+    // Imported-as-doing: provenance is the only log entry (the pilot case).
+    std::fs::write(
+        mw.join("wo-imp1-imported-noise.md"),
+        "---\nid: wo-imp1\ntitle: Imported noise\nstatus: doing\ncreated: 2026-08-07\n---\n\n\
+         ## log\n- 2026-08-07T04:20Z imported from TODO.md\n",
+    )
+    .unwrap();
+    // Imported, then really progressed: the substantive entry wins.
+    std::fs::write(
+        mw.join("wo-imp2-imported-progress.md"),
+        "---\nid: wo-imp2\ntitle: Imported progress\nstatus: doing\ncreated: 2026-08-07\n---\n\n\
+         ## log\n- 2026-08-07T04:20Z imported from TODO.md\n- 2026-08-08T10:00Z open\u{2192}doing\n",
+    )
+    .unwrap();
+    // A bare `created` stamp is provenance too.
+    std::fs::write(
+        mw.join("wo-new1-created-only.md"),
+        "---\nid: wo-new1\ntitle: Created only\nstatus: doing\ncreated: 2026-08-09\n---\n\n\
+         ## log\n- 2026-08-09T09:00Z created\n",
+    )
+    .unwrap();
+
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(!out.contains("imported from TODO.md"), "provenance is noise:\n{out}");
+    let imp1 = out.lines().find(|l| l.contains("wo-imp1")).expect("doing line");
+    assert!(!imp1.contains('\u{2014}'), "nothing after the title: {imp1}");
+    assert!(out.contains("open\u{2192}doing"), "substantive entry survives:\n{out}");
+    let new1 = out.lines().find(|l| l.contains("wo-new1")).expect("doing line");
+    assert!(!new1.contains('\u{2014}'), "bare created is provenance: {new1}");
+}

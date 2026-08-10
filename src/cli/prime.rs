@@ -152,8 +152,22 @@ fn rollup<'a>(tasks: &[&'a Task]) -> (Vec<(&'a str, i64, usize)>, Option<String>
     (ranked, line)
 }
 
-/// Weather — all derived, never stored: doing with last log, blocked with
-/// reasons, freshest comments across the active frontier (§7b).
+/// The newest log entry that tells a session something — pure provenance
+/// stamps (`imported from …`, bare `created`) are skipped, and a task with
+/// nothing else gets no tail at all (mw-drrvpsg: the sazed pilot spent 8
+/// weather lines on the identical import stamp).
+fn substantive_log_tail(t: &Task) -> Option<&String> {
+    t.log.iter().rev().find(|l| {
+        let text = l
+            .split_once(' ')
+            .map_or(l.as_str(), |(_, rest)| rest)
+            .trim();
+        text != "created" && !text.starts_with("imported from ")
+    })
+}
+
+/// Weather — all derived, never stored: doing with newest substantive log,
+/// blocked with reasons, freshest comments across the active frontier (§7b).
 fn weather_lines(tasks: &[&Task], ready_ids: &BTreeSet<&str>) -> Vec<String> {
     let mut out = Vec::new();
     for t in tasks.iter().filter(|t| t.status == Status::Doing) {
@@ -161,10 +175,7 @@ fn weather_lines(tasks: &[&Task], ready_ids: &BTreeSet<&str>) -> Vec<String> {
             .claimed_by
             .as_deref()
             .map_or(String::new(), |c| format!(" [claimed: {c}]"));
-        let tail = t
-            .log
-            .last()
-            .map_or(String::new(), |l| format!(" \u{2014} {l}"));
+        let tail = substantive_log_tail(t).map_or(String::new(), |l| format!(" \u{2014} {l}"));
         out.push(clamp_bytes(
             &format!("- doing {} {}{claim}{}", t.id, t.title, tail),
             LINE_CLAMP,
