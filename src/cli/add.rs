@@ -16,8 +16,8 @@ pub(crate) struct AddArgs {
     /// needs/parent/from/relates — atomic, all files or none (mw-af4kbjy).
     #[arg(long, value_name = "FILE", conflicts_with_all = ["title", "cat", "label", "needs", "parent", "from", "verify", "seq", "docs"])]
     batch: Option<String>,
-    /// Print the would-be task files, write nothing.
-    #[arg(long, requires = "batch")]
+    /// Print the would-be task file(s), write nothing (mw-0wvndqa).
+    #[arg(long)]
     dry_run: bool,
     /// Category slash-path, e.g. engine/spill (MW-B4).
     #[arg(long = "cat", value_name = "PATH")]
@@ -104,14 +104,29 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     let _ = writeln!(fm, "created: {today}");
 
     let file = format!("---\n{fm}---\n\n## log\n- {today} created\n");
-    std::fs::create_dir_all(&tasks_dir).map_err(|e| e.to_string())?;
     let path = tasks_dir.join(format!("{id}-{}.md", slugify(&title)));
-    std::fs::write(&path, file).map_err(|e| e.to_string())?;
-
     let rel = format!(
         "docs/meshwork/{}",
         path.file_name().unwrap().to_string_lossy()
     );
+
+    // §6: --dry-run prints the would-be file, writes nothing (mw-0wvndqa).
+    if args.dry_run {
+        if json {
+            crate::cli::emit_json(
+                "add",
+                &serde_json::json!({ "id": id, "path": rel, "dry_run": true, "content": file }),
+            );
+        } else {
+            println!("--- {rel}");
+            print!("{file}");
+        }
+        return Ok(());
+    }
+
+    std::fs::create_dir_all(&tasks_dir).map_err(|e| e.to_string())?;
+    std::fs::write(&path, file).map_err(|e| e.to_string())?;
+
     if json {
         crate::cli::emit_json("add", &serde_json::json!({ "id": id, "path": rel }));
     } else {

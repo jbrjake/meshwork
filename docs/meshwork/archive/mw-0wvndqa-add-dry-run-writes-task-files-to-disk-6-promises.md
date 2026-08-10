@@ -1,7 +1,7 @@
 ---
 id: mw-0wvndqa
 title: "add --dry-run writes task files to disk — §6 promises it writes nothing"
-status: open
+status: done
 category: core/lifecycle
 verify: cargo test e2e::dry_run_writes_nothing
 discovered-from: mw-ntt5
@@ -19,3 +19,5 @@ bare `add` and `add --batch`.
 
 ## log
 - 2026-08-07T13:47Z created
+- 2026-08-10T13:37Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T13:43Z doing→done — verify exit 0 @ adc0d7b+5

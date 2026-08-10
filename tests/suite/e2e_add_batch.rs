@@ -113,6 +113,59 @@ fn add_batch_rejects_explicit_ids_and_duplicate_handles() {
         .stderr(predicates::str::contains("dup"));
 }
 
+/// mw-0wvndqa: §6 — `--dry-run` prints the would-be files, writes nothing.
+/// Pilot evidence (sazed): bare `add --dry-run` wrote real 247-byte files
+/// and printed only id+path. Covers bare add (text + json) and batch --json
+/// (one clean envelope, never a text dump with JSON appended — MW-C3).
+#[test]
+fn dry_run_writes_nothing() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let before = crate::common::file_inventory(&repo);
+
+    // Bare add prints the would-be file itself, not id+path.
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "Spec probe", "--cat", "core/x", "--verify", "true", "--dry-run"])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains("--- docs/meshwork/"), "{out}");
+    assert!(out.contains("title: Spec probe"), "{out}");
+    assert!(out.contains("status: open"), "{out}");
+
+    // Bare add --json: one envelope carrying the content.
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "Spec probe", "--verify", "true", "--dry-run", "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value =
+        serde_json::from_str(&out).unwrap_or_else(|e| panic!("bad json ({e}): {out}"));
+    assert_eq!(v["data"]["dry_run"], true, "{out}");
+    let content = v["data"]["content"].as_str().unwrap_or_default();
+    assert!(content.contains("title: Spec probe"), "{out}");
+
+    // Batch --json: same contract — an envelope, content per task.
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "--batch", "-", "--dry-run", "--json"])
+            .write_stdin(BATCH)
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value =
+        serde_json::from_str(&out).unwrap_or_else(|e| panic!("bad json ({e}): {out}"));
+    assert_eq!(v["data"]["dry_run"], true, "{out}");
+    let tasks = v["data"]["tasks"].as_array().unwrap();
+    assert_eq!(tasks.len(), 3, "{out}");
+    let content = tasks[1]["content"].as_str().unwrap_or_default();
+    assert!(content.contains("title: Define the verify grammar"), "{out}");
+
+    assert_eq!(before, crate::common::file_inventory(&repo), "dry-run wrote files");
+}
+
 #[test]
 fn add_batch_reads_from_file_too() {
     let (_g, repo) = git_repo("work");

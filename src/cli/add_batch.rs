@@ -94,13 +94,17 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
         ));
     }
 
+    // §6: --dry-run prints the would-be files, writes nothing. With --json
+    // the files travel inside the one envelope — never a text dump with
+    // JSON appended (MW-C3, mw-0wvndqa).
     if dry_run {
-        for (_, rel, text) in &files {
-            println!("--- {rel}");
-            print!("{text}");
-        }
         if json {
             emit(json, &ids, &files, true);
+        } else {
+            for (_, rel, text) in &files {
+                println!("--- {rel}");
+                print!("{text}");
+            }
         }
         return Ok(());
     }
@@ -118,7 +122,13 @@ fn emit(json: bool, ids: &[String], files: &[(std::path::PathBuf, String, String
         let tasks: Vec<_> = ids
             .iter()
             .zip(files)
-            .map(|(id, (_, rel, _))| serde_json::json!({ "id": id, "path": rel }))
+            .map(|(id, (_, rel, text))| {
+                if dry {
+                    serde_json::json!({ "id": id, "path": rel, "content": text })
+                } else {
+                    serde_json::json!({ "id": id, "path": rel })
+                }
+            })
             .collect();
         crate::cli::emit_json(
             "add",
