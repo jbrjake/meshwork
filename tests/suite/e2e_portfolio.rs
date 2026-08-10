@@ -252,6 +252,76 @@ fn portfolio_sequence_dangling() {
     );
 }
 
+/// mw-kkvs8zq: only done/dropped satisfies a dependency, and drop crosses
+/// a trust boundary done does not — whoever drops beta#bz-r34d silently
+/// unblocks every cross-repo task needing it; the needed thing never
+/// happened. On drop, when portfolio context resolves (the mw-k7r5 quiet
+/// chain), scan registered present repos for inbound cross-repo needs on
+/// the dropped id and warn one per line on stderr; absent checkouts are
+/// noted as unscanned. Advisory only: the drop always proceeds — refusal
+/// would be a §6 question this task explicitly does not take.
+#[test]
+fn drop_inbound_cross_repo_warns() {
+    let (dir, portfolio) = portfolio_fixture();
+    let alpha = dir.path().join("alpha");
+    let beta = dir.path().join("beta");
+    // A live inbound need: alpha#az-n33d needs beta#bz-r34d (open).
+    meshwork(&alpha)
+        .args(["dep", "add", "az-n33d", "--needs", "beta#bz-r34d"])
+        .assert()
+        .success();
+
+    let assert = meshwork(&beta)
+        .env("MESHWORK_PORTFOLIO", &portfolio)
+        .args(["drop", "bz-r34d"])
+        .assert()
+        .success(); // advisory — the drop itself always proceeds
+    let out = stdout_of(&assert);
+    assert!(out.contains("bz-r34d open→dropped"), "{out}");
+    let err = stderr_of(&assert);
+    assert!(
+        err.contains("alpha#az-n33d") && err.contains("beta#bz-r34d"),
+        "names the task whose need a drop, not a done, just cleared: {err}"
+    );
+    assert!(
+        err.contains("gamma") && err.contains("unscanned"),
+        "an absent checkout is honestly unscanned, never guessed (MW-G5): {err}"
+    );
+
+    // A drop with no inbound cross-repo needs prints no need-warnings —
+    // but the unscanned note stays: silence about gamma would read as
+    // "all clear" when nothing was checked there.
+    let assert = meshwork(&beta)
+        .env("MESHWORK_PORTFOLIO", &portfolio)
+        .args(["drop", "bz-s3q1"])
+        .assert()
+        .success();
+    let err = stderr_of(&assert);
+    assert!(
+        !err.contains("cleared by a drop"),
+        "no inbound needs, no need-warning: {err}"
+    );
+    assert!(err.contains("gamma") && err.contains("unscanned"), "{err}");
+
+    // No registry context (the meshwork() harness strips it): quiet chain,
+    // today's behavior — no scan, no noise.
+    let (_g, plain) = git_repo("plain");
+    init_store(&plain);
+    let id = {
+        let out = stdout_of(
+            &meshwork(&plain)
+                .args(["add", "loner", "--verify", "true", "--json"])
+                .assert()
+                .success(),
+        );
+        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+        v["data"]["id"].as_str().unwrap().to_string()
+    };
+    let assert = meshwork(&plain).args(["drop", &id]).assert().success();
+    let err = stderr_of(&assert);
+    assert!(err.is_empty(), "no registry, no scan, no noise: {err}");
+}
+
 /// Discovery + honesty: default is ~/Documents/code/portfolio (§15.4); no
 /// registry anywhere is a loud error; next/seq stay honest stubs until 2.4.
 #[test]

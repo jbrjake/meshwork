@@ -79,6 +79,16 @@ pub(crate) fn block(args: &BlockArgs, json: bool) -> Result<(), String> {
 }
 
 pub(crate) fn drop(args: &IdArg, json: bool) -> Result<(), String> {
+    // Scan BEFORE the write (mw-kkvs8zq): a found-but-broken registry is
+    // the mw-k7r5 loud error, and it must fire with nothing yet changed.
+    // No registry anywhere = no cross-repo namespace = no scan (quiet).
+    let scan = match crate::registry::quiet_load()? {
+        Some(registry) => {
+            let root = crate::cli::require_store_root()?;
+            crate::registry::inbound_needs(&registry, &root, &args.id)
+        }
+        None => None,
+    };
     transition(
         "drop",
         &args.id,
@@ -87,7 +97,28 @@ pub(crate) fn drop(args: &IdArg, json: bool) -> Result<(), String> {
         None,
         None,
         json,
-    )
+    )?;
+    // Advisory, stderr, both modes: only done/dropped satisfies a
+    // dependency, and these needs were just cleared by a drop — the
+    // needed work never happened. The drop itself always proceeds;
+    // refusal is a §6 question this verb does not take.
+    if let Some(scan) = scan {
+        for h in &scan.hits {
+            eprintln!(
+                "warning: {} needs {} — cleared by a drop, not a done; \
+                 the needed work never happened",
+                h.src_gid, h.target
+            );
+        }
+        for (repo, why) in &scan.unscanned {
+            eprintln!(
+                "warning: {repo} unscanned ({why}) — inbound needs on {}#{} \
+                 may hide there",
+                scan.self_name, args.id
+            );
+        }
+    }
+    Ok(())
 }
 
 pub(crate) fn reopen(args: &IdArg, json: bool) -> Result<(), String> {

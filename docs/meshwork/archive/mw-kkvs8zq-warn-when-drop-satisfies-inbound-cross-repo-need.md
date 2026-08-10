@@ -7,7 +7,7 @@ verify: cargo test e2e::drop_inbound_cross_repo_warns
 docs:
   - DESIGN-meshwork.md#§-9-portfolio-master-sequencing
   - DESIGN-meshwork.md#§-12b-trust-boundary
-status: open
+status: done
 created: 2026-08-10T16:31Z
 ---
 Only done/dropped satisfies a dependency, and drop crosses a trust
@@ -24,3 +24,5 @@ the ruling to the owner before implementing refusal.
 
 ## log
 - 2026-08-10T16:31Z created
+- 2026-08-10T19:09Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-10T19:15Z doing→done — verify exit 0 @ b4b95ca+5
