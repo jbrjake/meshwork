@@ -8,6 +8,7 @@ docs:
   - FORMAT.md#store-layout
 status: open
 created: 2026-08-09T23:17Z
+seq: 35
 ---
 Review finding (2026-08-09). The entire Merge semantics section is true
 only if `.gitattributes` is present and correct. A clone from someone

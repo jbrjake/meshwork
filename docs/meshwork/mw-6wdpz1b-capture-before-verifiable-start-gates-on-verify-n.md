@@ -8,7 +8,7 @@ docs:
   - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
   - DESIGN-meshwork.md#§-6-cli-surface
   - DESIGN-meshwork.md#§-7-session-integration
-seq: 245
+seq: 50
 created: 2026-08-07T04:48Z
 ---
 Owner-requested 2026-08-07. Ideas are cheaper than implementations, and

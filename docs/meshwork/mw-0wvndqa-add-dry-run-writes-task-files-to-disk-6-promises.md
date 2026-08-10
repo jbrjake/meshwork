@@ -5,7 +5,7 @@ status: open
 category: core/lifecycle
 verify: cargo test e2e::dry_run_writes_nothing
 discovered-from: mw-ntt5
-seq: 140
+seq: 20
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-07T13:47Z

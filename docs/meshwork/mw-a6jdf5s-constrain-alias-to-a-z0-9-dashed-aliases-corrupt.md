@@ -8,6 +8,7 @@ docs:
   - FORMAT.md#task-file
 status: open
 created: 2026-08-09T23:17Z
+seq: 30
 ---
 Review finding (2026-08-09). ID recovery from an invalid file takes
 "the first two dash-segments of the stem," and config.toml says `alias`

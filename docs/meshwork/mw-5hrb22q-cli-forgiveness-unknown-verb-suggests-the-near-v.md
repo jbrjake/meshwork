@@ -5,7 +5,7 @@ status: open
 category: core/lifecycle
 verify: cargo test e2e::cli_forgiveness
 discovered-from: mw-ntt5
-seq: 265
+seq: 45
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-07T13:47Z
