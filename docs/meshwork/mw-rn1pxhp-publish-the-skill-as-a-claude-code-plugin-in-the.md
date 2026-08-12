@@ -13,14 +13,18 @@ Owner directive (2026-08-12): make the skill installable the easy way — a
 `/plugin install`-able entry in the owner's Claude plugin marketplace —
 instead of the manual vendor-from-release-tarball ritual.
 
-Found state: no marketplace repo exists under ~/Documents/code as of
-2026-08-12 (no `*/.claude-plugin/marketplace.json` anywhere); locating or
-creating the marketplace repo is in scope.
+The marketplace is `jbrjake`, at
+~/Documents/code/jbrjake_claude-plugin-marketplace
+(`.claude-plugin/marketplace.json`). It carries six plugins, every one
+sourced the same way: `{"source": "github", "repo": "jbrjake/<name>"}`
+— the plugin repo itself hosts its `.claude-plugin/plugin.json`.
 
-Deliverable: a `.claude-plugin/plugin.json` in this repo exposing the
-skill as a plugin, plus a marketplace entry pointing at it. Close only
-once the marketplace entry exists too — the verify can only see the
-manifest half (no network).
+Deliverable, following that pattern: a `.claude-plugin/plugin.json` in
+THIS repo exposing the skill as a plugin (the skill lives at
+.claude/skills/meshwork/ — the manifest must point there or the plugin
+adopts the standard skills/ layout), plus the meshwork entry appended
+to the marketplace's plugins list. Close only once both halves exist —
+the verify sees the local manifest half.
 
 Doctrine to reconcile in install.md: the per-repo ruling (binary AND
 skill pinned per-repo from the release, nothing global). A marketplace
