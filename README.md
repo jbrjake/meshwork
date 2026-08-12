@@ -50,19 +50,19 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 ### with meshwork
 
-*Measured after Project A migrated onto meshwork (2026-08-08, v0.1.5), across the first 8 post-migration working sessions.*
+*Measured after both repos above migrated onto meshwork (Project A 2026-08-07, v0.1.5; Project B 2026-08-10, v0.2.1), across all 39 post-migration working sessions (34 + 5) through 2026-08-12.*
 
 | | before | after |
 |---|---|---|
-| session-start onboarding read | TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens), read in full as the first two tool calls of ~every session | `meshwork prime`: **3,562 bytes** (~890 tokens) against today's 160-task store, injected by the SessionStart hook, **33× less** |
-| todo busywork per session | **~33.3K tokens**, 28.8% of the session's tool traffic: 1 busywork token per 2.5 of work | **~9.0K tokens**, 8.5%: 1 busywork token per 10.8 of work, **3.7× less** |
-| context replay ("turned tokens") | todo content replayed across ~154 turns/session: **4.16M tokens**, 10.5% of the session's 39.7M-token total replay | replayed across ~202 turns/session: **0.91M tokens**, 1.8% of 51.9M, **4.6× less** |
+| session-start onboarding read | TODO.md + HANDOFF.md: **116,119 / 96,155 bytes** (~28K / ~24K tokens), read in full as the first two tool calls of ~every session | `meshwork prime`: **3,762 / 4,023 bytes** (~1K tokens) against today's 224- and 68-task stores, injected by the SessionStart hook, **31× / 24× less** |
+| todo busywork per session | **~30.6K tokens**, 28.6% of the session's tool traffic: 1 busywork token per 2.5 of work | **~9.2K tokens**, 8.6%: 1 busywork token per 10.6 of work, **3.3× less** |
+| context replay ("turned tokens") | todo content replayed across ~129 turns/session: **3.21M tokens**, 10.0% of the session's 32.2M-token total replay | replayed across ~175 turns/session: **0.86M tokens**, 2.0% of 41.9M, **3.8× less** |
 | getting oriented, observed in the first post-migration session | 2 whole-file reads before any work | four short store reads (`show`, `why`, `git log`), zero doc sweeps |
-| worklist fidelity | one 550-line TODO.md | 160 tasks, 28 dependency edges |
+| worklist fidelity | one 550-line TODO.md; Project B: 96KB across two files, plus 152 rotation archives accreted in 28 days | 292 tasks, 103 dependency edges, across two stores |
 
-*Busywork is counted from the session transcripts by `scripts/admin-tokens.py` and includes all meshwork calls. It's counting 4 chars/token as a rule of thumb. Context replay is measured by `scripts/turned-tokens.py` from the per-request usage records. The token rows average the final 10 pre-migration sessions against the first 8 post-migration working sessions; the migration session itself (one-time, 80% busywork by construction) is excluded.*
+*Busywork is counted from the session transcripts by `scripts/admin-tokens.py` and includes all meshwork calls. It's counting 4 chars/token as a rule of thumb. Context replay is measured by `scripts/turned-tokens.py` from the per-request usage records. The token rows average the final 10 pre-migration sessions of each repo (20 sessions) against all 39 post-migration working sessions of both; the two migration sessions (one-time, ~80% busywork by construction) and sub-100KB transcripts are excluded. Averaged over the repos' entire pre-migration histories (196 sessions) the busywork share is 21.0% — the tax was still compounding as the worklists grew, so the final-10 window measures the state each migration actually replaced.*
 
-28K tokens is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork the freed context went to work (82K → 97K work tokens/session), and sessions are running ~30% longer.
+28K tokens is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork the freed context went to work (77K → 97K work tokens/session), and sessions are running ~35% longer.
 
 ## when meshwork makes sense
 
