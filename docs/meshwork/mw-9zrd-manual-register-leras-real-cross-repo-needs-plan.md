@@ -25,6 +25,14 @@ handoff: |
   v0.2.1 whenever a sazed session is open anyway (edit .meshwork-version,
   reinstall binary + skill per the adoption skill).
   
+  2026-08-12 update: README numbers recomputed per-project over the full
+  post-migration history (commits 1b8db2a..dd657c4); all 41 adoption
+  sessions mined — nine tasks filed + evidence comments on ten ranked
+  ones
+  (b13fd89; mw-bd390q6 and mw-dx4pndb need §6 rulings). Owner-directed
+  mw-rn1pxhp (plugin marketplace) sits at seq 72, right behind this task.
+  None of it blocks the manual list.
+  
   This task's manual list stands as written (owner present): portfolio
   repo
   init + repos.toml naming sazed + leras + meshwork, leras migration per
