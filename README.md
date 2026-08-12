@@ -59,7 +59,7 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 | session-start onboarding read | tool calls to read TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens) | SessionStart-injected `meshwork prime`: **3,762 bytes** (~940 tokens) **31× less** |
 | todo busywork per session | **~33.3K tokens**, 28.8% of the session's tool traffic: 1 busywork token per 2.5 of work | **~8.5K tokens**, 7.5%: 1 busywork token per 12.3 of work, **3.9× less** |
 | context replay ("turned tokens") | todo content replayed across ~154 turns/session: **4.16M tokens**, 10.5% of the session's 39.7M-token total replay | primer replayed across ~188 turns/session: **0.90M tokens**, 2.0% of 45.8M, **4.6× less** |
-| worklist fidelity | one 550-line TODO.md (124 checkbox entries) | 224 tasks, 40 dependency edges |
+| worklist fidelity | one 550-line TODO.md (124 checkbox entries, ~4 lines each) | 224 tasks, 40 dependency edges |
 
 **Project B** (Claude Fable sessions) — 3 working sessions on meshwork:
 
