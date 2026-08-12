@@ -6,7 +6,70 @@ Opinionated minimalist todo list for clankers. Tasks get their own human-readabl
 
 It's a mesh twice over: because tasks are modeled as a graph with edges to related tasks, and also because the git repos federate. A task in one project can depend on a task in another, and you can set up a portfolio view spanning multiple repos.
 
+## quick-start
+
+```bash
+$ meshwork init
+initialized meshwork store at .../acme/docs/meshwork
+  docs/meshwork/config.toml
+  docs/meshwork/.gitattributes
+  docs/meshwork/.cache/.gitignore
+  docs/meshwork/attachments
+edit docs/meshwork/config.toml (alias `ac`) before the first `add`, then commit.
+
+$ meshwork add "Do the thing with the stuff" --cat stuff/doodads --verify "cargo test stuff::thing"
+ac-acnxdkg
+  docs/meshwork/ac-acnxdkg-do-the-thing-with-the-stuff.md
+
+$ meshwork prime
+acme — 1 open
+store @ c601195 · 1 uncommitted task edit
+stuff/doodads 1
+next → ac-acnxdkg Do the thing with the stuff
+  [stuff/doodads]
+  verify: cargo test stuff::thing
+
+$ meshwork start ac-acnxdkg --as claude
+ac-acnxdkg open→doing
+$ meshwork comment ac-acnxdkg --as claude "Smoking gun! You're absolutely right. This seam is load-bearing. On it. Cerebrating..."
+ac-acnxdkg: comment added as [claude]
+...
+$ meshwork close ac-acnxdkg --approve
+approving verify for ac-acnxdkg (this clone only, MW-E5):
+  verify: cargo test stuff::thing
+
+running 1 test
+test stuff::thing ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running unittests src/lib.rs (target/debug/deps/acme-e34439635683e7e8)
+ac-acnxdkg doing→done (verify exit 0)
+
+$ meshwork q "SELECT category, count(*) AS n FROM tasks WHERE status='done' GROUP BY category ORDER BY n DESC"
+category | n
+stuff/doodads | 1
+(1 rows)
+
+$ cat docs/meshwork/archive/ac-acnxdkg-do-the-thing-with-the-stuff.md
 ---
+id: ac-acnxdkg
+title: Do the thing with the stuff
+status: done
+category: stuff/doodads
+verify: cargo test stuff::thing
+created: 2026-08-12T21:28Z
+---
+
+## log
+- 2026-08-12T21:28Z created
+- 2026-08-12T21:29Z open→doing — claimed by claude
+- 2026-08-12T21:29Z doing→done — verify exit 0 @ c601195+5
+
+## comments
+- 2026-08-12T21:29Z [claude] Smoking gun! You're absolutely right. This seam is load-bearing. On it. Cerebrating...
+```
 
 ## why?
 
@@ -41,29 +104,29 @@ Of course, they're terrible at counting. So it can take them like 3-4 tries to c
 
 | | Project A | Project B |
 |---|---|---|
-| Edit calls targeting TODO.md + HANDOFF.md, share of **all edits ever made** | ~20% (927 of 4,693) | ~16% (641) |
+| Edit calls targeting TODO.md + HANDOFF.md | ~20% (927 of 4,693) | ~16% (641) |
 | sessions reading both files within their first 5 tool calls | ~95%, at a ~22K-token tax each | ~90% |
 | worst line-cap thrash episode | 34% of a session's shell calls (14 gate failures in 84 minutes) | 26 consecutive tool calls |
-| cap raises (every one reactive, none structural) | 500→550 | 200→300→450→600 **in 8 days** |
+| line limit increases | 500→550 | 200→750 |
 
 One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 ### with meshwork
 
-*Measured after both repos above migrated onto meshwork (Project A 2026-08-07, Project B 2026-08-10) through 2026-08-12. Each table: that repo's final 10 pre-migration sessions vs all its post-migration working sessions.*
+*Measured after both repos migrated to meshwork (Project A 2026-08-07, Project B 2026-08-10). Each table: that repo's last 10 sessions before meshwork vs all its working sessions after migrating.*
 
-**Project A** (Claude Opus sessions) — 34 sessions on meshwork:
+**Project A** (Claude Opus sessions):
 
-| | before | after |
+| | before | after (34 sessions) |
 |---|---|---|
 | session-start onboarding read | tool calls to read TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens) | SessionStart-injected `meshwork prime`: **3,762 bytes** (~940 tokens) **31× less** |
 | todo busywork per session | **~33.3K tokens**, 28.8% of the session's tool traffic: 1 busywork token per 2.5 of work | **~8.5K tokens**, 7.5%: 1 busywork token per 12.3 of work, **3.9× less** |
 | context replay ("turned tokens") | todo content replayed across ~154 turns/session: **4.16M tokens**, 10.5% of the session's 39.7M-token total replay | primer replayed across ~188 turns/session: **0.90M tokens**, 2.0% of 45.8M, **4.6× less** |
 | worklist fidelity | one 550-line TODO.md (124 checkbox entries, ~4 lines each) | 224 tasks, 40 dependency edges |
 
-**Project B** (Claude Fable sessions) — 3 working sessions on meshwork:
+**Project B** (Claude Fable sessions):
 
-| | before | after |
+| | before | after (3 sessions) |
 |---|---|---|
 | session-start onboarding read | tool calls to read TODO.md + docs/HANDOFF.md: **96,155 bytes** (~24K tokens) | SessionStart-injected `meshwork prime`: **4,023 bytes** (~1K tokens) **24× less** |
 | todo busywork per session | **~28.0K tokens**, 28.3% of the session's tool traffic: 1 busywork token per 2.5 of work | **~8.4K tokens**, 12.4%: 1 busywork token per 7.1 of work, **3.3× less** |
