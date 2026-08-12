@@ -13,7 +13,7 @@ It's a mesh twice over: because tasks are modeled as a graph with edges to relat
 /plugin install meshwork@jbrjake
 ```
 
-That installs the skill into Claude Code. Ask a session to "adopt meshwork in this repo" and it handles the rest — the pinned binary and the store ([getting it](#getting-it) has the manual path).
+That installs the skill into Claude Code. Ask a session to "adopt meshwork in this repo" and it handles the rest ([getting it](#getting-it) has the manual path).
 
 ## quick-start
 
