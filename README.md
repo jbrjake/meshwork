@@ -59,7 +59,7 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 | session-start onboarding read | tool calls to read TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens) | SessionStart-injected `meshwork prime`: **3,762 bytes** (~940 tokens) **31× less** |
 | todo busywork per session | **~33.3K tokens**, 28.8% of the session's tool traffic: 1 busywork token per 2.5 of work | **~8.5K tokens**, 7.5%: 1 busywork token per 12.3 of work, **3.9× less** |
 | context replay ("turned tokens") | todo content replayed across ~154 turns/session: **4.16M tokens**, 10.5% of the session's 39.7M-token total replay | primer replayed across ~188 turns/session: **0.90M tokens**, 2.0% of 45.8M, **4.6× less** |
-| worklist fidelity | one 550-line TODO.md | 224 tasks, 40 dependency edges |
+| worklist fidelity | one 550-line TODO.md (124 checkbox entries) | 224 tasks, 40 dependency edges |
 
 **Project B** (Claude Fable sessions) — 3 working sessions on meshwork:
 
@@ -68,7 +68,7 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 | session-start onboarding read | tool calls to read TODO.md + docs/HANDOFF.md: **96,155 bytes** (~24K tokens) | SessionStart-injected `meshwork prime`: **4,023 bytes** (~1K tokens) **24× less** |
 | todo busywork per session | **~28.0K tokens**, 28.3% of the session's tool traffic: 1 busywork token per 2.5 of work | **~8.4K tokens**, 12.4%: 1 busywork token per 7.1 of work, **3.3× less** |
 | context replay ("turned tokens") | todo content replayed across ~105 turns/session: **2.25M tokens**, 9.1% of the session's 24.7M-token total replay | primer replayed across ~88 turns/session: **0.40M tokens**, 2.3% of 17.5M, **5.7× less** |
-| worklist fidelity | a 733-line TODO.md + a 666-line HANDOFF.md | 68 tasks, 63 dependency edges |
+| worklist fidelity | a 733-line TODO.md + a 666-line HANDOFF.md (48 checkbox entries, hard-wrapped ~12 lines each) | 68 tasks, 63 dependency edges |
 
 *Busywork is counted from the session transcripts by `scripts/admin-tokens.py` and includes all meshwork calls. It's counting 4 chars/token as a rule of thumb. Context replay is measured by `scripts/turned-tokens.py` from the per-request usage records. Each repo's migration session (one-time, ~80% busywork by construction) and sub-100KB transcripts are excluded, as are Project B's two verify-hygiene sweeps — one-time repairs of verifies the import brought over rotted (50.7% and 43.9% busywork by construction).*
 
