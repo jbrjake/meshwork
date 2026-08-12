@@ -10,12 +10,6 @@ It's a mesh twice over: because tasks are modeled as a graph with edges to relat
 
 ```bash
 $ meshwork init
-initialized meshwork store at .../acme/docs/meshwork
-  docs/meshwork/config.toml
-  docs/meshwork/.gitattributes
-  docs/meshwork/.cache/.gitignore
-  docs/meshwork/attachments
-edit docs/meshwork/config.toml (alias `ac`) before the first `add`, then commit.
 
 $ meshwork add "Do the thing with the stuff" --cat stuff/doodads --verify "cargo test stuff::thing"
 ac-acnxdkg
@@ -41,10 +35,6 @@ approving verify for ac-acnxdkg (this clone only, MW-E5):
 running 1 test
 test stuff::thing ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.00s
-     Running unittests src/lib.rs (target/debug/deps/acme-e34439635683e7e8)
 ac-acnxdkg doing→done (verify exit 0)
 
 $ meshwork q "SELECT category, count(*) AS n FROM tasks WHERE status='done' GROUP BY category ORDER BY n DESC"
