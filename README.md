@@ -52,7 +52,7 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 *Measured after both repos above migrated onto meshwork (Project A 2026-08-07, Project B 2026-08-10) through 2026-08-12. Each table: that repo's final 10 pre-migration sessions vs all its post-migration working sessions.*
 
-**Project A** — 34 sessions on meshwork:
+**Project A** (Claude Opus sessions) — 34 sessions on meshwork:
 
 | | before | after |
 |---|---|---|
@@ -62,16 +62,16 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 | getting oriented, observed in the first post-migration session | 2 whole-file reads before any work | four short store reads (`show`, `why`, `git log`), zero doc sweeps |
 | worklist fidelity | one 550-line TODO.md | 224 tasks, 40 dependency edges |
 
-**Project B** — 5 sessions on meshwork (migrated two days before measuring):
+**Project B** (Claude Fable sessions) — 3 working sessions on meshwork, migrated two days before measuring:
 
 | | before | after |
 |---|---|---|
 | session-start onboarding read | TODO.md + docs/HANDOFF.md: **96,155 bytes** (~24K tokens), read in full at the top of ~every session | `meshwork prime`: **4,023 bytes** (~1K tokens) against today's 68-task store, injected by the SessionStart hook, **24× less** |
-| todo busywork per session | **~28.0K tokens**, 28.3% of the session's tool traffic: 1 busywork token per 2.5 of work | **~14.1K tokens**, 23.6%: 1 busywork token per 3.2 of work, **2.0× less** |
-| context replay ("turned tokens") | todo content replayed across ~105 turns/session: **2.25M tokens**, 9.1% of the session's 24.7M-token total replay | replayed across ~84 turns/session: **0.57M tokens**, 3.9% of 14.8M, **4.0× less** |
+| todo busywork per session | **~28.0K tokens**, 28.3% of the session's tool traffic: 1 busywork token per 2.5 of work | **~8.4K tokens**, 12.4%: 1 busywork token per 7.1 of work, **3.3× less** |
+| context replay ("turned tokens") | todo content replayed across ~105 turns/session: **2.25M tokens**, 9.1% of the session's 24.7M-token total replay | replayed across ~88 turns/session: **0.40M tokens**, 2.3% of 17.5M, **5.7× less** |
 | worklist fidelity | 96KB across two files, plus 152 rotation archives accreted in 28 days | 68 tasks, 63 dependency edges |
 
-*Busywork is counted from the session transcripts by `scripts/admin-tokens.py` and includes all meshwork calls. It's counting 4 chars/token as a rule of thumb. Context replay is measured by `scripts/turned-tokens.py` from the per-request usage records. Each repo's migration session (one-time, ~80% busywork by construction) and sub-100KB transcripts are excluded. Project B's after column is young and it shows: two of its five sessions were the post-migration verify-hygiene sweeps, and the three ordinary working sessions averaged ~8.4K busywork tokens (12.4%). Averaged over the repos' entire pre-migration histories instead of the final 10, busywork is 26.0% (A, 96 sessions) and 15.0% (B, 100 sessions) — the tax compounds as a worklist grows, so the final-10 window measures the state each migration replaced.*
+*Busywork is counted from the session transcripts by `scripts/admin-tokens.py` and includes all meshwork calls. It's counting 4 chars/token as a rule of thumb. Context replay is measured by `scripts/turned-tokens.py` from the per-request usage records. Each repo's migration session (one-time, ~80% busywork by construction) and sub-100KB transcripts are excluded, as are Project B's two verify-hygiene sweeps — one-time repairs of verifies the import brought over rotted (50.7% and 43.9% busywork by construction), adoption cost of the same kind as the migration itself. The repos also run different models (A: Opus, B: Fable), so compare before/after within a table, not across the two. Averaged over the repos' entire pre-migration histories instead of the final 10, busywork is 26.0% (A, 96 sessions) and 15.0% (B, 100 sessions) — the tax compounds as a worklist grows, so the final-10 window measures the state each migration replaced.*
 
 28K tokens is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork the freed context went to work — Project A sessions carry 82K → 104K work tokens/session and run ~20% longer.
 
