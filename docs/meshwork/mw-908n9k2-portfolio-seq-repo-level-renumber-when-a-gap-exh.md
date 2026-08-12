@@ -16,3 +16,6 @@ handoff: |
 
 ## log
 - 2026-08-10T04:03Z created
+
+## comments
+- 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] leras exhausted three seq neighborhoods within 48 hours of migration: 4/5/6 squeezed below 15, then 17 wedged between 15 and 20, and the audit block minted 84/85/86 plus 92/93 consecutively (faba7815, ea33cc32). Gaps-of-10 does not survive contact with a hot region; the renumber needs to exist before the portfolio inherits the problem.

@@ -23,3 +23,6 @@ terse — mechanics live here, migration ritual stays in adopt.md.
 
 ## log
 - 2026-08-10T22:22Z created
+
+## comments
+- 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Hard usage data on what goes untaught: across 35 sazed sessions, dep was used zero times and tree/why/blocked near-zero — seq was the only lever agents reached for, while imported flag-marker titles contradicted the actual seq order. In leras, parent-progress queries had to be reverse-engineered live: q WHERE parent= hit the Schema error, then blind edges sampling, ending in a 200-char gid JOIN now hard-coded in four umbrella verifies (4e5b1f04). Teach the graph verbs and carry the JOIN idiom verbatim (mw-0ssk8dg tracks projecting parent so the idiom shrinks).

@@ -35,3 +35,6 @@ Origin: session question "what's the syntax to query the task body in SQL?"
 
 ## log
 - 2026-08-09T23:11Z created
+
+## comments
+- 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Observed demand: sazed 4dc8792e tried coalesce(body,'') LIKE '%utf8%', got the Schema error, and fell back to grep -rlni over docs/meshwork/*.md. Title-only LIKE searches — the lossy substitute — appear in 8+ sazed sessions. Body projection is the missing half of the daily q driver.

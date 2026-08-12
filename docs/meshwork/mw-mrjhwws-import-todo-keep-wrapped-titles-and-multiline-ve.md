@@ -21,3 +21,6 @@ nested-checkbox fix (mw-17hnhzk), same pipeline stage.
 
 ## log
 - 2026-08-10T22:22Z created
+
+## comments
+- 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Both migrations widen this task's damage list beyond wrapped titles/verifies: (1) single-token titles — sazed shipped tasks titled just R11, R8, R7, unintelligible in every listing 3 days later; (2) open checkboxes nested under done entries got folded into the bodies of CLOSED tasks — open work trapped inside archived records, hand-rescued three times (sa-e2z806m, sa-w6ffah7, sa-q36y7jb); (3) trailing non-checkbox prose silently dropped or grafted onto neighboring tasks (leras 6f063ba1: "the import had swallowed the whole non-checkbox sazed-asks section"); (4) [~] maps to doing with no claimant, seeding instant doing-rot (le-s3k2v7b). The silent drops are the dangerous class — mangling gets seen at review, dropping does not.

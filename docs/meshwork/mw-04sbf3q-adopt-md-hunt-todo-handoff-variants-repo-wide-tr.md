@@ -27,3 +27,6 @@ red-check is the LAST step, not the first.
 
 ## log
 - 2026-08-10T22:22Z created
+
+## comments
+- 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] The leras retirement sweep is the concrete spec for this: beyond TODO/HANDOFF themselves it took edits to 15+ files — README, CLAUDE.md, the baseline doc, CODEBASE_MAP, four architecture chapters, and three gate scripts (smoke/regression/check-file-length all referenced check-todo) — every step improvised, pre-warned only by the human prompt (6f063ba1). adopt.md should carry the reference-sweep grep verbatim and name the gate-scripts-reference-check-todo trap.

@@ -24,3 +24,6 @@ the next release.
 
 ## log
 - 2026-08-10T18:34Z created
+
+## comments
+- 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] The shim-vs-hook divergence has a measured cost now. sazed ran the whole week shim-less: zero --as uses in 35 sessions, so all 8 agent comments and every claimed-by stamp read as the owner in prime's weather (fc237a1a, 4b5a9264). The $(cat .meshwork-version) incantation failed three distinct ways: wrong-cwd cat (63b829ba), a sandbox EPERM retried 4x that killed every meshwork verb for a session (632ce3d2), and a version-pinned settings.local.json allow-rule that rotted at the v0.2.0 upgrade (f6e7cfbc). A committed shim fixes attribution and all three fragilities at once; adopt.md should also warn against version-pinned permission rules.

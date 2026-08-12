@@ -29,3 +29,6 @@ Decide the two together — same surface ruling.
 
 ## log
 - 2026-08-07T13:47Z created
+
+## comments
+- 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Field evidence: sa-va0tvyx was minted with a placeholder grep already green at mint (dbc4d8cd), Q21's doc-mention verify was green from birth and later closed on it, and leras faba7815's manual red-check found 3 of 27 verifies GREEN before any work — 2 of them rotted anchors. Red-at-add/start would have caught every one at authoring time.

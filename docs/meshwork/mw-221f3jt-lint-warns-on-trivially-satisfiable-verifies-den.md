@@ -20,3 +20,6 @@ interaction. Rule on all three together.
 
 ## log
 - 2026-08-08T14:09Z created
+
+## comments
+- 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Two adoption-week data points. sazed's flagship Q21 task closed on verify grep -q 'Q21' docs/batch-door.md — satisfiable since the day it was filed (fc237a1a); only agent discipline made the close honest. And leras's store carried four rot classes at once — 28 rg-verifies exiting 127 under close's sh -c, zero-match cargo filters, 20 prose verifies, and 2 grep anchors that went stale-green when a refactor moved the anchored code — while lint reported 0 errors 0 warnings throughout. The stale-green class argues the denylist should pair with a run-open-verifies-and-flag-greens sweep (mw-dx4pndb's dry-run verb would be its engine).
