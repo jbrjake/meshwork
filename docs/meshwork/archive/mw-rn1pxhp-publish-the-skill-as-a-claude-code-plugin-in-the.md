@@ -1,7 +1,7 @@
 ---
 id: mw-rn1pxhp
 title: Publish the skill as a Claude Code plugin in the owner's marketplace
-status: open
+status: done
 category: skill
 seq: 72
 verify: grep -q '"name"' .claude-plugin/plugin.json
@@ -34,3 +34,8 @@ pinned shim/version when present.
 
 ## log
 - 2026-08-12T20:01Z created
+- 2026-08-12T23:29Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-12T23:34Z doing→done — verify exit 0 @ 8423057+8
+
+## comments
+- 2026-08-12T23:34Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Landed: .claude-plugin/plugin.json with skills: ./.claude/skills/ (validator passed; headless --plugin-dir probe lists meshwork:meshwork — skill served from the custom path, no restructure). meshwork entry appended to the jbrjake marketplace plugins list. README: marketplace-only install block above quick-start; --plugin-dir clone variant folded into getting-it. install.md ruling reconciled: binary never global, plugin is the one sanctioned user-scoped skill path, ships skill surface only, defers to each repo's shim-pinned version; vendored per-repo skill copy stays for repos pinning the skill text itself.

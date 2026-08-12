@@ -6,6 +6,15 @@ Opinionated minimalist todo list for clankers. Tasks get their own human-readabl
 
 It's a mesh twice over: because tasks are modeled as a graph with edges to related tasks, and also because the git repos federate. A task in one project can depend on a task in another, and you can set up a portfolio view spanning multiple repos.
 
+## install
+
+```
+/plugin marketplace add jbrjake/claude-plugin-marketplace
+/plugin install meshwork@jbrjake
+```
+
+That installs the skill into Claude Code. Ask a session to "adopt meshwork in this repo" and it handles the rest — the pinned binary and the store ([getting it](#getting-it) has the manual path).
+
 ## quick-start
 
 ```bash
@@ -488,7 +497,7 @@ Hooks and scripts invoke `~/.meshwork/versions/$(cat .meshwork-version)/meshwork
 
 ### claude skill
 
-If you drive repos with Claude Code, install the bundled skill so sessions follow the loop and handoff ritual above: [`.claude/skills/meshwork/references/install.md`](.claude/skills/meshwork/references/install.md).
+The [plugin install](#install) up top is the skill — it teaches sessions the loop and handoff ritual above. From a local clone instead: `claude --plugin-dir /path/to/meshwork`. A repo that wants the skill's text pinned alongside its binary vendors the release tarball into its own `.claude/skills/`: [`.claude/skills/meshwork/references/install.md`](.claude/skills/meshwork/references/install.md).
 
 ---
 Built on [DataFusion](https://datafusion.apache.org/).

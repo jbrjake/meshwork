@@ -1,9 +1,10 @@
 # Installing meshwork (per project, pinned — read only when installing)
 
-Owner ruling: NOTHING meshwork-related installs globally — no `cargo install`,
-no bare `meshwork` on PATH, no user-level skill. Each consuming repo commits a
-`.meshwork-version` file (a release tag) and both artifacts — binary and skill
-— come from that same pinned release of jbrjake/meshwork.
+Owner ruling: the BINARY never installs globally — no `cargo install`, no bare
+`meshwork` on PATH. Each consuming repo commits a `.meshwork-version` file (a
+release tag) and takes its binary from that pinned release of jbrjake/meshwork.
+The skill has exactly one sanctioned user-scoped path — the Claude Code plugin
+below — and the plugin distributes the skill surface only, never the binary.
 
 ## The binary (shared per-version cache, selected per repo)
 
@@ -49,10 +50,24 @@ An explicit `--as` always wins, and a human shell (no session id) falls
 through to `default_author` untouched. Never put `]` in an author — the
 comment grammar closes on it.
 
-## The skill (into THIS repo, committed)
+## The skill (plugin, user-scoped — the default)
 
-The skill is versioned with the binary and installs into the consuming repo's
-own `.claude/skills/` — never into `~/.claude/skills/`:
+```
+/plugin marketplace add jbrjake/claude-plugin-marketplace
+/plugin install meshwork@jbrjake
+```
+
+The plugin carries only the skill. The binary stays per-repo pinned as above,
+and every command the skill issues goes through the repo's committed
+`./meshwork` shim — so the release a repo pins is the release that runs. A
+plugin newer than a repo's `.meshwork-version` defers to that repo's version;
+never assume the plugin's own feature set.
+
+## The skill (vendored per repo — when the skill text itself must pin)
+
+A repo that needs the skill's text locked to its binary version vendors the
+release tarball into its own `.claude/skills/` — never into
+`~/.claude/skills/`. The vendored copy is authoritative for that repo:
 
 ```bash
 VER=$(cat .meshwork-version)
