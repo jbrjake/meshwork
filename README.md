@@ -4,7 +4,7 @@
 
 Opinionated minimalist todo list for clankers. Tasks get their own human-readable markdown files logged in git. There's a Rust CLI to manage them. No database: the CLI runs SQL queries directly against the markdown. And it can materialize them into a byte-budgeted session-start digest to keep agents on track.
 
-It's a mesh twice over: because tasks are modeled as a graph with edges to related tasks, and also because the git repos federate. A task in one project can depend on a task in another, and you can set up a portfolio view targeting multiple repos.
+It's a mesh twice over: because tasks are modeled as a graph with edges to related tasks, and also because the git repos federate. A task in one project can depend on a task in another, and you can set up a portfolio view spanning multiple repos.
 
 ---
 
@@ -29,9 +29,9 @@ It becomes a problem because of the context hit. These files get read in all the
 
 Of course, agents aren't reliable at following rules. So you add a hook with a deterministic trigger: you cannot commit code if your TODO.md or HANDOFF.md are above N lines.
 
-Of course they'll game that and have super long lines, so you change to characters. Either way, it's a game to them and they play golf trying to get under-but-as-close-to the limit as possible.
+Of course, they'll game that and have super long lines, so you change to characters. Either way, it's a game to them and they play golf trying to get under-but-as-close-to the limit as possible.
 
-Except...they're terrible at counting. So it can take them like 3-4 tries to cut the text down to the limit you set. Eventually it gets so time-consuming and token-expensive that you raise the ceiling when important stuff has to get tracked.
+Of course, they're terrible at counting. So it can take them like 3-4 tries to cut the text down to the limit you set. Eventually it gets so time-consuming and token-expensive that you raise the ceiling when important stuff has to get tracked.
 
 ## numbers
 
@@ -41,28 +41,39 @@ Except...they're terrible at counting. So it can take them like 3-4 tries to cut
 
 | | Project A | Project B |
 |---|---|---|
-| Edit calls targeting TODO.md + HANDOFF.md, share of **all edits ever made** | 19.75% (927 of 4,693) | ~16% (641) |
+| Edit calls targeting TODO.md + HANDOFF.md, share of **all edits ever made** | ~20% (927 of 4,693) | ~16% (641) |
 | sessions reading both files within their first 5 tool calls | ~95%, at a ~22K-token tax each | ~90% |
-| worst line-cap thrash episode | 34% of a session's shell calls; 14 gate failures in 84 minutes | 26 consecutive tool calls |
+| worst line-cap thrash episode | 34% of a session's shell calls (14 gate failures in 84 minutes) | 26 consecutive tool calls |
 | cap raises (every one reactive, none structural) | 500→550 | 200→300→450→600 **in 8 days** |
 
 One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 ### with meshwork
 
-*Measured after both repos above migrated onto meshwork (Project A 2026-08-07, v0.1.5; Project B 2026-08-10, v0.2.1), across all 39 post-migration working sessions (34 + 5) through 2026-08-12.*
+*Measured after both repos above migrated onto meshwork (Project A 2026-08-07, Project B 2026-08-10) through 2026-08-12. Each table: that repo's final 10 pre-migration sessions vs all its post-migration working sessions.*
+
+**Project A** — 34 sessions on meshwork:
 
 | | before | after |
 |---|---|---|
-| session-start onboarding read | TODO.md + HANDOFF.md: **116,119 / 96,155 bytes** (~28K / ~24K tokens), read in full as the first two tool calls of ~every session | `meshwork prime`: **3,762 / 4,023 bytes** (~1K tokens) against today's 224- and 68-task stores, injected by the SessionStart hook, **31× / 24× less** |
-| todo busywork per session | **~30.6K tokens**, 28.6% of the session's tool traffic: 1 busywork token per 2.5 of work | **~9.2K tokens**, 8.6%: 1 busywork token per 10.6 of work, **3.3× less** |
-| context replay ("turned tokens") | todo content replayed across ~129 turns/session: **3.21M tokens**, 10.0% of the session's 32.2M-token total replay | replayed across ~175 turns/session: **0.86M tokens**, 2.0% of 41.9M, **3.8× less** |
+| session-start onboarding read | TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens), read in full as the first two tool calls of ~every session | `meshwork prime`: **3,762 bytes** (~940 tokens) against today's 224-task store, injected by the SessionStart hook, **31× less** |
+| todo busywork per session | **~33.3K tokens**, 28.8% of the session's tool traffic: 1 busywork token per 2.5 of work | **~8.5K tokens**, 7.5%: 1 busywork token per 12.3 of work, **3.9× less** |
+| context replay ("turned tokens") | todo content replayed across ~154 turns/session: **4.16M tokens**, 10.5% of the session's 39.7M-token total replay | replayed across ~188 turns/session: **0.90M tokens**, 2.0% of 45.8M, **4.6× less** |
 | getting oriented, observed in the first post-migration session | 2 whole-file reads before any work | four short store reads (`show`, `why`, `git log`), zero doc sweeps |
-| worklist fidelity | one 550-line TODO.md; Project B: 96KB across two files, plus 152 rotation archives accreted in 28 days | 292 tasks, 103 dependency edges, across two stores |
+| worklist fidelity | one 550-line TODO.md | 224 tasks, 40 dependency edges |
 
-*Busywork is counted from the session transcripts by `scripts/admin-tokens.py` and includes all meshwork calls. It's counting 4 chars/token as a rule of thumb. Context replay is measured by `scripts/turned-tokens.py` from the per-request usage records. The token rows average the final 10 pre-migration sessions of each repo (20 sessions) against all 39 post-migration working sessions of both; the two migration sessions (one-time, ~80% busywork by construction) and sub-100KB transcripts are excluded. Averaged over the repos' entire pre-migration histories (196 sessions) the busywork share is 21.0% — the tax was still compounding as the worklists grew, so the final-10 window measures the state each migration actually replaced.*
+**Project B** — 5 sessions on meshwork (migrated two days before measuring):
 
-28K tokens is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork the freed context went to work (77K → 97K work tokens/session), and sessions are running ~35% longer.
+| | before | after |
+|---|---|---|
+| session-start onboarding read | TODO.md + docs/HANDOFF.md: **96,155 bytes** (~24K tokens), read in full at the top of ~every session | `meshwork prime`: **4,023 bytes** (~1K tokens) against today's 68-task store, injected by the SessionStart hook, **24× less** |
+| todo busywork per session | **~28.0K tokens**, 28.3% of the session's tool traffic: 1 busywork token per 2.5 of work | **~14.1K tokens**, 23.6%: 1 busywork token per 3.2 of work, **2.0× less** |
+| context replay ("turned tokens") | todo content replayed across ~105 turns/session: **2.25M tokens**, 9.1% of the session's 24.7M-token total replay | replayed across ~84 turns/session: **0.57M tokens**, 3.9% of 14.8M, **4.0× less** |
+| worklist fidelity | 96KB across two files, plus 152 rotation archives accreted in 28 days | 68 tasks, 63 dependency edges |
+
+*Busywork is counted from the session transcripts by `scripts/admin-tokens.py` and includes all meshwork calls. It's counting 4 chars/token as a rule of thumb. Context replay is measured by `scripts/turned-tokens.py` from the per-request usage records. Each repo's migration session (one-time, ~80% busywork by construction) and sub-100KB transcripts are excluded. Project B's after column is young and it shows: two of its five sessions were the post-migration verify-hygiene sweeps, and the three ordinary working sessions averaged ~8.4K busywork tokens (12.4%). Averaged over the repos' entire pre-migration histories instead of the final 10, busywork is 26.0% (A, 96 sessions) and 15.0% (B, 100 sessions) — the tax compounds as a worklist grows, so the final-10 window measures the state each migration replaced.*
+
+28K tokens is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork the freed context went to work — Project A sessions carry 82K → 104K work tokens/session and run ~20% longer.
 
 ## when meshwork makes sense
 
