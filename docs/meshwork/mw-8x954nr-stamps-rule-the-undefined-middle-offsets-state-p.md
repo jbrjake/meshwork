@@ -2,7 +2,7 @@
 id: mw-8x954nr
 title: "Stamps: rule the undefined middle (offsets) + state prefix-ordering"
 category: core/format
-verify: cargo test format::stamp_ordering
+verify: out=$(cargo test format::stamp_ordering 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 docs:
   - FORMAT.md#task-file
 status: open

@@ -3,7 +3,7 @@ id: mw-s3905fv
 title: "add accepts a body — the description has no CLI path today"
 category: core/lifecycle
 relates: [mw-rz4ey2h, mw-t01ek6s]
-verify: cargo test e2e::add_body
+verify: out=$(cargo test e2e::add_body 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 300
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface

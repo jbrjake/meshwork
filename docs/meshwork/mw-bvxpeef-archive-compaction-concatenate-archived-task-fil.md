@@ -3,7 +3,7 @@ id: mw-bvxpeef
 title: "Archive compaction: concatenate archived task files into multi-doc bundles"
 status: open
 category: core/store
-verify: cargo test e2e::archive_compact
+verify: out=$(cargo test e2e::archive_compact 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 docs:
   - DESIGN-meshwork.md#§-1-on-disk-layout-per-repo
   - DESIGN-meshwork.md#§-3-ingestion-pipeline

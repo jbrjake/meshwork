@@ -3,7 +3,7 @@ id: mw-06j1wqe
 title: "Doing-rot: stale doing tasks accumulate silently — lint + prime pressure"
 category: core/lifecycle
 relates: [mw-dkwf26w]
-verify: cargo test lint::stale_doing_warn
+verify: out=$(cargo test lint::stale_doing_warn 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 320
 docs:
   - DESIGN-meshwork.md#§-7-session-integration

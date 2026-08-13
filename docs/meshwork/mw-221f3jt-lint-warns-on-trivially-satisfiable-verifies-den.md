@@ -3,7 +3,7 @@ id: mw-221f3jt
 title: "lint warns on trivially-satisfiable verifies (denylist heuristic)"
 category: core/verify
 relates: [mw-175bn4c, mw-6wdpz1b]
-verify: cargo test lint::trivial_verify_warn
+verify: out=$(cargo test lint::trivial_verify_warn 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 210
 docs:
   - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline

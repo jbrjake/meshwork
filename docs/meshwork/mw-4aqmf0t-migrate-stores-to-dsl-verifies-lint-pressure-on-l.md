@@ -5,7 +5,7 @@ status: open
 category: core/verify
 needs: [mw-dthxs3q, mw-9rc4vs6]
 parent: mw-6895bkg
-verify: cargo test e2e::verify_migration
+verify: out=$(cargo test e2e::verify_migration 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 180
 docs:
   - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today

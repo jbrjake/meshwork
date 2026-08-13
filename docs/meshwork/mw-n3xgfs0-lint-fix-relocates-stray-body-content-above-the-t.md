@@ -2,7 +2,7 @@
 id: mw-n3xgfs0
 title: "lint --fix relocates stray body content above the tail sections"
 category: core/store
-verify: cargo test lint::fix_stray_body_relocation
+verify: out=$(cargo test lint::fix_stray_body_relocation 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 docs:
   - FORMAT.md#task-file
   - FORMAT.md#tail-section-grammars

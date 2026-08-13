@@ -4,7 +4,7 @@ title: Terminal escape sanitization in rendered task content
 status: open
 category: core/render
 discovered-from: mw-mjwfvxn
-verify: cargo test e2e::render_sanitized
+verify: out=$(cargo test e2e::render_sanitized 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
 created: 2026-08-07T01:55Z

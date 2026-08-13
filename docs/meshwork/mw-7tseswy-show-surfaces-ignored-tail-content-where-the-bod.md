@@ -3,7 +3,7 @@ id: mw-7tseswy
 title: "show surfaces ignored tail content where the body would have been"
 category: core/render
 needs: [mw-n3xgfs0]
-verify: cargo test e2e::show_flags_ignored_tail_content
+verify: out=$(cargo test e2e::show_flags_ignored_tail_content 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface
   - FORMAT.md#tail-section-grammars

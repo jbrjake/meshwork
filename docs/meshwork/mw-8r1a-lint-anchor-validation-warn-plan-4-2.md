@@ -4,7 +4,7 @@ title: Lint anchor validation warn (PLAN 4.2)
 status: open
 category: plan/m4
 needs: [mw-hqs4]
-verify: cargo test lint::anchor_missing_warn
+verify: out=$(cargo test lint::anchor_missing_warn 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 140
 docs:
   - REQUIREMENTS-meshwork.md#§-f-wiki-doc-drill-through   # MW-F3

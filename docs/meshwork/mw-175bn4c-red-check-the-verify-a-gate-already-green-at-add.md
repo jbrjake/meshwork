@@ -3,7 +3,7 @@ id: mw-175bn4c
 title: "Red-check the verify: a gate already green at add/start cannot detect the work"
 status: open
 category: core/verify
-verify: cargo test e2e::verify_red_check
+verify: out=$(cargo test e2e::verify_red_check 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 discovered-from: mw-ntt5
 seq: 125
 docs:

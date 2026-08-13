@@ -3,7 +3,7 @@ id: mw-7c6svyn
 title: "FORMAT.md conformance corpus: golden store + expected parse"
 category: core/format
 relates: [mw-dg5j1sv]
-verify: cargo test format::conformance_corpus
+verify: out=$(cargo test format::conformance_corpus 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 260
 docs:
   - FORMAT.md#task-file

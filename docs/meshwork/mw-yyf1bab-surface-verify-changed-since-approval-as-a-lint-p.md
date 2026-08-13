@@ -4,7 +4,7 @@ title: "Surface verify-changed-since-approval as a lint + prime finding"
 category: core/verify
 needs: [mw-hz1ezcg]
 relates: [mw-9rc4vs6]
-verify: cargo test lint::verify_changed_since_approval
+verify: out=$(cargo test lint::verify_changed_since_approval 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 200
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary

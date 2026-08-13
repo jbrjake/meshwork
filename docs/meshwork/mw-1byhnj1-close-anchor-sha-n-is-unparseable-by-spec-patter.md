@@ -3,7 +3,7 @@ id: mw-1byhnj1
 title: "Close anchor (@ sha[+N]) is unparseable by spec — pattern or column"
 category: core/format
 relates: [mw-ntn0t32]
-verify: cargo test format::close_anchor_pattern
+verify: out=$(cargo test format::close_anchor_pattern 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 docs:
   - FORMAT.md#tail-section-grammars
 status: open

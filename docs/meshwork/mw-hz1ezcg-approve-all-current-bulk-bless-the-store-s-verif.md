@@ -4,7 +4,7 @@ title: "approve --all-current: bulk-bless the store's verifies at a tree hash"
 category: core/verify
 parent: mw-6895bkg
 relates: [mw-9rc4vs6]
-verify: cargo test e2e::approve_bulk_then_single_prompt
+verify: out=$(cargo test e2e::approve_bulk_then_single_prompt 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 190
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary

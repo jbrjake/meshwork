@@ -3,7 +3,7 @@ id: mw-6895bkg
 title: "Verify execution security: retire raw sh -c for untrusted stores"
 status: open
 category: core/verify
-verify: "cargo test verify_dsl::"
+verify: "out=$(cargo test verify_dsl:: 2>&1) && echo \"$out\" | grep -qE 'ok\\. [1-9][0-9]* passed'"
 seq: 15
 docs:
   - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today

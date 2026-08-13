@@ -4,7 +4,7 @@ title: "Path confinement: docs:/attachment paths resolve inside the repo only"
 status: open
 category: core/verify
 discovered-from: mw-mjwfvxn
-verify: cargo test e2e::path_confinement
+verify: out=$(cargo test e2e::path_confinement 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
 created: 2026-08-07T01:55Z

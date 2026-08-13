@@ -3,7 +3,7 @@ id: mw-getx732
 title: Project task bodies into SQL (queryable body text)
 status: open
 category: core/format
-verify: cargo test e2e::body_projection
+verify: out=$(cargo test e2e::body_projection 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 docs:
   - FORMAT.md#projection
   - DESIGN-meshwork.md#§-4-tables-the-sql-contract
