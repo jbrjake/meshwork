@@ -41,6 +41,15 @@ Usage:
 Transcripts live in ~/.claude/projects/<encoded-repo-path>/*.jsonl.
 Compaction is not modeled (none of the measured sessions compact); the
 min() cap bounds the error if one does.
+
+Session sets behind the README tables (recorded on mw-z2kmhae): each
+repo's last 10 completed pre-migration sessions vs all its completed
+post-migration working sessions. Excluded: the migration session itself
+(one-time, mostly busywork by construction), sub-100KB transcripts,
+sessions still appending when measured, and Project B's two
+verify-hygiene sweeps — one-time repairs of verifies the import brought
+over rotted (54% and 56% busywork by construction), which is why its
+"after" column averages 3 of 5 sessions.
 """
 import glob
 import json

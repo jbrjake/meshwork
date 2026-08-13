@@ -112,17 +112,17 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 ### with meshwork
 
-*Measured after both repos migrated to meshwork (Project A 2026-08-07, Project B 2026-08-10). Each table: that repo's last 10 sessions before meshwork vs its completed working sessions after migrating.*
+*Measured after both repos migrated to meshwork (Project A 2026-08-07, Project B 2026-08-10). Each table: that repo's last 10 sessions before meshwork vs its working sessions after migrating.*
 
-The row that matters is the compounded one. Every API request re-submits the whole accrued context, so a token is re-paid on every request after the one where it lands — and tracker content lands first. Project A's pre-migration sessions opened by reading ~28K tokens of TODO.md + HANDOFF.md at request 1 of ~154; re-paid on every request after it, that one read compounds to ~4M tokens, and with mid-session tracker edits, deliberation, and diffs added the measured total is 4.19M. The same content landing at request 150 would have compounded to ~0.1M: early tokens are the expensive ones, and a session-start onboarding ritual is the earliest token there is. Caching changes what a re-submitted token costs, not whether it occupies the context window.
+*Every turn repeats the entire conversation, so the first things in context get repeated the most. Project A's pre-migration sessions opened by reading ~28K tokens of TODO.md + HANDOFF.md. Re-paid on all 153 requests after it, that one read compounds to ~4M tokens across all 153 turns after that. And that's before you account for all the TODO and HANDOFF edits the agent makes during the session. Altogether it's 4.19M tokens. The same content landing at request 150 would have compounded to ~0.1M tokens.
 
 **Project A** (Claude Opus sessions):
 
 | | before | after (34 sessions) |
 |---|---|---|
 | session-start onboarding read | tool calls to read TODO.md + HANDOFF.md: **116,119 bytes** (~28K tokens) | SessionStart-injected `meshwork prime`: **3,762 bytes** (~940 tokens) **31× less** |
-| busywork, counted once | **~32.6K tokens/session** — 26.6% of session content, 1 busywork token per 2.8 of work | **~8.5K** — 7.0%, 1 per 13.3, **3.8× less** |
-| **busywork, compounded** | **4.19M tokens/session** — 10.6% of the 39.7M the session re-submits over ~154 requests | **0.99M** — 2.1% of 48.3M over ~197 requests, **4.2× less** |
+| busywork, counted once | **~32.6K tokens/session**, 26.6% of session content, 1 busywork token per 2.8 of work | **~8.5K**, 7.0%, 1 per 13.3, **3.8× less** |
+| **busywork, compounded** | **4.19M tokens/session**, 10.6% of the 39.7M the session re-submits over ~154 requests | **0.99M**, 2.1% of 48.3M over ~197 requests, **4.2× less** |
 | worklist fidelity | one 550-line TODO.md (124 checkbox entries, ~4 lines each) | 224 tasks, 40 dependency edges |
 
 **Project B** (Claude Fable sessions):
@@ -130,15 +130,15 @@ The row that matters is the compounded one. Every API request re-submits the who
 | | before | after (3 sessions) |
 |---|---|---|
 | session-start onboarding read | tool calls to read TODO.md + docs/HANDOFF.md: **96,155 bytes** (~24K tokens) | SessionStart-injected `meshwork prime`: **4,023 bytes** (~1K tokens) **24× less** |
-| busywork, counted once | **~31.0K tokens/session** — 30.1% of session content, 1 busywork token per 2.3 of work | **~10.0K** — 10.5%, 1 per 8.5, **3.1× less** |
-| **busywork, compounded** | **2.34M tokens/session** — 9.5% of the 24.7M the session re-submits over ~105 requests | **0.50M** — 2.8% of 18.1M over ~96 requests, **4.7× less** |
+| busywork, counted once | **~31.0K tokens/session**, 30.1% of session content, 1 busywork token per 2.3 of work | **~10.0K**, 10.5%, 1 per 8.5, **3.1× less** |
+| **busywork, compounded** | **2.34M tokens/session**, 9.5% of the 24.7M the session re-submits over ~105 requests | **0.50M**, 2.8% of 18.1M over ~96 requests, **4.7× less** |
 | worklist fidelity | a 733-line TODO.md + a 666-line HANDOFF.md (48 checkbox entries, hard-wrapped ~12 lines each) | 68 tasks, 63 dependency edges |
 
-*Both rows come from `scripts/busywork-tokens.py`, run over the session transcripts and their per-request API usage records (4 chars/token). Busywork is the tracker's full blast radius: tool calls targeting TODO.md / HANDOFF\* / check-todo / anything meshwork (whole call + whole result, harness todo tools included), tracker content embedded in other calls' traffic (todo hunks in git diffs, matching lines in gate output), the agent's own text and thinking about the tracker, user messages about it, session-start injections, and subagent traffic — the rule errs against meshwork: its entire CLI surface counts. The compounded row adds, for every request, the busywork resident in that request's context, capped by the context size the API actually reported; its denominator is total re-submitted context from the same records. Each repo's migration session (one-time, mostly busywork by construction) and sub-100KB transcripts are excluded, as are Project B's two verify-hygiene sweeps — one-time repairs of verifies the import brought over rotted (54% and 56% busywork by construction).*
+*See `scripts/busywork-tokens.py` for the math.*
 
 *The repos are developed with different models (A: Opus, B: Fable), so compare before/after within a table, not across the two.*
 
-Four million tokens is not about the API bill — most re-submitted tokens are cache reads at a tenth of base price. It's that the todo apparatus occupied a tenth of everything the model read for the entire session, every session, and the thrash turns are real minutes. After migration the context goes to work instead: Project A sessions carry 90K → 113K work tokens/session and run ~28% longer (154 → 197 requests/session).
+Four million accrued busywork tokens across turns is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork the freed context went to work: Project A sessions carry 90K → 113K real work tokens/session and run ~28% longer (154 → 197 useful requests/session).
 
 ## when meshwork makes sense
 
