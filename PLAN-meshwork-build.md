@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 2.6 (manual: leras joins) — BLOCKED on mw-17hnhzk (`import todo` nested-checkbox loss) landing first; the store's seq ranks it next.** (2.1–2.5 done 2026-08-09/10: override semantics; portfolio union (`ready`/`q`, golden); cross-repo resolution (terminal-only injection, ready-alpha re-blessed); sequence.md + `portfolio next` (golden); gate §7 live — perf:: release-only tests, observed medians 31ms ready@1K / 32ms portfolio@20 repos, check-perf.sh + bench-baseline.json seeded (baseline rule). `portfolio seq` = honest stub, filed mw-908n9k2.)
+**Position: next = 3.1 (`mirror push` create path); M2 COMPLETE — leras joined, stop-line met 2026-08-13.** (2.6 closed the M2 queue: portfolio repo at `~/Documents/code/portfolio` registers sazed+leras+meshwork; the first real edge — leras#le-qfg98a0 `needs` sazed#sa-87jpgw8, leras f390d7c — resolves from inside leras (`why` prints the open dep) and portfolio-wide. `portfolio seq` = honest stub, filed mw-908n9k2. The store's seq ranks skill/hygiene work ahead of 3.1; the store is the live worklist.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -53,12 +53,12 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 
 | id | item (MW refs) | verify |
 |---|---|---|
-| 2.1 | `repos.toml` + `repos.local.toml` overrides + default-path resolution (G2) | `cargo test e2e::registry_overrides` |
-| 2.2 | Portfolio union pipeline (`repo` column, one code path) + `portfolio q` (G1, G3) | `cargo test e2e::portfolio_union_golden` |
-| 2.3 | Single-repo cross-repo resolution via by-ID glob; absent-repo scenario 6 (B3, G5) | `cargo test e2e::crossrepo_resolution e2e::absent_repo` |
-| 2.4 | `sequence.md` + `portfolio next` total ordering (sequenced → repos.toml order → per-repo) (G4) | `cargo test e2e::portfolio_next_ordering` |
-| 2.5 | Gate §7 perf: synthetic generators (seeded), 1K tasks / 20 repos, N≥7 median (C4) | `./verify_meshwork.sh` (§7) |
-| 2.6 | **Manual:** leras registered; one real cross-repo `needs` sazed↔leras | `portfolio ready` shows it; REQUIREMENTS §4 clause 3 |
+| 2.1 ✓ | `repos.toml` + `repos.local.toml` overrides + default-path resolution (G2) | `cargo test e2e::registry_overrides` ✓ 2026-08-09 |
+| 2.2 ✓ | Portfolio union pipeline (`repo` column, one code path) + `portfolio q` (G1, G3) | `cargo test e2e::portfolio_union_golden` ✓ 2026-08-09 |
+| 2.3 ✓ | Single-repo cross-repo resolution via by-ID glob; absent-repo scenario 6 (B3, G5) | `cargo test e2e::crossrepo_resolution e2e::absent_repo` ✓ 2026-08-09 |
+| 2.4 ✓ | `sequence.md` + `portfolio next` total ordering (sequenced → repos.toml order → per-repo) (G4) | `cargo test e2e::portfolio_next_ordering` ✓ 2026-08-10 |
+| 2.5 ✓ | Gate §7 perf: synthetic generators (seeded), 1K tasks / 20 repos, N≥7 median (C4) | `./verify_meshwork.sh` (§7) ✓ 2026-08-10 (medians 31ms ready@1K / 32ms portfolio@20; check-perf.sh + bench-baseline.json seeded) |
+| 2.6 ✓ | **Manual:** leras registered; one real cross-repo `needs` sazed↔leras | `portfolio ready` shows it; REQUIREMENTS §4 clause 3 ✓ 2026-08-13 (portfolio repo live: sazed+leras+meshwork; leras#le-qfg98a0 needs sazed#sa-87jpgw8 resolves `(open)`, edges row resolved=true, dependent held out of ready) |
 
 ### M3 — mirror (stop-line: OEM-face visibility)
 
