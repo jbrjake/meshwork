@@ -114,7 +114,7 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 *Measured after both repos migrated to meshwork (Project A 2026-08-07, Project B 2026-08-10). Each table: that repo's last 10 sessions before meshwork vs its working sessions after migrating.*
 
-*Every turn repeats the entire conversation, so the first things in context get repeated the most. Project A's pre-migration sessions opened by reading ~28K tokens of TODO.md + HANDOFF.md. Re-paid on all 153 requests after it, that one read compounds to ~4M tokens across all 153 turns after that. And that's before you account for all the TODO and HANDOFF edits the agent makes during the session. Altogether it's 4.19M tokens. The same content landing at request 150 would have compounded to ~0.1M tokens.
+*Every turn repeats the entire conversation, so the first things in context get repeated the most. Project A's pre-migration sessions opened by reading ~28K tokens of TODO.md + HANDOFF.md. Re-paid on all 153 requests after it, that one read compounds to ~4M tokens across all 153 turns after that. And that's before you account for all the TODO and HANDOFF edits the agent makes during the session. Altogether it's 4.19M tokens. The same content landing at request 150 would have compounded to ~0.1M tokens.*
 
 **Project A** (Claude Opus sessions):
 
