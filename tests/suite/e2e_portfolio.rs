@@ -406,8 +406,8 @@ fn portfolio_sequence_prune() {
     );
 }
 
-/// Discovery + honesty: default is ~/Documents/code/portfolio (§15.4); no
-/// registry anywhere is a loud error; next/seq stay honest stubs until 2.4.
+/// Discovery: default is ~/Documents/code/portfolio (§15.4); no
+/// registry anywhere is a loud error.
 #[test]
 fn portfolio_discovery_default() {
     let (dir, portfolio) = portfolio_fixture();
@@ -436,13 +436,152 @@ fn portfolio_discovery_default() {
         .assert()
         .success();
 
-    // The one unbuilt verb keeps erroring honestly (DESIGN §6 frozen
-    // surface): `portfolio seq` waits for the first exhausted gap (§15.2).
+}
+
+/// mw-908n9k2 (§15.2): `portfolio seq` — repo-level renumber when a gap
+/// exhausts. Trigger: two adjacent live seq weights in one repo with no
+/// integer between them (leras exhausted three neighborhoods within 48h
+/// of migrating). Action: that repo's live seq-bearing tasks renumber to
+/// gaps of 10 in current order (seq, created, id). Unseq'd tasks,
+/// terminal tasks, and healthy repos stay byte-identical; weights that
+/// already sit on their new value are not rewritten.
+#[test]
+fn portfolio_seq_renumber() {
+    let (dir, portfolio) = portfolio_fixture();
+    let alpha = dir.path().join("alpha/docs/meshwork");
+    let beta = dir.path().join("beta/docs/meshwork");
+    let seq_of = |p: &Path| -> Option<String> {
+        std::fs::read_to_string(p)
+            .unwrap()
+            .lines()
+            .find(|l| l.starts_with("seq:"))
+            .map(str::to_string)
+    };
+
+    // Exhaust alpha's first gap: az-n33d 20 → 11, adjacent to az-s4g0's
+    // 10. Alpha's live weights become 10, 11, 30, 40, 80.
+    let n33d = alpha.join("az-n33d-publish-spill-report.md");
+    let text = std::fs::read_to_string(&n33d).unwrap();
+    std::fs::write(&n33d, text.replace("seq: 20", "seq: 11")).unwrap();
+    let beta_before =
+        std::fs::read_to_string(beta.join("bz-s3q1-schema-qualifier-cleanup.md")).unwrap();
+
+    // The mutating run: alpha renumbers to 10,20,30,40,50 in current
+    // order — only n33d (11→20) and r3l8 (80→50) actually move.
+    let js = stdout_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "seq", "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(
+        v["data"]["renumbered"],
+        serde_json::json!([{ "repo": "alpha", "rewritten": 2, "total": 5 }]),
+        "{v}"
+    );
+    assert!(
+        v["data"]["skipped"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s["repo"] == "gamma"),
+        "absent repo reported, never an error (MW-G5): {v}"
+    );
+    assert_eq!(
+        seq_of(&n33d),
+        Some("seq: 20".into()),
+        "order preserved: n33d follows s4g0"
+    );
+    assert_eq!(
+        seq_of(&alpha.join("az-r3l8-document-spill-knobs.md")),
+        Some("seq: 50".into()),
+        "the tail compacts"
+    );
+    for (file, kept) in [
+        ("az-s4g0-governed-spill-program.md", "seq: 10"),
+        ("az-cw55-cache-warmup-pass.md", "seq: 30"),
+        ("az-x9b2-cross-repo-consumer-bump.md", "seq: 40"),
+    ] {
+        assert_eq!(seq_of(&alpha.join(file)), Some(kept.into()), "{file}");
+    }
+    assert_eq!(
+        seq_of(&alpha.join("az-f1nd-fix-flaky-governor-test.md")),
+        None,
+        "unseq'd tasks never gain a weight"
+    );
+    assert_eq!(
+        std::fs::read_to_string(beta.join("bz-s3q1-schema-qualifier-cleanup.md")).unwrap(),
+        beta_before,
+        "a healthy repo is byte-identical"
+    );
+
+    // Idempotent: every alpha gap is healthy now.
+    let js = stdout_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "seq", "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["data"]["renumbered"], serde_json::json!([]), "{v}");
+}
+
+/// §15.2's edges in text mode: terminal tasks keep their stale weight
+/// (they order nothing), and a healthy repo stays out of the report.
+#[test]
+fn portfolio_seq_terminal_and_text() {
+    let (dir, portfolio) = portfolio_fixture();
+    let beta = dir.path().join("beta/docs/meshwork");
+    let seq_of = |p: &Path| -> Option<String> {
+        std::fs::read_to_string(p)
+            .unwrap()
+            .lines()
+            .find(|l| l.starts_with("seq:"))
+            .map(str::to_string)
+    };
+
+    // Exhaust beta: r34d live at 11 beside s3q1's 10; c0r3 done at 12.
+    for (file, marker, insert) in [
+        (
+            "bz-r34d-retry-policy-fetch.md",
+            "status: open\n",
+            "status: open\nseq: 11\n",
+        ),
+        (
+            "bz-c0r3-core-reader-v2.md",
+            "status: done\n",
+            "status: done\nseq: 12\n",
+        ),
+    ] {
+        let p = beta.join(file);
+        let text = std::fs::read_to_string(&p).unwrap();
+        assert!(text.contains(marker), "{file} lost its status line");
+        std::fs::write(&p, text.replacen(marker, insert, 1)).unwrap();
+    }
     let assert = meshwork(dir.path())
         .env("MESHWORK_PORTFOLIO", &portfolio)
         .args(["portfolio", "seq"])
         .assert()
-        .code(1);
-    let err = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
-    assert!(err.contains("15.2"), "names its spec: {err}");
+        .success();
+    let out = stdout_of(&assert);
+    assert!(
+        out.contains("beta") && out.contains("1 of 2"),
+        "text mode names the repo and the rewrite count: {out}"
+    );
+    assert!(
+        !out.contains("alpha"),
+        "healthy alpha stays out of the report: {out}"
+    );
+    assert_eq!(
+        seq_of(&beta.join("bz-r34d-retry-policy-fetch.md")),
+        Some("seq: 20".into())
+    );
+    assert_eq!(
+        seq_of(&beta.join("bz-c0r3-core-reader-v2.md")),
+        Some("seq: 12".into()),
+        "terminal tasks keep their stale weight \u{2014} they order nothing"
+    );
 }

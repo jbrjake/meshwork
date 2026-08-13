@@ -3,8 +3,8 @@
 //! the union is a loading concern, not a second query path (MW-G1/G3).
 //! Registered-but-absent repos skip + report (MW-G5): stderr in text mode
 //! (stdout stays pipeable), a `skipped` list in the JSON data. `next`
-//! overlays sequence.md (MW-G4, mw-jpbv); `seq` waits for the first
-//! exhausted gap (§15.2) and errors honestly until then.
+//! overlays sequence.md (MW-G4, mw-jpbv); `seq` renumbers a repo's live
+//! weights to gaps of 10 when a gap exhausts (§15.2, mw-908n9k2).
 
 use crate::cli::query::{print_q_text, q_payload, run_query, string_rows, READY_SQL};
 use crate::registry::{self, Registry, SkippedRepo};
@@ -39,9 +39,7 @@ pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
         PortfolioAction::Ready => ready(json),
         PortfolioAction::Q { sql } => q(sql, json),
         PortfolioAction::Next => next(json),
-        PortfolioAction::Seq => Err("portfolio seq lands with the first exhausted gap (§15.2); \
-             ready, next, and q are live"
-            .into()),
+        PortfolioAction::Seq => seq(json),
     }
 }
 
@@ -152,6 +150,85 @@ fn next(json: bool) -> Result<(), String> {
                 println!("{}#{}  {}{claim}", r[0], r[1], r[4]);
             }
             None => println!("nothing ready"),
+        }
+    }
+    Ok(())
+}
+
+/// `portfolio seq` (§15.2, mw-908n9k2): repo-level renumber when a gap
+/// exhausts. A repo triggers when two adjacent live seq weights have no
+/// integer between them (a midpoint insert is impossible); its live
+/// seq-bearing tasks then renumber to 10, 20, 30… in current order
+/// (seq, created, id — the `next` fallback order, so nothing observable
+/// reorders). Unseq'd and terminal tasks are untouched; a weight already
+/// on its target value is not rewritten (minimal diffs, MW-I1's spirit).
+fn seq(json: bool) -> Result<(), String> {
+    let p = load_portfolio()?;
+    let mut renumbered = Vec::new();
+    for store in &p.stores {
+        let mut live: Vec<(i64, String, String, &str)> = store
+            .entries
+            .iter()
+            .filter_map(|e| match &e.parsed {
+                crate::parse::ParsedTask::Valid(t)
+                    if !matches!(
+                        t.status,
+                        crate::parse::Status::Done | crate::parse::Status::Dropped
+                    ) =>
+                {
+                    t.seq.map(|s| {
+                        (
+                            s,
+                            t.created.clone().unwrap_or_default(),
+                            t.id.clone(),
+                            e.file_name.as_str(),
+                        )
+                    })
+                }
+                _ => None,
+            })
+            .collect();
+        live.sort();
+        if !live.windows(2).any(|w| w[1].0 - w[0].0 <= 1) {
+            continue;
+        }
+        let mut rewritten = 0usize;
+        for (rank, (old, _, _, file_name)) in live.iter().enumerate() {
+            let new = i64::try_from(rank + 1).map_err(|e| e.to_string())? * 10;
+            if *old == new {
+                continue;
+            }
+            let path = crate::store::tasks_dir(&store.root).join(file_name);
+            let text =
+                std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+            let out = crate::edit::set_scalar(&text, "seq", Some(&new.to_string()))
+                .map_err(|e| format!("{}: {e}", path.display()))?;
+            std::fs::write(&path, out).map_err(|e| format!("{}: {e}", path.display()))?;
+            rewritten += 1;
+        }
+        renumbered.push((store.repo.clone(), rewritten, live.len()));
+    }
+
+    if json {
+        let list: Vec<_> = renumbered
+            .iter()
+            .map(|(repo, rewritten, total)| {
+                serde_json::json!({ "repo": repo, "rewritten": rewritten, "total": total })
+            })
+            .collect();
+        crate::cli::emit_json(
+            "portfolio seq",
+            &serde_json::json!({ "renumbered": list,
+                "skipped": skips_json(&p.skipped), "pruned": pruned_json(&p.pruned) }),
+        );
+    } else {
+        report_skips(&p.skipped);
+        report_pruned(&p.pruned);
+        for (repo, rewritten, total) in &renumbered {
+            println!("{repo}: seq renumbered \u{2014} {rewritten} of {total} rewritten");
+        }
+        if renumbered.is_empty() {
+            println!("no exhausted gaps");
         }
     }
     Ok(())
