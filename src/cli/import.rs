@@ -22,6 +22,9 @@ struct TodoItem {
     /// Index of the enclosing checkbox (mw-17hnhzk) — always earlier in
     /// the document, so its id is minted before this one renders.
     parent: Option<usize>,
+    /// `[~]` in the source (mw-x5a8g9w): doing without a claimant is a
+    /// lie, so the item lands open and its log remembers the marker.
+    from_doing: bool,
 }
 
 pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
@@ -52,6 +55,7 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
             verify: None,
             seq: None,
             parent: None,
+            from_doing: false,
         });
         items.len() - 1
     });
@@ -73,10 +77,7 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
         let file = render(item, &id, parent_id, &today);
         let name = format!("{id}-{}.md", slugify(&item.title));
         // Already-terminal imports go straight to archive/ (mw-45e2qf4).
-        let terminal = matches!(
-            item.status,
-            crate::parse::Status::Done | crate::parse::Status::Dropped
-        );
+        let terminal = matches!(item.status, Status::Done | Status::Dropped);
         let (dir, rel) = if terminal {
             (
                 tasks_dir.join(crate::store::ARCHIVE_SUBDIR),
@@ -115,13 +116,8 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
             created.len(),
             summary_line(&counts, nested)
         );
-        if let Some(id) = &carried_into {
-            // Loud by design: prose used to vanish here (mw-gsgh8s7).
-            println!("{carried_n} prose line(s) carried into {id} — triage into real tasks");
-        }
-        if short_titles > 0 {
-            println!("{short_titles} single-token title(s) — retitle as work orders at review");
-        }
+        let downgraded = items.iter().filter(|i| i.from_doing).count();
+        print_notes(carried_into.as_deref(), carried_n, short_titles, downgraded);
         println!(
             "next: review with `meshwork ready` + `lint`, then archive the source \
              (git mv {} docs/archive/) — history never deletes",
@@ -198,6 +194,7 @@ fn parse_todo(text: &str) -> (Vec<TodoItem>, Vec<String>) {
                 verify: None,
                 seq,
                 parent,
+                from_doing: false,
             });
             stack.push((indent, items.len() - 1));
             cont = Cont::Headline;
@@ -235,6 +232,12 @@ fn parse_todo(text: &str) -> (Vec<TodoItem>, Vec<String>) {
         }
         if let Some(v) = item.verify.take() {
             item.verify = Some(extract_command(&v));
+        }
+        // [~] lands open (mw-x5a8g9w): an import can't claim work, and
+        // doing without a claimant seeds instant rot (mw-06j1wqe).
+        if item.status == Status::Doing {
+            item.status = Status::Open;
+            item.from_doing = true;
         }
     }
     (items, carried)
@@ -285,6 +288,21 @@ fn continue_line(
                 carry(carried, heading_emitted, heading, line);
             }
         }
+    }
+}
+
+/// The loud lines under the tally — every class of import surprise gets a
+/// count; silence is the forbidden outcome.
+fn print_notes(carried_into: Option<&str>, carried_n: usize, short_titles: usize, doing_n: usize) {
+    if let Some(id) = carried_into {
+        // Loud by design: prose used to vanish here (mw-gsgh8s7).
+        println!("{carried_n} prose line(s) carried into {id} — triage into real tasks");
+    }
+    if short_titles > 0 {
+        println!("{short_titles} single-token title(s) — retitle as work orders at review");
+    }
+    if doing_n > 0 {
+        println!("{doing_n} [~] item(s) imported as open — claim in-flight work with `start`");
     }
 }
 
@@ -390,6 +408,11 @@ fn render(item: &TodoItem, id: &str, parent_id: Option<&str>, today: &str) -> St
         body.push_str(&description);
         body.push_str("\n\n");
     }
-    let _ = write!(body, "## log\n- {today} imported from TODO.md\n");
+    let note = if item.from_doing {
+        " ([~] in source imported as open — doing needs a claimant)"
+    } else {
+        ""
+    };
+    let _ = write!(body, "## log\n- {today} imported from TODO.md{note}\n");
     format!("---\n{fm}---\n{body}")
 }

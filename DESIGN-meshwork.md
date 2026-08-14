@@ -171,7 +171,7 @@ Drop across the boundary (mw-kkvs8zq): only done/dropped satisfies a dependency,
 
 ## 10. Migration (one session per repo, MW-J3)
 
-`import todo TODO.md`: parses baseline checkbox format (`[ ]`/`[~]`/`[x]`/`[!]`, `verify:` lines, `## Now` ordering → `seq`) into task files; prose pointers ("this IS ask #8") become real edges by hand during review. Old TODO.md → `docs/archive/` (history never deleted). `check-todo.sh` retired; `check-file-length.sh` gains a byte gate for surviving docs (closes the 38KB/131-line hole). Baseline amendment lands only after the sazed pilot passes REQUIREMENTS §4.
+`import todo TODO.md`: parses baseline checkbox format (`[ ]`/`[~]`/`[x]`/`[!]`, `verify:` lines, `## Now` ordering → `seq`) into task files. `[~]` lands as `open` plus a log note naming the marker: an import cannot claim work, and an unclaimed `doing` row is instant rot — the summary counts the downgrades so real in-flight work gets re-claimed via `start`. Prose pointers ("this IS ask #8") become real edges by hand during review. Old TODO.md → `docs/archive/` (history never deleted). `check-todo.sh` retired; `check-file-length.sh` gains a byte gate for surviving docs (closes the 38KB/131-line hole). Baseline amendment lands only after the sazed pilot passes REQUIREMENTS §4.
 
 ## 11. Phasing with stop-lines
 

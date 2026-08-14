@@ -283,6 +283,64 @@ fn import_short_title() {
     );
 }
 
+// mw-x5a8g9w: [~] used to mint `status: doing` with no claimant — the
+// leras import seeded instant doing-rot that way (mw-06j1wqe measured it:
+// still stale five days on, across all three repos). doing without a
+// claimant is a lie at import time. [~] now imports as open with the
+// source marker preserved in the log, counted loudly in the summary.
+
+/// `[~]` imports as open + a log note, never an unclaimed doing row.
+#[test]
+fn import_marker_doing() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    std::fs::write(
+        repo.join("TODO.md"),
+        "# TODO\n\n## Now\n\n\
+         - [~] **Fix the spill cliff** — was mid-flight at export.\n\
+         - [ ] **Untouched open item**\n",
+    )
+    .unwrap();
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["import", "todo", "TODO.md"])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains("2 imported"), "{out}");
+    // The downgrade is loud, carried_n-style, in the summary block.
+    assert!(
+        out.contains("1 [~] item(s) imported as open"),
+        "downgrade is counted, never silent: {out}"
+    );
+
+    let q = |sql: &str| stdout_of(&meshwork(&repo).args(["q", sql]).assert().success());
+    assert!(
+        q("SELECT count(*) FROM tasks WHERE status = 'doing'").contains('0'),
+        "no unclaimed doing rows minted"
+    );
+    assert!(
+        q("SELECT status FROM tasks WHERE title = 'Fix the spill cliff'").contains("open"),
+        "the [~] item lands open"
+    );
+
+    // The source marker survives in the log — the file remembers.
+    let body = std::fs::read_to_string(task_file(
+        &repo,
+        &first_id_titled(&repo, "Fix the spill cliff"),
+    ))
+    .unwrap();
+    assert!(body.contains("[~]"), "log notes the source marker: {body}");
+    // A plain open import keeps its log free of the note.
+    let clean = std::fs::read_to_string(task_file(
+        &repo,
+        &first_id_titled(&repo, "Untouched open item"),
+    ))
+    .unwrap();
+    assert!(!clean.contains("[~]"), "no phantom marker note: {clean}");
+}
+
 /// Look up a task id by exact title via SQL.
 fn first_id_titled(repo: &Path, title: &str) -> String {
     let out = stdout_of(

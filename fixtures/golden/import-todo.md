@@ -42,7 +42,7 @@ one page: guarantees vs never-promises, including the wakeup interval defaults.
 ---
 id: wo-qe34kch
 title: Fix spill cliff at 600M keys
-status: doing
+status: open
 verify: cargo test -p sazed-spill -- --exact spill::cliff_600m
 seq: 10
 created: 2026-08-04
@@ -50,7 +50,7 @@ created: 2026-08-04
 p99 collapses past 600M; repro in bench/spill_cliff.rs.
 
 ## log
-- 2026-08-04 imported from TODO.md
+- 2026-08-04 imported from TODO.md ([~] in source imported as open — doing needs a claimant)
 
 === wo-wgsr3tz-extract-arrow-conversion-seam.md
 ---

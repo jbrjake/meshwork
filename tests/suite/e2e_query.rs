@@ -259,9 +259,11 @@ fn import_todo_golden() {
             .assert()
             .success(),
     );
-    for expected in ["blocked | 1", "doing | 1", "done | 1", "open | 2"] {
+    // [~] lands open, not unclaimed doing (mw-x5a8g9w) — hence 3 open.
+    for expected in ["blocked | 1", "done | 1", "open | 3"] {
         assert!(counts.contains(expected), "{counts}");
     }
+    assert!(!counts.contains("doing"), "no unclaimed doing rows: {counts}");
     let seqs = stdout_of(
         &meshwork(&repo)
             .args(["q", "SELECT seq FROM tasks WHERE seq IS NOT NULL ORDER BY seq"])
