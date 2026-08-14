@@ -1,7 +1,7 @@
 ---
 id: mw-4aqmf0t
 title: Migrate stores to DSL verifies + lint pressure on legacy shell
-status: doing
+status: done
 category: core/verify
 needs: [mw-dthxs3q, mw-9rc4vs6, mw-egksvhm]
 parent: mw-6895bkg
@@ -37,7 +37,6 @@ handoff: |
   the diff). e2e::verify_migration not yet written — red-check via sh -c
   at authoring. cargo fmt BEFORE clippy (fn-cap re-wraps; bit three
   times).
-claimed-by: claude (session_016iEafFdzwyKAtsU3AEMhaU)
 ---
 Flip the stores and the docs: convert this repo's verifies to DSL (all
 current shapes are covered by design), new lint warning verify-shell on
@@ -49,3 +48,4 @@ removes legacy shell; it just makes it loud, gated, and rare.
 ## log
 - 2026-08-06 created
 - 2026-08-14T18:33Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-14T19:04Z doing→done — verify exit 0 @ 6ecbd3f+1

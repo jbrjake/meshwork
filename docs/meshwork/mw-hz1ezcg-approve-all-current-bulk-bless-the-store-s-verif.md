@@ -11,6 +11,25 @@ docs:
   - DESIGN-meshwork.md#§-6-cli-surface
 status: open
 created: 2026-08-08T14:09Z
+handoff: |
+  The DSL migration is DONE (mw-4aqmf0t, 2026-08-14): close/start route
+  through verify_dsl::classify; run executes free only on store-only
+  provenance (provenance::task_provenance); cargo-test vacuity is native
+  (verify_exec::require_non_vacuous, ok. N>=1 passed demanded); lint warns
+  verify-shell/verify-malformed from src/lint_verify.rs. This task is now
+  the live friction: nearly every pre-migration task file rode along with
+  code at some point (this repo commits task+code together by ritual), so
+  every DSL run verify gates once per clone — I hit it closing
+  mw-4aqmf0t
+  itself (refusal named 62969c2 + DESIGN-meshwork.md; --approve worked).
+  approve --all-current should record approvals for every live task's
+  CURRENT verify text at once, anchored to a tree hash per the 2026-08-14
+  ruling on mw-6895bkg (weather); it is also the ruled escalation for the
+  test-in-one-merge/task-in-a-later-one residual. Surface question for the
+  owner: new verb vs a flag on close — §6 is frozen, so this needs a
+  ruling either way. Trust plumbing lives in src/trust.rs (record_approval
+  keyed on id+text hash); the e2e style to copy is
+  e2e_verify_migration.rs (stub cargo on PATH, untrusted() helper).
 ---
 Review finding (2026-08-08). Bless every verify in the store as of a
 tree hash; afterward only new-or-changed text prompts. 108 gates ×
