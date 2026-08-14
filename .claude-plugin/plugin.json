@@ -1,7 +1,7 @@
 {
   "name": "meshwork",
   "description": "Opinionated minimalist todo list for clankers. Tasks are markdown files in git — no database, queried with SQL. Closing a task means its verify command was watched exiting 0, and sessions start from a byte-budgeted digest instead of a TODO.md/HANDOFF.md ritual. The plugin ships the skill; each repo pins its own binary.",
-  "version": "0.2.1",
+  "version": "0.3.1",
   "author": {
     "name": "Jon Rubin",
     "email": "jb.rubin@gmail.com",
