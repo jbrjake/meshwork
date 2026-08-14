@@ -238,7 +238,8 @@ fn emit_json(
             .map(|e| {
                 serde_json::json!({
                     "link": e.link, "text": e.text,
-                    "truncated": e.truncated, "error": e.error,
+                    "truncated": e.truncated,
+                    "error": e.error.as_ref().map(ToString::to_string),
                 })
             })
             .collect();

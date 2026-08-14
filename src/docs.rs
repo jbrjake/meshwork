@@ -19,8 +19,32 @@ pub struct Excerpt {
     pub text: String,
     /// True when the section outran `EXCERPT_CAP` and was cut.
     pub truncated: bool,
-    /// Why the link did not resolve (missing file or anchor).
-    pub error: Option<String>,
+    /// Why the link did not resolve.
+    pub error: Option<LinkError>,
+}
+
+/// Why a `docs:` link fails to resolve — lint keys warnings off the
+/// variant (MW-F3); the view just prints it.
+pub enum LinkError {
+    /// The path part didn't read.
+    Unreadable {
+        /// The path as written in the link.
+        path: String,
+    },
+    /// The file read but no heading matched the anchor.
+    AnchorMissing {
+        /// The fragment as written after `#`.
+        anchor: String,
+    },
+}
+
+impl std::fmt::Display for LinkError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LinkError::Unreadable { path } => write!(f, "{path} not readable"),
+            LinkError::AnchorMissing { anchor } => write!(f, "anchor not found: #{anchor}"),
+        }
+    }
 }
 
 /// Resolve one `docs:` link against the repo root.
@@ -37,19 +61,21 @@ pub fn resolve(root: &Path, link: &str) -> Excerpt {
         error,
     };
     let Ok(content) = std::fs::read_to_string(root.join(path)) else {
-        return make(String::new(), false, Some(format!("{path} not readable")));
+        let err = LinkError::Unreadable {
+            path: path.to_string(),
+        };
+        return make(String::new(), false, Some(err));
     };
     let section = match anchor {
-        Some(a) => match anchored_section(&content, a) {
-            Some(s) => s,
-            None => {
-                return make(
-                    String::new(),
-                    false,
-                    Some(format!("anchor not found: #{a}")),
-                )
-            }
-        },
+        Some(a) => {
+            let Some(s) = anchored_section(&content, a) else {
+                let err = LinkError::AnchorMissing {
+                    anchor: a.to_string(),
+                };
+                return make(String::new(), false, Some(err));
+            };
+            s
+        }
         None => content.as_str(),
     };
     let (text, truncated) = cap(section);

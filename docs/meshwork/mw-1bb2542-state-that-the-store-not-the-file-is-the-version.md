@@ -4,7 +4,7 @@ title: "State that the store, not the file, is the versioning unit"
 category: core/format
 verify: grep -qi 'versioning unit' FORMAT.md
 docs:
-  - FORMAT.md#configtoml
+  - FORMAT.md#§-config-toml
 status: open
 created: 2026-08-09T23:17Z
 ---

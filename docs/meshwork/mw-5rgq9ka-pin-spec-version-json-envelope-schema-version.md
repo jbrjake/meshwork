@@ -7,7 +7,7 @@ relates: [mw-5kp033j, mw-n6nvzpa]
 verify: out=$(cargo test format::version_matches_envelope 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 270
 docs:
-  - FORMAT.md#configtoml
+  - FORMAT.md#§-config-toml
 status: open
 created: 2026-08-08T14:09Z
 ---

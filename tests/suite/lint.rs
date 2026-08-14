@@ -180,3 +180,64 @@ fn gitattributes_union_missing() {
     let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
     assert!(!f.iter().any(|x| x.code == "gitattributes-union"), "{f:?}");
 }
+
+/// MW-F3 (PLAN 4.2, mw-8r1a): a live task's `docs:` links must resolve —
+/// dead anchor and dead path each warn, distinctly. Terminal tasks are
+/// history; their pointers may rot without noise.
+#[test]
+fn anchor_missing_warn() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    std::fs::write(
+        dir.path().join("repo/DESIGN-z.md"),
+        "# Z\n\n## 3. Real section\n\nbody.\n",
+    )
+    .unwrap();
+    let task = |id: &str, status: &str, link: &str| {
+        format!(
+            "---\nid: {id}\ntitle: T {id}\nstatus: {status}\nverify: \"true\"\n\
+             docs:\n  - {link}\n---\n"
+        )
+    };
+    for (name, body) in [
+        (
+            "zz-doc1-a.md",
+            task("zz-doc1", "open", "DESIGN-z.md#§-3-real-section"),
+        ),
+        (
+            "zz-doc2-b.md",
+            task("zz-doc2", "open", "DESIGN-z.md#§-9-gone"),
+        ),
+        ("zz-doc3-c.md", task("zz-doc3", "open", "GONE.md#§-1-x")),
+        (
+            "archive/zz-doc4-d.md",
+            task("zz-doc4", "done", "GONE.md#§-1-x"),
+        ),
+    ] {
+        let path = mw.join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, body).unwrap();
+    }
+
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "anchor-missing", "zz-doc2"),
+        "{f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "doc-missing", "zz-doc3"),
+        "{f:?}"
+    );
+    let dead = |id: &str| {
+        f.iter().any(|x| {
+            x.subject.contains(id) && (x.code == "anchor-missing" || x.code == "doc-missing")
+        })
+    };
+    assert!(!dead("zz-doc1"), "resolving link must stay clean: {f:?}");
+    assert!(
+        !dead("zz-doc4"),
+        "terminal rot is history, not noise: {f:?}"
+    );
+}

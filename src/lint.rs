@@ -81,10 +81,37 @@ pub fn lint_store(store: &RepoStore) -> Vec<Finding> {
     check_lifecycle(&valid, &mut out);
     check_budgets(store, &valid, &mut out);
     check_misplaced(store, &mut out);
+    check_docs(store, &valid, &mut out);
 
     out.sort();
     out.dedup();
     out
+}
+
+/// MW-F3 (mw-8r1a): a live task's `docs:` links must resolve — file and
+/// anchor both — or drill-through dead-ends exactly when a session reaches
+/// for it. Terminal tasks are history; their pointers may rot silently.
+fn check_docs(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
+    for t in valid {
+        if matches!(t.status, Status::Done | Status::Dropped) {
+            continue;
+        }
+        for link in &t.docs {
+            let Some(err) = crate::docs::resolve(&store.root, link).error else {
+                continue;
+            };
+            let code = match err {
+                crate::docs::LinkError::Unreadable { .. } => "doc-missing",
+                crate::docs::LinkError::AnchorMissing { .. } => "anchor-missing",
+            };
+            out.push(finding(
+                Severity::Warning,
+                code,
+                &t.id,
+                format!("docs: {link} — {err} (show --docs will dead-end)"),
+            ));
+        }
+    }
 }
 
 /// The canonical union lines absent from the store's `.gitattributes`
