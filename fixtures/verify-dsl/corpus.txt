@@ -1,0 +1,47 @@
+# verify-DSL corpus (mw-sascrgs, DESIGN §12b) — one candidate verify per
+# line; the golden pins each line's classification. Three outcomes: DSL
+# (parsed), MALFORMED (keyword-led but invalid — refused, never shell),
+# SHELL (legacy text for the MW-E5 trust gate).
+# --- observed store shapes, DSL-spelled ---
+exists docs/batch-door.md
+absent HANDOFF.md
+contains docs/batch-door.md Q21
+contains PLAN-meshwork-build.md /4\.1 .. 2026-08-14/
+run cargo test import_short_title
+run cargo test lint::anchor_missing_warn
+run cargo fmt
+all(exists FORMAT.md, contains FORMAT.md config-toml, run cargo test e2e::)
+# --- argument injection dies at the character class ---
+run cargo test --workspace
+run cargo test -- --exact foo
+exists -rf
+contains -x.md literal
+# --- shell metacharacters are just characters that fail the class ---
+contains docs/x.md $(rm-rf)
+run cargo test a;b
+run cargo test a&&b
+exists a|b.md
+contains a.md `backtick`
+# --- paths stay repo-relative ---
+exists /etc/passwd
+exists ../outside.md
+contains docs/../../up.md x
+# --- keyword-led but malformed: refused, never downgraded to shell ---
+exists
+exists docs/a.md extra-token
+absent
+contains docs/x.md
+run cargo
+run rustc main.rs
+run cargo publish
+all()
+all(exists a.md,)
+all(all(exists a.md))
+all(exists a.md
+# --- legacy shell: everything else, verbatim, behind the trust gate ---
+out=$(cargo test F 2>&1) && echo "$out" | grep -qE 'ok'
+grep -q Q21 docs/batch-door.md
+test -f target/debug/meshwork
+true
+./scripts/check-perf.sh
+! (./meshwork lint 2>&1 | grep -q handoff-stale)

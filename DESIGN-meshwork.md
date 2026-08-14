@@ -203,6 +203,8 @@ DataFusion compile time (house-accepted via sahjhan). YAML hand-edit footguns (s
 
 **CLI surface delta (ruled).** No new verb. The trust gate may add exactly one flag to §6: `close --approve` (print the verify text, record the approval, run). Refusal without approval is loud and names the approval step; approval requires the text on screen.
 
+**The DSL (parse stage, landed via mw-sascrgs).** A `verify:` that leads with a DSL keyword parses as predicates — `exists <path>` / `absent <path>` / `contains <path> <lit|/regex/>` / `run <runner> <args…>` / `all(p, …)` — in `src/verify_dsl.rs`, golden-pinned by `fixtures/verify-dsl/corpus.txt`. Safety is by construction, not sanitization: per-runner argv grammars (today `cargo test|build|fmt`), tight character classes, no leading dashes anywhere (argument injection, per the Cursor/Flowise prior art), repo-relative traversal-free paths; shell metacharacters are just characters that fail a class. Keyword-led text that doesn't parse REFUSES loudly — it never downgrades to legacy shell, because that silent downgrade would reopen the drive-by hole. Non-keyword text stays legacy shell behind the gate above. Execution semantics are the successor items; nothing in the parser runs anything.
+
 **Scope (ruled).** A constrained declarative verify grammar (mw-sascrgs — parse, don't shell) is in scope: REQUIREMENTS §3's "no bespoke query language" fence bans *query* DSLs — SQL stays the only query surface — and was never about the execution side. Sandboxing actual shell (containers, seccomp) stays out of scope: the TOFU gate closes the drive-by path, and reviewed-then-approved shell is the operator's own risk, as it is for any script in the repo.
 
 ## 13. Test architecture & fixture corpus (MW-J4/J6)

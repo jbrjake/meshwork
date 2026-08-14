@@ -16,3 +16,4 @@ mod query;
 mod stub_gh;
 mod tables;
 mod unit;
+mod verify_dsl;

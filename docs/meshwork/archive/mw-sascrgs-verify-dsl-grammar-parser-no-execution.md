@@ -1,7 +1,7 @@
 ---
 id: mw-sascrgs
 title: "Verify DSL: grammar + parser (no execution)"
-status: open
+status: done
 category: core/verify
 needs: [mw-mjwfvxn]
 parent: mw-6895bkg
@@ -25,3 +25,5 @@ only — no execution in this item.
 
 ## log
 - 2026-08-06 created
+- 2026-08-14T15:11Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-14T15:16Z doing→done — verify exit 0 @ e27e13c+9

@@ -1,0 +1,74 @@
+exists docs/batch-door.md
+  = DSL exists docs/batch-door.md
+absent HANDOFF.md
+  = DSL absent HANDOFF.md
+contains docs/batch-door.md Q21
+  = DSL contains docs/batch-door.md Q21
+contains PLAN-meshwork-build.md /4\.1 .. 2026-08-14/
+  = DSL contains PLAN-meshwork-build.md /4\.1 .. 2026-08-14/
+run cargo test import_short_title
+  = DSL run cargo test import_short_title
+run cargo test lint::anchor_missing_warn
+  = DSL run cargo test lint::anchor_missing_warn
+run cargo fmt
+  = DSL run cargo fmt
+all(exists FORMAT.md, contains FORMAT.md config-toml, run cargo test e2e::)
+  = DSL exists FORMAT.md && contains FORMAT.md config-toml && run cargo test e2e::
+run cargo test --workspace
+  = MALFORMED bad arg token: --workspace
+run cargo test -- --exact foo
+  = MALFORMED bad arg token: --
+exists -rf
+  = MALFORMED path must be repo-relative, dash-free: -rf
+contains -x.md literal
+  = MALFORMED path must be repo-relative, dash-free: -x.md
+contains docs/x.md $(rm-rf)
+  = MALFORMED bad literal token: $(rm-rf) (use /regex/ for more)
+run cargo test a;b
+  = MALFORMED bad arg token: a;b
+run cargo test a&&b
+  = MALFORMED bad arg token: a&&b
+exists a|b.md
+  = MALFORMED bad path token: a|b.md
+contains a.md `backtick`
+  = MALFORMED bad literal token: `backtick` (use /regex/ for more)
+exists /etc/passwd
+  = MALFORMED path must be repo-relative, dash-free: /etc/passwd
+exists ../outside.md
+  = MALFORMED path may not traverse up: ../outside.md
+contains docs/../../up.md x
+  = MALFORMED path may not traverse up: docs/../../up.md
+exists
+  = MALFORMED exists needs a path
+exists docs/a.md extra-token
+  = MALFORMED exists takes exactly one path
+absent
+  = MALFORMED absent needs a path
+contains docs/x.md
+  = MALFORMED contains needs <path> <literal|/regex/>
+run cargo
+  = MALFORMED cargo needs a subcommand
+run rustc main.rs
+  = MALFORMED unknown runner: rustc
+run cargo publish
+  = MALFORMED cargo publish is not in the runner grammar
+all()
+  = MALFORMED empty predicate
+all(exists a.md,)
+  = MALFORMED empty predicate
+all(all(exists a.md))
+  = MALFORMED unknown predicate: all(exists
+all(exists a.md
+  = MALFORMED all( without closing )
+out=$(cargo test F 2>&1) && echo "$out" | grep -qE 'ok'
+  = SHELL
+grep -q Q21 docs/batch-door.md
+  = SHELL
+test -f target/debug/meshwork
+  = SHELL
+true
+  = SHELL
+./scripts/check-perf.sh
+  = SHELL
+! (./meshwork lint 2>&1 | grep -q handoff-stale)
+  = SHELL
