@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: M3 (mirror, 3.1–3.5) DEFERRED indefinitely — owner ruling 2026-08-14; next = store worklist (skill/verify hygiene), then M4.** (Mirror tasks mw-cvw8/wm9w/vmzg/ws31/a413 deprioritized to seq 900–940, relative order preserved; ruling recorded on mw-cvw8. M2 COMPLETE — leras joined, stop-line met 2026-08-13; portfolio repo at `~/Documents/code/portfolio` registers sazed+leras+meshwork, first real edge leras#le-qfg98a0 `needs` sazed#sa-87jpgw8 resolves portfolio-wide. The store is the live worklist.)
+**Position: 4.1 ✓ 2026-08-14 — next = 4.2 (lint anchor validation, mw-8r1a) interleaved with the store worklist; M3 (mirror, 3.1–3.5) stays DEFERRED indefinitely (owner ruling 2026-08-14).** (Mirror tasks mw-cvw8/wm9w/vmzg/ws31/a413 deprioritized to seq 900–940, relative order preserved; ruling recorded on mw-cvw8. M2 COMPLETE — leras joined, stop-line met 2026-08-13; portfolio repo at `~/Documents/code/portfolio` registers sazed+leras+meshwork, first real edge leras#le-qfg98a0 `needs` sazed#sa-87jpgw8 resolves portfolio-wide. The store is the live worklist.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -76,7 +76,7 @@ Do not start these without a fresh owner re-prioritization. Requirements (MW-H*)
 
 | id | item (MW refs) | verify |
 |---|---|---|
-| 4.1 | `show --docs`: anchor-scoped excerpts, ~4KB/link cap (F1, F2) | `cargo test e2e::show_docs_excerpts` |
+| 4.1 ✓ | `show --docs`: anchor-scoped excerpts, ~4KB/link cap (F1, F2) | `cargo test e2e::show_docs_excerpts` ✓ 2026-08-14 |
 | 4.2 | Lint anchor validation (warn) (F3) | `cargo test lint::anchor_missing_warn` |
 | 4.3 | **v1 acceptance:** `./verify_meshwork.sh --strict` (TRACE fully `done`) + all five REQUIREMENTS §4 clauses checked off | `./verify_meshwork.sh --strict` |
 

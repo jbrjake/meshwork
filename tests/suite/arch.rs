@@ -8,6 +8,7 @@ use std::path::Path;
 /// crate roots. None of them may mention the CLI layer or clap.
 const MODEL_MODULES: &[&str] = &[
     "clock.rs",
+    "docs.rs",
     "edit.rs",
     "id.rs",
     "lint.rs",

@@ -47,10 +47,6 @@ fn commits_for(root: &std::path::Path, id: &str) -> Vec<(String, String)> {
 }
 
 pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
-    if args.docs {
-        // Frozen surface, honest gap: behavior lands at M4 (PLAN 4.1).
-        return Err("show --docs lands at M4 (PLAN 4.1); plain `show` is complete".into());
-    }
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
     let Some(path) = find_task_file(&tasks_dir, &args.id) else {
@@ -69,10 +65,19 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
                 task.comments.len().saturating_sub(COMMENT_CAP)
             };
             let commits = commits_for(&root, &args.id);
+            let excerpts = if args.docs {
+                task.docs
+                    .iter()
+                    .map(|d| crate::docs::resolve(&root, d))
+                    .collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
             if json {
-                emit_json(&task, &rel, shown_from, &commits);
+                emit_json(&task, &rel, shown_from, &commits, args.docs, &excerpts);
             } else {
                 render_text(&task, &rel, shown_from, &commits);
+                render_excerpts(&task, args.docs, &excerpts);
             }
             Ok(())
         }
@@ -173,14 +178,45 @@ fn render_text(t: &Task, rel: &str, shown_from: usize, commits: &[(String, Strin
     }
 }
 
-fn emit_json(t: &Task, rel: &str, shown_from: usize, commits: &[(String, String)]) {
+/// The drill-through tail (MW-F2): one header line per link, then the
+/// anchored excerpt. Dead links render loud, the view never dies on them.
+fn render_excerpts(t: &Task, docs: bool, excerpts: &[crate::docs::Excerpt]) {
+    if !docs {
+        return;
+    }
+    if t.docs.is_empty() {
+        println!("\nno docs: links on {}", t.id);
+        return;
+    }
+    for e in excerpts {
+        if let Some(err) = &e.error {
+            println!("\n── {} — {err}", e.link);
+            continue;
+        }
+        println!("\n── {}\n{}", e.link, e.text);
+        if e.truncated {
+            println!(
+                "… truncated at {}B — read {} for the rest",
+                crate::docs::EXCERPT_CAP,
+                e.link.split('#').next().unwrap_or(&e.link)
+            );
+        }
+    }
+}
+
+fn emit_json(
+    t: &Task,
+    rel: &str,
+    shown_from: usize,
+    commits: &[(String, String)],
+    docs: bool,
+    excerpts: &[crate::docs::Excerpt],
+) {
     let shown: Vec<_> = t.comments[shown_from..]
         .iter()
         .map(|c| serde_json::json!({ "date": c.date, "author": c.author, "text": c.text }))
         .collect();
-    crate::cli::emit_json(
-        "show",
-        &serde_json::json!({
+    let mut payload = serde_json::json!({
             "id": t.id, "title": t.title, "status": t.status.as_str(),
             "category": t.category, "labels": t.labels, "needs": t.needs,
             "parent": t.parent, "discovered_from": t.discovered_from,
@@ -195,8 +231,19 @@ fn emit_json(t: &Task, rel: &str, shown_from: usize, commits: &[(String, String)
                 .collect::<Vec<_>>(),
             "commits_total": commits.len(),
             "path": rel, "warnings": t.warnings,
-        }),
-    );
+    });
+    if docs {
+        payload["docs_excerpts"] = excerpts
+            .iter()
+            .map(|e| {
+                serde_json::json!({
+                    "link": e.link, "text": e.text,
+                    "truncated": e.truncated, "error": e.error,
+                })
+            })
+            .collect();
+    }
+    crate::cli::emit_json("show", &payload);
 }
 
 fn join_nonempty(items: &[String]) -> Option<String> {

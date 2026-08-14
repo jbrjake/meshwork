@@ -33,7 +33,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-E4 | `e2e::discovered_from_edge` | done |
 | MW-E5 | `e2e::verify_trust_gate_refuses_unapproved`, `e2e::verify_trust_changed_text_revokes`, `e2e::verify_trust_env_grant_for_ci` | done |
 | MW-F1 | `parse::docs_links` | done |
-| MW-F2 | `e2e::show_docs_excerpts` | planned |
+| MW-F2 | `e2e::show_docs_excerpts` | done |
 | MW-F3 | `lint::anchor_missing_warn` | planned |
 | MW-K1 | `e2e::comment_attach`, `parse::comment_format` | done |
 | MW-K2 | `e2e::comment_attach` | done |

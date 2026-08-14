@@ -1,7 +1,7 @@
 ---
 id: mw-hqs4
 title: show --docs anchor-scoped excerpts (PLAN 4.1)
-status: open
+status: done
 category: plan/m4
 verify: out=$(cargo test e2e::show_docs_excerpts 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 130
@@ -13,6 +13,8 @@ created: 2026-08-05
 
 ## log
 - 2026-08-05 created
+- 2026-08-14T14:56Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-14T15:02Z doing→done — verify exit 0 @ a448673+9
 
 ## comments
 - 2026-08-14T13:48Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Dep on mw-a413 removed 2026-08-14: it encoded PLAN M3-before-M4 ordering, which the owner's M3 deferral overturned — doc drill-through has no real mirror dependency. The a413 edge moved to mw-v4ej, where it is real.

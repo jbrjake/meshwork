@@ -6,6 +6,7 @@
 
 pub mod cli;
 pub mod clock;
+pub mod docs;
 pub mod edit;
 pub mod id;
 pub mod lint;
