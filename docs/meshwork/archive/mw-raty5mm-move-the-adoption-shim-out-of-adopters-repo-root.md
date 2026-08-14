@@ -4,7 +4,7 @@ title: Move the adoption shim out of adopters' repo roots into docs/meshwork/
 category: skill
 seq: 185
 verify: contains .claude/skills/meshwork/references/install.md docs/meshwork/meshwork
-status: open
+status: done
 created: 2026-08-14T19:31Z
 ---
 Owner ruling 2026-08-14: it is NOT OKAY for adoption to create a top-level
@@ -21,3 +21,5 @@ cut — until then every adoption plants a root shim.
 
 ## log
 - 2026-08-14T19:31Z created
+- 2026-08-14T19:38Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-14T19:39Z doing→done — verify exit 0 @ 49c293d+13
