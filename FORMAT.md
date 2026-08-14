@@ -50,7 +50,7 @@ Filename: `<id>-<slug>.md`. The slug is cosmetic and never load-bearing; the ID 
 | `parent` | id | same-repo nesting, child points up |
 | `discovered-from` | id | provenance edge |
 | `relates` | id list | soft links |
-| `verify` | string | close-gate shell command — untrusted input (MW-E5) |
+| `verify` | string | close-gate command — DSL predicates (preferred, DESIGN §12b) or legacy shell; untrusted input (MW-E5); readers treat it as opaque text and never execute it |
 | `docs` | list | repo-relative paths, optional `#§-anchor` |
 | `attachments` | list | store-relative `attachments/<id>/<file>` paths |
 | `seq` | integer | per-repo order weight; lower = sooner; gaps of 10 by convention |

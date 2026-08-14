@@ -44,10 +44,16 @@ committed (`install.md`). Every `meshwork` below means the shim.
    check-todo.sh and every reference to it, and DELETE HANDOFF.md outright —
    `prime` is the handoff (meshwork DESIGN §7b). Two task systems is worse
    than one; a hand-written handoff is a second one.
-6. Last of all, red-check the migrated verifies — after the retirement
-   commit, not before: run each open task's verify as `sh -c '<verify>'` (close's
-   shell). Exit 0 means the migration itself satisfied it — e.g. a grep of
-   the archive now matches the task's own migrated prose — so it detects
-   nothing; rewrite it. Exit 127 means it can't run under close
-   (agent-shell functions like `rg` don't exist there); recast it in
-   grep/test/cargo. Only a verify that runs and still fails is armed.
+6. Last of all, recast and red-check the migrated verifies — after the
+   retirement commit, not before. Recast each into the DSL where it fits
+   (`run cargo test <filter>`, `exists <path>`, `contains <path>
+   <lit|/regex/>`, `all(p, …)`): DSL skips the per-clone approval gate
+   while the task's history is store-only, and `run cargo test` natively
+   refuses a vacuous pass. Red-check: `start` runs DSL checks itself and
+   warns "already green". For verifies that must stay shell, run
+   `sh -c '<verify>'` (close's shell). Exit 0 means the migration itself
+   satisfied it — e.g. a grep of the archive now matches the task's own
+   migrated prose — so it detects nothing; rewrite it. Exit 127 means it
+   can't run under close (agent-shell functions like `rg` don't exist
+   there); recast it in grep/test/cargo. Only a verify that runs and
+   still fails is armed.
