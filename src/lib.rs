@@ -10,6 +10,7 @@ pub mod docs;
 pub mod edit;
 pub mod id;
 pub mod lint;
+pub mod lint_verify;
 pub mod parse;
 pub mod provenance;
 pub mod registry;

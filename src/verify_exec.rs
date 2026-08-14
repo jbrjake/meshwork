@@ -55,12 +55,35 @@ pub fn execute(root: &Path, preds: &[Predicate]) -> Result<(), String> {
                 }
             }
             Predicate::Run { argv } => {
-                run_argv(root, argv, RUN_TIMEOUT, OUTPUT_CAP)
+                let out = run_argv(root, argv, RUN_TIMEOUT, OUTPUT_CAP)
                     .map_err(|e| format!("run {}: {e}", argv.join(" ")))?;
+                require_non_vacuous(argv, &out)?;
             }
         }
     }
     Ok(())
+}
+
+/// `cargo test` exits 0 when a filter matches nothing — the vacuous pass
+/// the store's observed-pass shell idiom existed to plug. Ruled 2026-08-14
+/// (mw-4aqmf0t, DESIGN §12b): a `run cargo test` predicate is green only
+/// when some suite reports `ok. N passed` with N ≥ 1 in the captured
+/// output. Other runners/subcommands pass on exit 0 alone.
+fn require_non_vacuous(argv: &[String], out: &str) -> Result<(), String> {
+    let is_cargo_test = argv.first().map(String::as_str) == Some("cargo")
+        && argv.get(1).map(String::as_str) == Some("test");
+    if !is_cargo_test
+        || regex::Regex::new(r"ok\. [1-9][0-9]* passed")
+            .unwrap()
+            .is_match(out)
+    {
+        return Ok(());
+    }
+    Err(format!(
+        "run {}: vacuous pass — exit 0 but no `ok. N passed` (N ≥ 1) in the \
+         output; a cargo test filter matching nothing still exits 0 (DESIGN §12b)",
+        argv.join(" ")
+    ))
 }
 
 /// Belt over the parser's braces: re-refuse absolute and traversing

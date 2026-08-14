@@ -53,7 +53,7 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
                         id = args.id
                     ));
                 }
-                Some(verify) => red_check(&root, &args.id, verify),
+                Some(verify) => red_check(&root, &path, &args.id, verify),
             }
         }
     }
@@ -72,36 +72,77 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
 /// mw-175bn4c: a verify already green at start cannot detect the work —
 /// the sister of the needs-verify gate above (absent vs present-but-
 /// vacuous). Advisory by the mw-kkvs8zq precedent (a warning is behavior,
-/// no new surface); execution stays behind the MW-E5 trust gate, so
-/// untrusted text never runs — that skip is loud instead of silent.
-fn red_check(root: &std::path::Path, id: &str, verify: &str) {
-    if !(crate::trust::env_trusted() || crate::trust::is_approved(root, id, verify)) {
-        eprintln!(
-            "note: red-check skipped for {id} — verify unapproved for this \
-             clone (MW-E5; approve at close, or MESHWORK_TRUST=1)"
-        );
-        return;
-    }
-    let exit = std::process::Command::new("sh")
-        .args(["-c", verify])
-        .current_dir(root)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map_or(-1, |s| s.code().unwrap_or(-1));
-    match exit {
-        0 => eprintln!(
-            "warning: red-check: {id}'s verify is already green (exit 0) — \
-             it cannot detect the work; tighten it, or close if the work is \
-             done (mw-175bn4c)"
+/// no new surface). Routing mirrors close (DESIGN §12b, mw-4aqmf0t):
+/// native DSL runs untrusted (pure reads), DSL `run` needs trust or
+/// store-only provenance, legacy shell needs the MW-E5 gate — every
+/// skip is loud instead of silent.
+fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, verify: &str) {
+    use crate::verify_dsl::{classify, Classified, Predicate};
+    let trusted = || crate::trust::env_trusted() || crate::trust::is_approved(root, id, verify);
+    match classify(verify) {
+        Classified::Malformed(why) => eprintln!(
+            "warning: red-check: {id}'s verify is malformed and close will \
+             refuse it: {why} (DESIGN §12b)"
         ),
-        127 => eprintln!(
-            "warning: red-check: {id}'s verify exits 127 under sh -c — \
-             close's shell won't have agent-shell functions; recast in \
-             grep/test/cargo (mw-175bn4c)"
-        ),
-        _ => {}
+        Classified::Dsl(preds) => {
+            let has_run = preds.iter().any(|p| matches!(p, Predicate::Run { .. }));
+            if has_run && !trusted() && !store_only(root, task_path) {
+                eprintln!(
+                    "note: red-check skipped for {id} — run verify gated for \
+                     this clone (MW-E5/§12b; approve at close, or MESHWORK_TRUST=1)"
+                );
+                return;
+            }
+            if crate::verify_exec::execute(root, &preds).is_ok() {
+                eprintln!(
+                    "warning: red-check: {id}'s verify is already green — it \
+                     cannot detect the work; tighten it, or close if the work \
+                     is done (mw-175bn4c)"
+                );
+            }
+        }
+        Classified::LegacyShell => {
+            if !trusted() {
+                eprintln!(
+                    "note: red-check skipped for {id} — verify unapproved for this \
+                     clone (MW-E5; approve at close, or MESHWORK_TRUST=1)"
+                );
+                return;
+            }
+            let exit = std::process::Command::new("sh")
+                .args(["-c", verify])
+                .current_dir(root)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .map_or(-1, |s| s.code().unwrap_or(-1));
+            match exit {
+                0 => eprintln!(
+                    "warning: red-check: {id}'s verify is already green (exit 0) — \
+                     it cannot detect the work; tighten it, or close if the work is \
+                     done (mw-175bn4c)"
+                ),
+                127 => eprintln!(
+                    "warning: red-check: {id}'s verify exits 127 under sh -c — \
+                     close's shell won't have agent-shell functions; recast in \
+                     grep/test/cargo (mw-175bn4c)"
+                ),
+                _ => {}
+            }
+        }
     }
+}
+
+/// Advisory-tier provenance: true iff the task's history is store-only
+/// (mw-egksvhm `Trusted`). `RodeAlong` and `Unknown` both read as "not free"
+/// here — close's gate owns the full refusal wording.
+fn store_only(root: &std::path::Path, task_path: &std::path::Path) -> bool {
+    task_path.strip_prefix(root).is_ok_and(|rel| {
+        matches!(
+            crate::provenance::task_provenance(root, &rel.to_string_lossy()),
+            crate::provenance::Provenance::Trusted
+        )
+    })
 }
 
 pub(crate) fn block(args: &BlockArgs, json: bool) -> Result<(), String> {

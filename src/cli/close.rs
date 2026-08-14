@@ -1,8 +1,10 @@
-//! `meshwork close` (PLAN 0.7; MW-E2): run `verify:` via `sh -c` from the
-//! repo root, record exit + date in the log, close on exit 0 only.
-//! `--waive` skips the check but is recorded — loud and queryable.
-//! Shell execution sits behind the MW-E5 trust gate (mw-9rc4vs6): an
-//! unapproved verify text refuses before anything runs (DESIGN §12b).
+//! `meshwork close` (PLAN 0.7; MW-E2): run `verify:` from the repo root,
+//! record the outcome + date in the log, close on a pass only. `--waive`
+//! skips the check but is recorded — loud and queryable. Routing is
+//! DESIGN §12b (mw-4aqmf0t): DSL native predicates execute ungated, DSL
+//! `run` executes free only on store-only provenance (mw-egksvhm),
+//! malformed DSL refuses before anything runs, and legacy shell — still
+//! `sh -c` — sits behind the MW-E5 trust gate (mw-9rc4vs6).
 
 use crate::edit::{append_section_entry, remove_scalar, set_scalar};
 use crate::parse::{parse_task_file, ParsedTask, Status};
@@ -166,51 +168,138 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
         ));
     };
 
-    require_trusted(&root, &args.id, verify, args.approve)?;
+    // DESIGN §12b gate routing (mw-4aqmf0t): the shape decides the gate.
+    // Native predicates load no code and run free; `run` runs free only
+    // on store-only provenance; malformed refuses before any gate; legacy
+    // shell keeps the full MW-E5 gate.
+    let verdict = match crate::verify_dsl::classify(verify) {
+        crate::verify_dsl::Classified::Malformed(why) => {
+            // Never runs, never gate-prompts: approving garbage is not a
+            // reviewable act, and a downgrade to shell reopens the hole.
+            return Err(format!(
+                "refusing malformed verify for {id}: {why}\n  verify: {verify}\n  \
+                 keyword-led text never runs as shell (DESIGN §12b) — fix it: \
+                 meshwork set {id} --verify '<predicate>'",
+                id = args.id
+            ));
+        }
+        crate::verify_dsl::Classified::Dsl(preds) => {
+            if preds
+                .iter()
+                .any(|p| matches!(p, crate::verify_dsl::Predicate::Run { .. }))
+            {
+                gate_run(&root, &path, &args.id, verify, args.approve)?;
+            }
+            crate::verify_exec::execute(&root, &preds).map_err(|why| {
+                (
+                    "verify failed (dsl)".to_string(),
+                    format!("verify failed — {why}"),
+                )
+            })
+        }
+        crate::verify_dsl::Classified::LegacyShell => {
+            require_trusted(&root, &args.id, verify, args.approve)?;
+            run_shell(&root, verify, json)?
+        }
+    };
 
-    // From the repo root, always — verify commands are written repo-relative.
+    match verdict {
+        Ok(()) => {
+            let out = release_claim(&text)?;
+            let out = set_scalar(&out, "status", Some("done"))?;
+            let out = append_section_entry(
+                &out,
+                "log",
+                &format!("{today} {from}→done — verify exit 0{}", head_anchor(&root)),
+            );
+            std::fs::write(&path, out).map_err(|e| e.to_string())?;
+            crate::store::relocate_for_status(&path, true).map_err(|e| e.to_string())?;
+            if json {
+                crate::cli::emit_json(
+                    "close",
+                    &serde_json::json!({ "id": args.id, "closed": true, "verify_exit": 0 }),
+                );
+            } else {
+                println!("{} {from}→done (verify exit 0)", args.id);
+            }
+            Ok(())
+        }
+        Err((note, stays)) => {
+            // Record the attempt (MW-E2), close nothing.
+            let out =
+                append_section_entry(&text, "log", &format!("{today} close attempt — {note}"));
+            std::fs::write(&path, out).map_err(|e| e.to_string())?;
+            Err(format!("{} stays {from}: {stays}", args.id))
+        }
+    }
+}
+
+/// A verify outcome: `Ok` closes; `Err` is (log note, stays-open reason).
+type Verdict = Result<(), (String, String)>;
+
+/// Legacy shell execution, `sh -c` from the repo root — verify commands
+/// are written repo-relative. The outer error is "could not run at all";
+/// the inner `Verdict` is what the run said.
+fn run_shell(root: &std::path::Path, verify: &str, json: bool) -> Result<Verdict, String> {
     let output = std::process::Command::new("sh")
         .args(["-c", verify])
-        .current_dir(&root)
+        .current_dir(root)
         .output()
         .map_err(|e| format!("running verify: {e}"))?;
     let exit = output.status.code().unwrap_or(-1);
-
     if !json {
         print!("{}", String::from_utf8_lossy(&output.stdout));
         eprint!("{}", String::from_utf8_lossy(&output.stderr));
     }
-
     if exit == 0 {
-        let out = release_claim(&text)?;
-        let out = set_scalar(&out, "status", Some("done"))?;
-        let out = append_section_entry(
-            &out,
-            "log",
-            &format!("{today} {from}→done — verify exit 0{}", head_anchor(&root)),
-        );
-        std::fs::write(&path, out).map_err(|e| e.to_string())?;
-        crate::store::relocate_for_status(&path, true).map_err(|e| e.to_string())?;
-        if json {
-            crate::cli::emit_json(
-                "close",
-                &serde_json::json!({ "id": args.id, "closed": true, "verify_exit": 0 }),
-            );
-        } else {
-            println!("{} {from}→done (verify exit 0)", args.id);
-        }
-        Ok(())
+        Ok(Ok(()))
     } else {
-        // Record the attempt (exit + date, MW-E2), close nothing.
-        let out = append_section_entry(
-            &text,
-            "log",
-            &format!("{today} close attempt — verify exit {exit}"),
-        );
-        std::fs::write(&path, out).map_err(|e| e.to_string())?;
+        Ok(Err((
+            format!("verify exit {exit}"),
+            format!("verify exit {exit} (`{verify}`)"),
+        )))
+    }
+}
+
+/// Gate one DSL `run` (DESIGN §12b, mw-4aqmf0t): env trust and recorded
+/// approvals short-circuit; otherwise store-only provenance runs free —
+/// the frictionless test-backed close is the point of the DSL — while a
+/// ride-along or unanswerable history gates exactly like legacy shell,
+/// the refusal naming the arrival to review.
+fn gate_run(
+    root: &std::path::Path,
+    task_path: &std::path::Path,
+    id: &str,
+    verify: &str,
+    approve: bool,
+) -> Result<(), String> {
+    if crate::trust::env_trusted() || crate::trust::is_approved(root, id, verify) {
+        return Ok(());
+    }
+    let rel = task_path
+        .strip_prefix(root)
+        .map(|p| p.to_string_lossy().into_owned())
+        .map_err(|_| format!("task file {} escapes the repo root", task_path.display()))?;
+    let why = match crate::provenance::task_provenance(root, &rel) {
+        crate::provenance::Provenance::Trusted => return Ok(()),
+        crate::provenance::Provenance::RodeAlong { arrival, path } => format!(
+            "the task arrived with non-store content: {arrival} carried `{path}` \
+             (ride-along, DESIGN §12b) — a task must never self-verify against \
+             code that arrived with it"
+        ),
+        crate::provenance::Provenance::Unknown { why } => {
+            format!("git cannot vouch for the task's history ({why}) — gating, never trusting")
+        }
+    };
+    if approve {
+        println!("approving verify for {id} (this clone only, MW-E5):\n  verify: {verify}");
+        crate::trust::record_approval(root, id, verify)
+            .map_err(|e| format!("recording approval: {e}"))
+    } else {
         Err(format!(
-            "{} stays {from}: verify exit {exit} (`{verify}`)",
-            args.id
+            "refusing run verify for {id} (MW-E5, DESIGN §12b)\n  verify: {verify}\n  {why}\n  \
+             review the named arrival, then: meshwork close {id} --approve\n  \
+             reviewed checkouts (CI, gates) may grant MESHWORK_TRUST=1 instead"
         ))
     }
 }

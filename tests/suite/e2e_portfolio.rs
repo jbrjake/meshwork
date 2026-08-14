@@ -246,8 +246,10 @@ fn portfolio_sequence_dangling() {
         !out.contains("bz-c0r3"),
         "a done target is satisfied — prune's business, not an error: {out}"
     );
+    // Specifically no dangling-sequence row — other checks (verify-shell)
+    // may legitimately name this task.
     assert!(
-        !out.contains("az-t5k1"),
+        !out.contains("dangling-sequence] alpha#az-t5k1"),
         "a live resolving entry is coherent: {out}"
     );
 }

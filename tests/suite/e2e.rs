@@ -110,4 +110,5 @@ include!("e2e_query.rs");
 include!("e2e_registry.rs");
 include!("e2e_set.rs");
 include!("e2e_show_docs.rs");
+include!("e2e_verify_migration.rs");
 include!("e2e_verify_trust.rs");
