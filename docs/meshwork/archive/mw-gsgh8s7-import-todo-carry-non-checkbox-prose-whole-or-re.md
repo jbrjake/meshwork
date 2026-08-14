@@ -1,7 +1,7 @@
 ---
 id: mw-gsgh8s7
 title: "import todo: carry non-checkbox prose whole, or refuse loudly"
-status: open
+status: done
 category: core/import
 discovered-from: mw-mrjhwws
 verify: out=$(cargo test import_prose 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
@@ -19,3 +19,5 @@ Never exit 0 having dropped content.
 
 ## log
 - 2026-08-14T13:28Z created
+- 2026-08-14T13:50Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-14T13:56Z doing→done — verify exit 0 @ 76da28d+3

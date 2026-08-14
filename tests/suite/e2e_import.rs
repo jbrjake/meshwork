@@ -146,6 +146,81 @@ fn import_wrapped_titles_and_multiline_verifies() {
     assert!(boundary.contains("Body paragraph, not title."), "{boundary}");
 }
 
+// mw-gsgh8s7: column-0 prose outside any checkbox — preambles,
+// interstitial section notes, trailing ledgers — vanished with exit 0.
+// A whole asks-section disappeared that way in a real migration. Now it
+// carries whole into one clearly-marked triage task, loudly counted;
+// silent drops are the one forbidden outcome.
+
+/// Non-checkbox prose imports whole into a triage task.
+#[test]
+fn import_prose() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    std::fs::write(
+        repo.join("TODO.md"),
+        "# TODO\n\n\
+         Preamble: how this file works.\n\n\
+         ## Now\n\n\
+         - [ ] **Real task** — with context.\n\n\
+         Interstitial note between sections.\n\n\
+         ## Asks ledger\n\n\
+         ask 8: the door check needs a matrix row.\n\
+         ask 9: spill budget wants a bench.\n",
+    )
+    .unwrap();
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["import", "todo", "TODO.md"])
+            .assert()
+            .success(),
+    );
+    // The checkbox task + the triage task, and the carry is loud.
+    assert!(out.contains("2 imported"), "{out}");
+    assert!(
+        out.contains("4 prose line(s) carried"),
+        "the carry is counted, never silent: {out}"
+    );
+
+    let q = |sql: &str| stdout_of(&meshwork(&repo).args(["q", sql]).assert().success());
+    let titles = q("SELECT title FROM tasks");
+    assert!(titles.contains("triage"), "{titles}");
+
+    let body = std::fs::read_to_string(task_file(
+        &repo,
+        &first_id_titled(&repo, "Imported prose needing triage (TODO.md)"),
+    ))
+    .unwrap();
+    for line in [
+        "Preamble: how this file works.",
+        "Interstitial note between sections.",
+        "## Asks ledger",
+        "ask 8: the door check needs a matrix row.",
+        "ask 9: spill budget wants a bench.",
+    ] {
+        assert!(body.contains(line), "carried whole, missing {line:?}: {body}");
+    }
+    // The checkbox task keeps its own body clean of carried prose.
+    let real = std::fs::read_to_string(task_file(&repo, &first_id_titled(&repo, "Real task"))).unwrap();
+    assert!(!real.contains("Interstitial"), "{real}");
+
+    // A prose-free TODO mints no triage task and stays quiet.
+    std::fs::write(
+        repo.join("CLEAN.md"),
+        "# TODO\n\n## Now\n\n- [ ] **Only checkboxes here**\n",
+    )
+    .unwrap();
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["import", "todo", "CLEAN.md"])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains("1 imported"), "{out}");
+    assert!(!out.contains("carried"), "no phantom triage: {out}");
+}
+
 /// Look up a task id by exact title via SQL.
 fn first_id_titled(repo: &Path, title: &str) -> String {
     let out = stdout_of(

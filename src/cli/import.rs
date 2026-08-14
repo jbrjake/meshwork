@@ -29,13 +29,32 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
     let config = crate::store::load_config(&root).map_err(|e| e.to_string())?;
     let text =
         std::fs::read_to_string(path).map_err(|e| format!("reading {}: {e}", path.display()))?;
-    let items = parse_todo(&text);
+    let (mut items, carried) = parse_todo(&text);
     if items.is_empty() {
         return Err(format!(
             "{}: no checkbox items found (want the baseline `- [ ] **Title** — …` format)",
             path.display()
         ));
     }
+    // Non-checkbox prose carries whole into one triage task (mw-gsgh8s7)
+    // — a dropped asks-section is invisible at review; a triage task is not.
+    let carried_n = carried.iter().filter(|l| !l.starts_with("## ")).count();
+    let triage_idx = (!carried.is_empty()).then(|| {
+        items.push(TodoItem {
+            status: Status::Open,
+            title: format!(
+                "Imported prose needing triage ({})",
+                path.file_name()
+                    .map(|n| n.to_string_lossy())
+                    .unwrap_or_default()
+            ),
+            context: carried,
+            verify: None,
+            seq: None,
+            parent: None,
+        });
+        items.len() - 1
+    });
 
     let tasks_dir = root.join("docs").join("meshwork");
     std::fs::create_dir_all(&tasks_dir).map_err(|e| e.to_string())?;
@@ -75,6 +94,7 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
     }
     let nested = items.iter().filter(|i| i.parent.is_some()).count();
 
+    let carried_into = triage_idx.map(|i| ids[i].clone());
     if json {
         crate::cli::emit_json(
             "import",
@@ -82,6 +102,9 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
                 "source": path.display().to_string(),
                 "imported": created.len(), "nested": nested,
                 "counts": counts, "tasks": created,
+                "carried": carried_into.as_ref().map(|id| serde_json::json!({
+                    "task": id, "lines": carried_n,
+                })),
             }),
         );
     } else {
@@ -95,6 +118,10 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
             let _ = write!(summary, "; {nested} nested as children");
         }
         println!("{} imported ({summary})", created.len());
+        if let Some(id) = &carried_into {
+            // Loud by design: prose used to vanish here (mw-gsgh8s7).
+            println!("{carried_n} prose line(s) carried into {id} — triage into real tasks");
+        }
         println!(
             "next: review with `meshwork ready` + `lint`, then archive the source \
              (git mv {} docs/archive/) — history never deletes",
@@ -113,7 +140,19 @@ enum Cont {
     Body,
 }
 
-fn parse_todo(text: &str) -> Vec<TodoItem> {
+/// Carry a line no item can own (mw-gsgh8s7), prefixing its `## <heading>`
+/// marker the first time a section contributes.
+fn carry(carried: &mut Vec<String>, heading_emitted: &mut bool, heading: Option<&str>, line: &str) {
+    if let Some(h) = heading {
+        if !*heading_emitted {
+            carried.push(format!("## {h}"));
+            *heading_emitted = true;
+        }
+    }
+    carried.push(line.trim_end().to_string());
+}
+
+fn parse_todo(text: &str) -> (Vec<TodoItem>, Vec<String>) {
     let mut items: Vec<TodoItem> = Vec::new();
     // (indent, item index) — enclosing checkboxes; nesting never spans a
     // heading (mw-17hnhzk).
@@ -121,11 +160,18 @@ fn parse_todo(text: &str) -> Vec<TodoItem> {
     let mut in_now = false;
     let mut now_seq = 0i64;
     let mut cont = Cont::Body;
+    // Prose with no item to belong to (mw-gsgh8s7): carried lines, with a
+    // `## <heading>` marker emitted once per section that contributes.
+    let mut carried: Vec<String> = Vec::new();
+    let mut heading: Option<String> = None;
+    let mut heading_emitted = false;
     for line in text.lines() {
-        if let Some(heading) = line.strip_prefix("## ") {
-            in_now = heading.trim().eq_ignore_ascii_case("now");
+        if let Some(h) = line.strip_prefix("## ") {
+            in_now = h.trim().eq_ignore_ascii_case("now");
             stack.clear();
             cont = Cont::Body;
+            heading = Some(h.trim().to_string());
+            heading_emitted = false;
             continue;
         }
         let trimmed_start = line.trim_start();
@@ -162,40 +208,24 @@ fn parse_todo(text: &str) -> Vec<TodoItem> {
             continue;
         }
         let Some(last) = items.last_mut() else {
+            // Before the first checkbox there is no item to join — carry.
+            carry(
+                &mut carried,
+                &mut heading_emitted,
+                heading.as_deref(),
+                trimmed_start,
+            );
             continue;
         };
-        if trimmed_start.starts_with("- ") {
-            // A bullet is a new block, never a continuation.
-            cont = Cont::Body;
-            if indent > 0 {
-                last.context.push(trimmed_start.trim_end().to_string());
-            }
-            continue;
-        }
-        if indent > 0 {
-            if let Some(v) = trimmed_start.strip_prefix("verify:") {
-                last.verify = Some(v.trim().to_string());
-                cont = Cont::Verify;
-                continue;
-            }
-        }
-        match cont {
-            Cont::Headline => {
-                last.title.push(' ');
-                last.title.push_str(trimmed_start.trim_end());
-            }
-            Cont::Verify => {
-                if let Some(v) = last.verify.as_mut() {
-                    v.push(' ');
-                    v.push_str(trimmed_start.trim_end());
-                }
-            }
-            Cont::Body => {
-                if indent > 0 {
-                    last.context.push(trimmed_start.trim_end().to_string());
-                }
-            }
-        }
+        continue_line(
+            last,
+            &mut cont,
+            &mut carried,
+            &mut heading_emitted,
+            heading.as_deref(),
+            indent,
+            trimmed_start,
+        );
     }
     for item in &mut items {
         let (title, headline_ctx) = split_headline(&item.title);
@@ -207,7 +237,55 @@ fn parse_todo(text: &str) -> Vec<TodoItem> {
             item.verify = Some(extract_command(&v));
         }
     }
-    items
+    (items, carried)
+}
+
+/// One non-checkbox, non-heading line under an existing item: joins the
+/// item's headline or verify per `cont` (mw-mrjhwws), lands in context, or
+/// — column-0 body prose, the old silent drop point — carries (mw-gsgh8s7).
+fn continue_line(
+    last: &mut TodoItem,
+    cont: &mut Cont,
+    carried: &mut Vec<String>,
+    heading_emitted: &mut bool,
+    heading: Option<&str>,
+    indent: usize,
+    line: &str,
+) {
+    if line.starts_with("- ") {
+        // A bullet is a new block, never a continuation.
+        *cont = Cont::Body;
+        if indent > 0 {
+            last.context.push(line.trim_end().to_string());
+        }
+        return;
+    }
+    if indent > 0 {
+        if let Some(v) = line.strip_prefix("verify:") {
+            last.verify = Some(v.trim().to_string());
+            *cont = Cont::Verify;
+            return;
+        }
+    }
+    match cont {
+        Cont::Headline => {
+            last.title.push(' ');
+            last.title.push_str(line.trim_end());
+        }
+        Cont::Verify => {
+            if let Some(v) = last.verify.as_mut() {
+                v.push(' ');
+                v.push_str(line.trim_end());
+            }
+        }
+        Cont::Body => {
+            if indent > 0 {
+                last.context.push(line.trim_end().to_string());
+            } else {
+                carry(carried, heading_emitted, heading, line);
+            }
+        }
+    }
 }
 
 fn parse_marker(line: &str) -> Option<(Status, &str)> {
