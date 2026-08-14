@@ -6,11 +6,11 @@
 //! `contains` never spawn at all — they load no code and may run
 //! without the MW-E5 trust gate. `run` executes approval-free ONLY
 //! under the ride-along guard (owner directive 2026-08-14, DESIGN §12b
-//! gate routing): the task's git history must be store-only — a test or
-//! `build.rs` arriving in the same merge as the task that names it is
-//! the drive-by payload, and argv safety pins which program starts, not
-//! what code cargo loads. Callers gate `run` like legacy shell whenever
-//! the guard fails.
+//! gate routing): the MERGE that delivered the task must not also have
+//! delivered code — a PR carrying a task plus the test its verify names
+//! would self-verify against attacker code, and argv safety pins which
+//! program starts, not what code cargo loads. Callers gate `run` like
+//! legacy shell whenever the guard fails.
 
 use crate::verify_dsl::{Pattern, Predicate};
 use std::io::Read;

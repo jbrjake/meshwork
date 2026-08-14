@@ -11,6 +11,7 @@ pub mod edit;
 pub mod id;
 pub mod lint;
 pub mod parse;
+pub mod provenance;
 pub mod registry;
 pub mod registry_hygiene;
 pub mod store;

@@ -13,6 +13,7 @@ mod lint;
 mod parse;
 mod perf;
 mod query;
+mod ride_along;
 mod stub_gh;
 mod tables;
 mod unit;
