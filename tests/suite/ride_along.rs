@@ -1,9 +1,11 @@
-//! `ride_along::` — the merge-unit provenance guard (mw-egksvhm; DESIGN
-//! §12b gate routing). Confirmed threat: one PR carries a task plus the
-//! test its `run` verify names — merged, the task self-verifies against
-//! attacker code at close. The guard judges the MERGE that delivered
-//! each task-file commit, never the commit alone; direct first-parent
-//! commits are the operator's own and pass without content judgment.
+//! `ride_along::` — the provenance guard (mw-egksvhm; DESIGN §12b gate
+//! routing). Confirmed threat: one PR carries a task plus the test its
+//! `run` verify names — merged, the task self-verifies against attacker
+//! code at close. Every commit touching the task file is judged by its
+//! own full delta (a squash-merge is the whole PR in one commit), and
+//! merge-landed commits are ADDITIONALLY judged by the whole landing
+//! merge — the merge basis spans larger combined groups, it never
+//! exempts single commits. No merge style is forced on contributors.
 
 use crate::common::git;
 use meshwork::provenance::{task_provenance, Provenance};
@@ -36,17 +38,16 @@ fn write_task(repo: &Path, rel: &str) {
     .unwrap();
 }
 
-/// Direct first-parent commits are the operator's own: task+code in one
-/// commit (this repo's close ritual) and uncommitted tasks both pass.
+/// Store-only history stays frictionless: a task committed alone, and
+/// an uncommitted task, both pass.
 #[test]
-fn ride_along_direct_commits_trusted() {
+fn ride_along_store_only_direct_trusted() {
     let (_g, repo) = repo_with_base();
     write_task(&repo, TASK);
-    std::fs::write(repo.join("feature.rs"), "operator code\n").unwrap();
-    commit_all(&repo, "feat: work + task flip together");
+    commit_all(&repo, "chore(store): file the task");
     assert!(
         matches!(task_provenance(&repo, TASK), Provenance::Trusted),
-        "operator's own task+code commit must stay frictionless"
+        "store-only direct commit carries no payload"
     );
 
     let fresh = "docs/meshwork/mw-t2-fresh.md";
@@ -55,6 +56,29 @@ fn ride_along_direct_commits_trusted() {
         matches!(task_provenance(&repo, fresh), Provenance::Trusted),
         "uncommitted task = authored in this clone"
     );
+}
+
+/// A squash-merge is the whole PR in ONE linear commit — task and test
+/// together in its delta. It must gate; single-commit combos are never
+/// exempt (ruling 2026-08-14: the merge basis widens, it never narrows).
+#[test]
+fn ride_along_squash_single_commit_gates() {
+    let (_g, repo) = repo_with_base();
+    git(&repo, &["checkout", "-qb", "pr"]);
+    std::fs::write(repo.join("evil_test.rs"), "malicious test\n").unwrap();
+    commit_all(&repo, "innocent-looking test");
+    write_task(&repo, TASK);
+    commit_all(&repo, "task naming that test");
+    git(&repo, &["checkout", "-q", "main"]);
+    git(&repo, &["merge", "-q", "--squash", "pr"]);
+    git(&repo, &["commit", "-qm", "squashed pr"]);
+
+    match task_provenance(&repo, TASK) {
+        Provenance::RodeAlong { path, .. } => {
+            assert_eq!(path, "evil_test.rs", "the offender is named");
+        }
+        other => panic!("squash-merged task+test must gate: {other:?}"),
+    }
 }
 
 /// THE threat: a merge whose delta carries the task AND code — even in

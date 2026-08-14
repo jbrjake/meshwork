@@ -1,14 +1,16 @@
 //! Ride-along provenance guard (mw-egksvhm; DESIGN §12b gate routing,
 //! owner ruling 2026-08-14). Confirmed threat: one PR carries a task
 //! plus the test its `run` verify names — merged, the task self-verifies
-//! against attacker code at close. The unit of judgment is the MERGE,
-//! never the commit: a task-file commit that reached mainline through a
-//! merge has that merge's entire first-parent delta judged whole, so a
-//! PR splitting task and test across inner commits is still one arrival.
-//! Direct first-parent commits are the clone operator's own actions and
-//! pass without content judgment — closing a task in the same commit as
-//! its code stays frictionless. Local refs only, zero network (MW-J6);
-//! when git cannot answer, degrade toward gating, never toward trust.
+//! against attacker code at close. Judgment is a union, conservative in
+//! both directions: every commit touching the task file is judged by its
+//! OWN full delta — a squash-merge is the whole PR in one linear commit,
+//! so single-commit task+code combos always gate — and a commit that
+//! reached mainline through a merge is ADDITIONALLY judged by that
+//! merge's entire first-parent delta, so a PR splitting task and test
+//! across inner commits is still one arrival. The merge basis widens
+//! the net to the delivered group; it never exempts a commit. No merge
+//! style is forced on contributors. Local refs only, zero network
+//! (MW-J6); when git cannot answer, degrade toward gating, never trust.
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -23,11 +25,12 @@ pub enum Provenance {
     /// Operator-authored commits and store-only merges — `run` verifies
     /// on this task may execute approval-free.
     Trusted,
-    /// A merge delivered this task alongside non-store content; every
-    /// `run` on the task gates like legacy shell.
+    /// A commit or merge delivered this task alongside non-store
+    /// content; every `run` on the task gates like legacy shell.
     RodeAlong {
-        /// The landing merge (full hash).
-        merge: String,
+        /// The arrival judged mixed: the commit itself, or its landing
+        /// merge (full hash).
+        arrival: String,
         /// One offending path outside the store, for the refusal line.
         path: String,
     },
@@ -68,22 +71,48 @@ fn compute(root: &Path, rel: &str) -> Result<Provenance, String> {
         ],
     )?;
     for commit in &touching {
-        let landing = if mainline.contains(commit) {
-            if !is_merge(root, commit)? {
-                continue; // Direct first-parent commit: the operator's own.
-            }
-            commit.clone()
-        } else {
-            landing_merge(root, commit, &merges)?
-        };
-        if let Some(path) = non_store_path(root, &landing)? {
+        // The commit's own full delta — catches squash-merges and every
+        // other single-commit task+code combo.
+        if let Some(path) = commit_offender(root, commit)? {
             return Ok(Provenance::RodeAlong {
-                merge: landing,
+                arrival: commit.clone(),
                 path,
             });
         }
+        // Merge-landed commits: additionally judge the whole delivered
+        // group, so task and test split across a PR's inner commits are
+        // still seen as one arrival.
+        if !mainline.contains(commit) {
+            let landing = landing_merge(root, commit, &merges)?;
+            if let Some(path) = merge_offender(root, &landing)? {
+                return Ok(Provenance::RodeAlong {
+                    arrival: landing,
+                    path,
+                });
+            }
+        }
     }
     Ok(Provenance::Trusted)
+}
+
+/// First non-store path in one commit's own delta. Merge commits judge
+/// their whole first-parent delta; root commits diff against empty.
+fn commit_offender(root: &Path, commit: &str) -> Result<Option<String>, String> {
+    if is_merge(root, commit)? {
+        return merge_offender(root, commit);
+    }
+    let delta = git_lines(
+        root,
+        &[
+            "diff-tree",
+            "--no-commit-id",
+            "--name-only",
+            "-r",
+            "--root",
+            commit,
+        ],
+    )?;
+    Ok(delta.into_iter().find(|p| !p.starts_with(STORE_PREFIX)))
 }
 
 /// The first-parent merge that brought `commit` to mainline: the oldest
@@ -97,9 +126,9 @@ fn landing_merge(root: &Path, commit: &str, merges: &[String]) -> Result<String,
     Err(format!("no landing merge found for {commit}"))
 }
 
-/// First path in the merge's whole first-parent delta that falls outside
+/// First path in a merge's whole first-parent delta that falls outside
 /// the store — the ride-along payload, if any.
-fn non_store_path(root: &Path, merge: &str) -> Result<Option<String>, String> {
+fn merge_offender(root: &Path, merge: &str) -> Result<Option<String>, String> {
     let delta = git_lines(root, &["diff", "--name-only", &format!("{merge}^1"), merge])?;
     Ok(delta.into_iter().find(|p| !p.starts_with(STORE_PREFIX)))
 }
