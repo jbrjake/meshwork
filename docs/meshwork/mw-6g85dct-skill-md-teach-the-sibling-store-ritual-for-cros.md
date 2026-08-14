@@ -3,7 +3,7 @@ id: mw-6g85dct
 title: "SKILL.md: teach the sibling-store ritual for cross-repo questions"
 status: open
 category: skill
-verify: grep -q 'Sibling stores' .claude/skills/meshwork/SKILL.md
+verify: contains .claude/skills/meshwork/SKILL.md /Sibling stores/
 relates:
   - mw-jqj9qa9
 created: 2026-08-12T20:48Z

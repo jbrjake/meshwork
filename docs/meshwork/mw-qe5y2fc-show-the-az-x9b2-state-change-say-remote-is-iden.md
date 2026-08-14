@@ -2,7 +2,7 @@
 id: mw-qe5y2fc
 title: Show the az-x9b2 state change; say remote is identity, not a fetch target
 category: meta/readme
-verify: grep -q 'not a fetch target' README.md
+verify: contains README.md /not a fetch target/
 docs:
   - README.md
 status: open

@@ -3,7 +3,7 @@ id: mw-7cvse76
 title: ASCII task-graph rendering when results interlink
 status: open
 category: core/render
-verify: out=$(cargo test e2e::graph_render 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test e2e::graph_render
 seq: 260
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface # frozen surface — flags/behavior need the ruling

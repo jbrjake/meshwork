@@ -3,7 +3,7 @@ id: mw-2kgkn0j
 title: "Approve-at-mint: a verify authored by this clone is already trusted"
 category: core/verify
 relates: [mw-9rc4vs6, mw-hz1ezcg]
-verify: out=$(cargo test e2e::approve_at_mint 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test e2e::approve_at_mint
 seq: 290
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary

@@ -2,7 +2,7 @@
 id: mw-hmg3f3d
 title: "blocked-reason: drop iff to required-when-blocked"
 category: core/format
-verify: out=$(cargo test format::stale_blocked_reason_legal 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test format::stale_blocked_reason_legal
 docs:
   - FORMAT.md#task-file
 status: open

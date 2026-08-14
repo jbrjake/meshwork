@@ -3,7 +3,7 @@ id: mw-nfv26ss
 title: "lint: flag status transitions that have no matching log entry"
 status: open
 category: core/hygiene
-verify: grep -rq status_flip_without_log tests/ && cargo test --quiet status_flip_without_log
+verify: run cargo test status_flip_without_log
 relates:
   - mw-1byhnj1
   - mw-efmgn6b

@@ -3,7 +3,7 @@ id: mw-t01ek6s
 title: "lint --fix: body prose stranded below ## log — the cat >> damage class"
 category: core/store
 relates: [mw-efmgn6b, mw-3wnhhvp]
-verify: out=$(cargo test lint::stray_prose_below_log 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test lint::stray_prose_below_log
 seq: 310
 docs:
   - FORMAT.md#tail-section-grammars

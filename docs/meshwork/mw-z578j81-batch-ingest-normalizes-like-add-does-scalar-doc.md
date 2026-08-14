@@ -3,7 +3,7 @@ id: mw-z578j81
 title: "Batch ingest normalizes like add does: scalar docs, from → discovered-from"
 status: open
 category: core/authoring
-verify: grep -rq batch_scalar_docs tests/ && cargo test --quiet batch_scalar_docs
+verify: run cargo test batch_scalar_docs
 docs:
   - FORMAT.md#task-file
 created: 2026-08-12T20:48Z

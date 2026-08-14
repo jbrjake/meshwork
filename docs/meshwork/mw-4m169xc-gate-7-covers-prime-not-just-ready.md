@@ -3,7 +3,7 @@ id: mw-4m169xc
 title: "Gate §7 covers prime, not just ready"
 category: core/perf
 needs: [mw-ncfg]
-verify: out=$(cargo test perf::prime_1k 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test perf::prime_1k
 seq: 230
 docs:
   - DESIGN-meshwork.md#§-14-gate

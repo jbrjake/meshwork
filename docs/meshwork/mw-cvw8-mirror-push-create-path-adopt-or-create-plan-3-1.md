@@ -4,7 +4,7 @@ title: "mirror push create path: adopt-or-create (PLAN 3.1)"
 status: open
 category: plan/m3
 needs: [mw-9zrd, mw-pvfrpd4]
-verify: out=$(cargo test e2e::mirror_create 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test e2e::mirror_create
 seq: 900
 docs:
   - REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H1, MW-H3

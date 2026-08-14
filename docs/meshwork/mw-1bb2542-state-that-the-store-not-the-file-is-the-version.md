@@ -2,7 +2,7 @@
 id: mw-1bb2542
 title: "State that the store, not the file, is the versioning unit"
 category: core/format
-verify: grep -qi 'versioning unit' FORMAT.md
+verify: contains FORMAT.md /(?i)versioning unit/
 docs:
   - FORMAT.md#§-config-toml
 status: open

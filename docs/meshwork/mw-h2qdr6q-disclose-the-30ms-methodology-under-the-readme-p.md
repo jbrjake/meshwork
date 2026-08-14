@@ -2,7 +2,7 @@
 id: mw-h2qdr6q
 title: Disclose the ~30ms methodology under the README perf claim
 category: meta/readme
-verify: grep -q check-perf README.md
+verify: contains README.md check-perf
 docs:
   - README.md
   - DESIGN-meshwork.md#§-14-gate

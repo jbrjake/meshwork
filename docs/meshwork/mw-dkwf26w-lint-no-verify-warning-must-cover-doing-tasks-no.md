@@ -3,7 +3,7 @@ id: mw-dkwf26w
 title: "lint: no-verify warning must cover doing tasks, not just open"
 status: open
 category: core/verify
-verify: out=$(cargo test e2e::lint_doing_missing_verify 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test e2e::lint_doing_missing_verify
 discovered-from: mw-ntt5
 seq: 260
 docs:

@@ -4,7 +4,7 @@ title: set --handoff '' drops the key — never leave a dangling empty block sca
 status: open
 category: core/authoring
 discovered-from: mw-5zn3ern
-verify: out=$(cargo test set_handoff_clear 2>&1) && echo "$out" | grep -qE "ok\. [1-9][0-9]* passed"
+verify: run cargo test set_handoff_clear
 created: 2026-08-14T14:53Z
 ---
 

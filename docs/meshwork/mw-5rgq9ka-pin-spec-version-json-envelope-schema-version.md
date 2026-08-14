@@ -4,7 +4,7 @@ title: "Pin spec version ≡ JSON envelope schema version"
 category: core/format
 needs: [mw-7c6svyn]
 relates: [mw-5kp033j, mw-n6nvzpa]
-verify: out=$(cargo test format::version_matches_envelope 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test format::version_matches_envelope
 seq: 270
 docs:
   - FORMAT.md#§-config-toml

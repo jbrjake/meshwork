@@ -2,7 +2,7 @@
 id: mw-4jgrjar
 title: "handoff's 'up next' is undefined — declare it inert to the format"
 category: core/format
-verify: grep -q 'inert' FORMAT.md
+verify: contains FORMAT.md inert
 docs:
   - FORMAT.md#task-file
 status: open

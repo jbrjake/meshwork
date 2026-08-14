@@ -3,7 +3,7 @@ id: mw-n0r5jwm
 title: "Cache key on content hash, not mtime"
 category: core/perf
 needs: [mw-4m169xc]
-verify: out=$(cargo test cache::checkout_does_not_invalidate 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test cache::checkout_does_not_invalidate
 seq: 240
 docs:
   - FORMAT.md#projection

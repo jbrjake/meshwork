@@ -3,7 +3,7 @@ id: mw-efmgn6b
 title: "lint --fix resolves duplicate status: from the ## log tail"
 category: core/store
 relates: [mw-3wnhhvp]
-verify: out=$(cargo test e2e::merge_union_poison_status_from_log 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test e2e::merge_union_poison_status_from_log
 seq: 250
 docs:
   - FORMAT.md#merge-semantics

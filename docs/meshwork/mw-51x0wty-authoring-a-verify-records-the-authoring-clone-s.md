@@ -3,7 +3,7 @@ id: mw-51x0wty
 title: "Authoring a verify records the authoring clone's approval (MW-E5 carve-out)"
 category: core/verify
 relates: [mw-hz1ezcg, mw-9rc4vs6, mw-f1x71yg]
-verify: out=$(cargo test e2e::add_authored_verify_preapproved 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test e2e::add_authored_verify_preapproved
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
 status: open

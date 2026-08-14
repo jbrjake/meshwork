@@ -3,7 +3,7 @@ id: mw-p6atpxh
 title: prime names the invalid files it counts
 status: open
 category: product/prime
-verify: grep -rq prime_names_invalid tests/ && cargo test --quiet prime_names_invalid
+verify: run cargo test prime_names_invalid
 created: 2026-08-12T20:48Z
 ---
 prime's header said "1 invalid" for two full sazed sessions

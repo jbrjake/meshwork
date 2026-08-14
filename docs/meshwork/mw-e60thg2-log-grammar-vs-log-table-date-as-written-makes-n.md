@@ -3,7 +3,7 @@ id: mw-e60thg2
 title: "log grammar vs log table: date-as-written makes NULL unreachable"
 category: core/format
 relates: [mw-7c6svyn]
-verify: out=$(cargo test format::log_date_nullability 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test format::log_date_nullability
 docs:
   - FORMAT.md#tail-section-grammars
   - FORMAT.md#projection

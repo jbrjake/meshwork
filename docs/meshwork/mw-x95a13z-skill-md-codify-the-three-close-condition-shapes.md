@@ -3,7 +3,7 @@ id: mw-x95a13z
 title: "SKILL.md: codify the three close-condition shapes for non-code tasks"
 status: open
 category: skill
-verify: grep -q 'close-condition shapes' .claude/skills/meshwork/SKILL.md
+verify: contains .claude/skills/meshwork/SKILL.md /close-condition shapes/
 relates:
   - mw-8kfqz2z
   - mw-cp11qh0

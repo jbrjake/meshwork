@@ -3,7 +3,7 @@ id: mw-e8hg2kt
 title: close and drop strip the task's handoff block
 status: open
 category: core/lifecycle
-verify: grep -q strips_handoff tests/suite/e2e_lifecycle.rs && cargo test --quiet strips_handoff
+verify: run cargo test strips_handoff
 relates:
   - mw-4jgrjar
 created: 2026-08-12T20:48Z

@@ -4,7 +4,7 @@ title: mirror status drift report (PLAN 3.4)
 status: open
 category: plan/m3
 needs: [mw-vmzg]
-verify: out=$(cargo test e2e::mirror_status_reports_only 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
+verify: run cargo test e2e::mirror_status_reports_only
 seq: 930
 docs:
   - REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H4
