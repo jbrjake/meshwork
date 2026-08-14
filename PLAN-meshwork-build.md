@@ -4,7 +4,7 @@
 
 Conventions: each item is done only when its `verify:` exits 0 AND `./verify_meshwork.sh` stays green. Items are ordered; no item starts before its predecessors' verifies pass. House numbers apply to meshwork's own code: 500 warn / 750 fail per file, 80% coverage, N≥7 bench reps.
 
-**Position: next = 3.1 (`mirror push` create path); M2 COMPLETE — leras joined, stop-line met 2026-08-13.** (2.6 closed the M2 queue: portfolio repo at `~/Documents/code/portfolio` registers sazed+leras+meshwork; the first real edge — leras#le-qfg98a0 `needs` sazed#sa-87jpgw8, leras f390d7c — resolves from inside leras (`why` prints the open dep) and portfolio-wide. `portfolio seq` = honest stub, filed mw-908n9k2. The store's seq ranks skill/hygiene work ahead of 3.1; the store is the live worklist.)
+**Position: M3 (mirror, 3.1–3.5) DEFERRED indefinitely — owner ruling 2026-08-14; next = store worklist (skill/verify hygiene), then M4.** (Mirror tasks mw-cvw8/wm9w/vmzg/ws31/a413 deprioritized to seq 900–940, relative order preserved; ruling recorded on mw-cvw8. M2 COMPLETE — leras joined, stop-line met 2026-08-13; portfolio repo at `~/Documents/code/portfolio` registers sazed+leras+meshwork, first real edge leras#le-qfg98a0 `needs` sazed#sa-87jpgw8 resolves portfolio-wide. The store is the live worklist.)
 
 ## 1. Bootstrap (B0–B4, first session)
 
@@ -60,7 +60,9 @@ Conventions: each item is done only when its `verify:` exits 0 AND `./verify_mes
 | 2.5 ✓ | Gate §7 perf: synthetic generators (seeded), 1K tasks / 20 repos, N≥7 median (C4) | `./verify_meshwork.sh` (§7) ✓ 2026-08-10 (medians 31ms ready@1K / 32ms portfolio@20; check-perf.sh + bench-baseline.json seeded) |
 | 2.6 ✓ | **Manual:** leras registered; one real cross-repo `needs` sazed↔leras | `portfolio ready` shows it; REQUIREMENTS §4 clause 3 ✓ 2026-08-13 (portfolio repo live: sazed+leras+meshwork; leras#le-qfg98a0 needs sazed#sa-87jpgw8 resolves `(open)`, edges row resolved=true, dependent held out of ready) |
 
-### M3 — mirror (stop-line: OEM-face visibility)
+### M3 — mirror (stop-line: OEM-face visibility) — DEFERRED indefinitely (owner ruling 2026-08-14)
+
+Do not start these without a fresh owner re-prioritization. Requirements (MW-H*) stand; the store carries the tasks at seq 900–940.
 
 | id | item (MW refs) | verify |
 |---|---|---|

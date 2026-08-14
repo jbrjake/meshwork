@@ -5,7 +5,7 @@ status: open
 category: plan/m3
 needs: [mw-9zrd, mw-pvfrpd4]
 verify: out=$(cargo test e2e::mirror_create 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
-seq: 80
+seq: 900
 docs:
   - REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H1, MW-H3
   - DESIGN-meshwork.md#§-8-github-push
@@ -34,3 +34,6 @@ handoff: |
 
 ## log
 - 2026-08-05 created
+
+## comments
+- 2026-08-14T12:45Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Owner ruling 2026-08-14: GitHub mirror work (all of M3, PLAN 3.1-3.5) deferred indefinitely — deprioritized to seq 900-940, relative order preserved. Not dropped: the requirements (MW-H*) stand, but no session should pick these up until the owner re-prioritizes. Skill/verify/M4 work proceeds ahead of them.

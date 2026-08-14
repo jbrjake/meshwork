@@ -5,7 +5,7 @@ status: open
 category: plan/m3
 needs: [mw-cvw8]
 verify: out=$(cargo test -- e2e::mirror_append e2e::mirror_never_mutates 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
-seq: 90
+seq: 910
 docs:
   - REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H1, MW-H2
   - DESIGN-meshwork.md#§-8-github-push
