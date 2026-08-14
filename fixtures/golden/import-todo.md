@@ -33,8 +33,7 @@ title: Document the governor knobs
 status: open
 created: 2026-08-04
 ---
-one page: guarantees vs never-promises,
-including the wakeup interval defaults.
+one page: guarantees vs never-promises, including the wakeup interval defaults.
 
 ## log
 - 2026-08-04 imported from TODO.md

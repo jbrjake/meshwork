@@ -76,6 +76,76 @@ fn import_nested_checkboxes() {
     );
 }
 
+// mw-mrjhwws: hard-wrapped checkbox lines truncated titles at the wrap and
+// multiline verifies at their first line — the wrapped remainder leaked
+// into body prose. Continuation lines join their item before field
+// extraction, markdown-paragraph style: a blank line ends the join.
+
+/// Wrapped titles and multiline verifies import whole.
+#[test]
+fn import_wrapped_titles_and_multiline_verifies() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    std::fs::write(
+        repo.join("TODO.md"),
+        "# TODO\n\n## Now\n\n\
+         - [ ] **Spillway rebuild: the engine landed late (owner-\n\
+         \x20 ruled follow-through)** — wrap context tail.\n\
+         - [ ] Plain wrapped title that continues\n\
+         \x20 onto a second line\n\
+         - [ ] **Multi verify task**\n\
+         \x20 verify: `out=$(cargo test import_smoke 2>&1) &&\n\
+         \x20   echo \"$out\" | grep -q ok` exits 0\n\
+         - [ ] **Boundary task**\n\
+         \n\
+         \x20 Body paragraph, not title.\n",
+    )
+    .unwrap();
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["import", "todo", "TODO.md"])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains("4 imported"), "{out}");
+
+    let q = |sql: &str| stdout_of(&meshwork(&repo).args(["q", sql]).assert().success());
+    let titles = q("SELECT title FROM tasks ORDER BY seq");
+    assert!(
+        titles.contains("follow-through)"),
+        "bold title joined across the wrap: {titles}"
+    );
+    assert!(
+        titles.contains("continues onto a second line"),
+        "plain title joined across the wrap: {titles}"
+    );
+
+    // The headline's own context survives the join.
+    let body = std::fs::read_to_string(task_file(
+        &repo,
+        &first_id_titled(&repo, "Spillway rebuild: the engine landed late (owner- ruled follow-through)"),
+    ))
+    .unwrap();
+    assert!(body.contains("wrap context tail"), "{body}");
+
+    // Multiline verify: the whole command, not its first physical line.
+    let verify = q("SELECT verify FROM tasks WHERE title = 'Multi verify task'");
+    assert!(
+        verify.contains("grep -q ok"),
+        "verify joined across the wrap: {verify}"
+    );
+
+    // A blank line ends the headline: paragraph stays body, title stays put.
+    assert!(
+        q("SELECT count(*) FROM tasks WHERE title = 'Boundary task'").contains('1'),
+        "blank line ends the title join"
+    );
+    let boundary =
+        std::fs::read_to_string(task_file(&repo, &first_id_titled(&repo, "Boundary task"))).unwrap();
+    assert!(boundary.contains("Body paragraph, not title."), "{boundary}");
+}
+
 /// Look up a task id by exact title via SQL.
 fn first_id_titled(repo: &Path, title: &str) -> String {
     let out = stdout_of(

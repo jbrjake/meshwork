@@ -104,6 +104,15 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
     Ok(())
 }
 
+/// What the next continuation line would join (mw-mrjhwws): wrapped
+/// checkbox lines join their headline, wrapped `verify:` lines join the
+/// command — a blank line, heading, or bullet ends the join.
+enum Cont {
+    Headline,
+    Verify,
+    Body,
+}
+
 fn parse_todo(text: &str) -> Vec<TodoItem> {
     let mut items: Vec<TodoItem> = Vec::new();
     // (indent, item index) — enclosing checkboxes; nesting never spans a
@@ -111,15 +120,21 @@ fn parse_todo(text: &str) -> Vec<TodoItem> {
     let mut stack: Vec<(usize, usize)> = Vec::new();
     let mut in_now = false;
     let mut now_seq = 0i64;
+    let mut cont = Cont::Body;
     for line in text.lines() {
         if let Some(heading) = line.strip_prefix("## ") {
             in_now = heading.trim().eq_ignore_ascii_case("now");
             stack.clear();
+            cont = Cont::Body;
             continue;
         }
         let trimmed_start = line.trim_start();
+        if trimmed_start.is_empty() {
+            cont = Cont::Body;
+            continue;
+        }
         let indent = line.len() - trimmed_start.len();
-        if let Some(item) = parse_bullet(trimmed_start) {
+        if let Some((status, rest)) = parse_marker(trimmed_start) {
             // An indented checkbox is a CHILD of the nearest shallower one
             // — a real task, never parent-body prose (mw-17hnhzk).
             while stack.last().is_some_and(|(i, _)| *i >= indent) {
@@ -131,28 +146,71 @@ fn parse_todo(text: &str) -> Vec<TodoItem> {
                 now_seq
             });
             items.push(TodoItem {
+                status,
+                title: rest.to_string(), // raw headline; split after joining
+                context: Vec::new(),
+                verify: None,
                 seq,
                 parent,
-                ..item
             });
             stack.push((indent, items.len() - 1));
-        } else if indent > 0 && !trimmed_start.is_empty() {
-            // Continuation of the last item (which may itself be nested):
-            // a verify line or more context.
-            let Some(last) = items.last_mut() else {
-                continue;
-            };
-            if let Some(v) = trimmed_start.strip_prefix("verify:") {
-                last.verify = Some(extract_command(v));
-            } else {
+            cont = Cont::Headline;
+            continue;
+        }
+        if indent == 0 && trimmed_start.starts_with('#') {
+            cont = Cont::Body;
+            continue;
+        }
+        let Some(last) = items.last_mut() else {
+            continue;
+        };
+        if trimmed_start.starts_with("- ") {
+            // A bullet is a new block, never a continuation.
+            cont = Cont::Body;
+            if indent > 0 {
                 last.context.push(trimmed_start.trim_end().to_string());
             }
+            continue;
+        }
+        if indent > 0 {
+            if let Some(v) = trimmed_start.strip_prefix("verify:") {
+                last.verify = Some(v.trim().to_string());
+                cont = Cont::Verify;
+                continue;
+            }
+        }
+        match cont {
+            Cont::Headline => {
+                last.title.push(' ');
+                last.title.push_str(trimmed_start.trim_end());
+            }
+            Cont::Verify => {
+                if let Some(v) = last.verify.as_mut() {
+                    v.push(' ');
+                    v.push_str(trimmed_start.trim_end());
+                }
+            }
+            Cont::Body => {
+                if indent > 0 {
+                    last.context.push(trimmed_start.trim_end().to_string());
+                }
+            }
+        }
+    }
+    for item in &mut items {
+        let (title, headline_ctx) = split_headline(&item.title);
+        item.title = title;
+        if let Some(ctx) = headline_ctx {
+            item.context.insert(0, ctx);
+        }
+        if let Some(v) = item.verify.take() {
+            item.verify = Some(extract_command(&v));
         }
     }
     items
 }
 
-fn parse_bullet(line: &str) -> Option<TodoItem> {
+fn parse_marker(line: &str) -> Option<(Status, &str)> {
     let rest = line.strip_prefix("- [")?;
     let (marker, rest) = rest.split_at(1);
     let rest = rest.strip_prefix("] ")?;
@@ -163,7 +221,13 @@ fn parse_bullet(line: &str) -> Option<TodoItem> {
         "!" => Status::Blocked,
         _ => return None,
     };
-    let (title, context) = match rest.split_once("**") {
+    Some((status, rest))
+}
+
+/// The joined headline splits into title + its own context: bold form
+/// (`**Title** — ctx`) first, em-dash form second.
+fn split_headline(headline: &str) -> (String, Option<String>) {
+    let (title, ctx) = match headline.split_once("**") {
         Some(("", tail)) => match tail.split_once("**") {
             Some((title, ctx)) => (
                 title.trim().to_string(),
@@ -171,24 +235,13 @@ fn parse_bullet(line: &str) -> Option<TodoItem> {
             ),
             None => (tail.trim().to_string(), String::new()),
         },
-        _ => match rest.split_once(" — ") {
+        _ => match headline.split_once(" — ") {
             Some((title, ctx)) => (title.trim().to_string(), ctx.trim().to_string()),
-            None => (rest.trim().to_string(), String::new()),
+            None => (headline.trim().to_string(), String::new()),
         },
     };
-    let context = if context.is_empty() {
-        vec![]
-    } else {
-        vec![context]
-    };
-    Some(TodoItem {
-        status,
-        title,
-        context,
-        verify: None,
-        seq: None,
-        parent: None,
-    })
+    let ctx = (!ctx.is_empty()).then_some(ctx);
+    (title, ctx)
 }
 
 /// `verify:` convention: `` `command` exits 0`` — take the backticked
