@@ -64,9 +64,11 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
 
     let mut created = Vec::new();
     let mut ids: Vec<String> = Vec::new();
+    let mut short_titles = 0usize;
     let mut counts: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
     for item in &items {
         let id = mint_unique(&config.alias, &tasks_dir, &mut gen).map_err(|e| e.to_string())?;
+        short_titles += usize::from(warn_short_title(&id, &item.title));
         let parent_id = item.parent.map(|i| ids[i].as_str());
         let file = render(item, &id, parent_id, &today);
         let name = format!("{id}-{}.md", slugify(&item.title));
@@ -108,19 +110,17 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
             }),
         );
     } else {
-        let mut summary = counts
-            .iter()
-            .map(|(k, v)| format!("{v} {k}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        if nested > 0 {
-            // Loud by design: nesting used to vanish here (mw-17hnhzk).
-            let _ = write!(summary, "; {nested} nested as children");
-        }
-        println!("{} imported ({summary})", created.len());
+        println!(
+            "{} imported ({})",
+            created.len(),
+            summary_line(&counts, nested)
+        );
         if let Some(id) = &carried_into {
             // Loud by design: prose used to vanish here (mw-gsgh8s7).
             println!("{carried_n} prose line(s) carried into {id} — triage into real tasks");
+        }
+        if short_titles > 0 {
+            println!("{short_titles} single-token title(s) — retitle as work orders at review");
         }
         println!(
             "next: review with `meshwork ready` + `lint`, then archive the source \
@@ -286,6 +286,33 @@ fn continue_line(
             }
         }
     }
+}
+
+/// The parenthesized import tally: per-status counts, plus the nested
+/// count when present.
+fn summary_line(counts: &std::collections::BTreeMap<&str, usize>, nested: usize) -> String {
+    let mut summary = counts
+        .iter()
+        .map(|(k, v)| format!("{v} {k}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    if nested > 0 {
+        // Loud by design: nesting used to vanish here (mw-17hnhzk).
+        let _ = write!(summary, "; {nested} nested as children");
+    }
+    summary
+}
+
+/// A whitespace-free title is a code, not a work order (mw-6mqm4em) —
+/// sazed's R11/R8/R7 were unintelligible in every listing three days
+/// later. Warn per title, on stderr, naming the minted id so the review
+/// pass has its retitle handle; the import itself never blocks on this.
+fn warn_short_title(id: &str, title: &str) -> bool {
+    let single = title.split_whitespace().count() == 1;
+    if single {
+        eprintln!("warn: {id}: single-token title {title:?} — retitle as a work order");
+    }
+    single
 }
 
 fn parse_marker(line: &str) -> Option<(Status, &str)> {

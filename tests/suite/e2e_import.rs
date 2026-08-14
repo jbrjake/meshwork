@@ -221,6 +221,68 @@ fn import_prose() {
     assert!(!out.contains("carried"), "no phantom triage: {out}");
 }
 
+// mw-6mqm4em: sazed imported tasks titled just R11, R8, R7 — codes, not
+// work orders — unintelligible in every listing three days later. A
+// single-token title warns per line and in the summary so the review pass
+// retitles it; the import itself still succeeds (warn, never block).
+
+/// Single-token titles warn per line on stderr plus a summary count.
+#[test]
+fn import_short_title() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    std::fs::write(
+        repo.join("TODO.md"),
+        "# TODO\n\n## Now\n\n\
+         - [ ] **R11**\n\
+         - [ ] **Fix the door check** — a real work order.\n\
+         - [x] R8\n",
+    )
+    .unwrap();
+
+    let assert = meshwork(&repo)
+        .args(["import", "todo", "TODO.md"])
+        .assert()
+        .success();
+    let out = stdout_of(&assert);
+    let err = stderr_of(&assert);
+
+    // Per-title stderr warning names the minted id — the retitle handle.
+    let r11 = first_id_titled(&repo, "R11");
+    assert!(
+        err.contains(&r11) && err.contains("R11"),
+        "warning names id + title: {err}"
+    );
+    // Terminal imports warn too — archived tasks still surface in queries.
+    assert!(err.contains("R8"), "done imports warn as well: {err}");
+    assert!(
+        !err.contains("door check"),
+        "multi-word titles never warn: {err}"
+    );
+
+    // Summary count lands in the stdout block, carried_n-style.
+    assert!(
+        out.contains("2 single-token title(s)"),
+        "summary counts the warns: {out}"
+    );
+
+    // A TODO of real work orders imports without the warning noise.
+    std::fs::write(
+        repo.join("CLEAN.md"),
+        "# TODO\n\n## Now\n\n- [ ] **Rebuild the spillway door**\n",
+    )
+    .unwrap();
+    let assert = meshwork(&repo)
+        .args(["import", "todo", "CLEAN.md"])
+        .assert()
+        .success();
+    assert!(
+        !stdout_of(&assert).contains("single-token")
+            && !stderr_of(&assert).contains("single-token"),
+        "no phantom warnings on clean imports"
+    );
+}
+
 /// Look up a task id by exact title via SQL.
 fn first_id_titled(repo: &Path, title: &str) -> String {
     let out = stdout_of(
