@@ -241,3 +241,61 @@ fn anchor_missing_warn() {
         "terminal rot is history, not noise: {f:?}"
     );
 }
+
+/// mw-221f3jt: statically trivially-satisfiable verifies warn — the golf
+/// (bare `true`/`echo`/`touch`) and presence checks already green at
+/// lint time. Warn-only; the start red-check (mw-175bn4c) is the
+/// dynamic tier of the same defense.
+#[test]
+fn trivial_verify_warn() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    std::fs::write(dir.path().join("repo/README.md"), "present\n").unwrap();
+    let task = |id: &str, status: &str, verify: &str| {
+        format!("---\nid: {id}\ntitle: T {id}\nstatus: {status}\nverify: {verify:?}\n---\n")
+    };
+    for (name, body) in [
+        ("zz-trv1-a.md", task("zz-trv1", "open", "true")),
+        ("zz-trv2-b.md", task("zz-trv2", "open", "echo done")),
+        ("zz-trv3-c.md", task("zz-trv3", "open", "touch marker.txt")),
+        ("zz-trv4-d.md", task("zz-trv4", "open", "test -f README.md")),
+        ("zz-trv5-e.md", task("zz-trv5", "open", "exists README.md")),
+        // Red today — a presence check on a file the work will create.
+        (
+            "zz-red1-f.md",
+            task("zz-red1", "open", "test -f docs/notyet.md"),
+        ),
+        (
+            "zz-red2-g.md",
+            task("zz-red2", "open", "exists docs/notyet.md"),
+        ),
+        // Real command, and compound shells, stay unjudged.
+        ("zz-ok1-h.md", task("zz-ok1", "open", "cargo test smoke")),
+        (
+            "zz-ok2-i.md",
+            task("zz-ok2", "open", "test -f README.md && grep -q x README.md"),
+        ),
+        // Terminal tasks are history — their golf no longer matters.
+        ("archive/zz-old1-j.md", task("zz-old1", "done", "true")),
+    ] {
+        let path = mw.join(name);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, body).unwrap();
+    }
+
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    for warned in ["zz-trv1", "zz-trv2", "zz-trv3", "zz-trv4", "zz-trv5"] {
+        assert!(
+            has(&f, Severity::Warning, "verify-trivial", warned),
+            "{warned} must warn: {f:?}"
+        );
+    }
+    for clean in ["zz-red1", "zz-red2", "zz-ok1", "zz-ok2", "zz-old1"] {
+        assert!(
+            !has(&f, Severity::Warning, "verify-trivial", clean),
+            "{clean} must stay clean: {f:?}"
+        );
+    }
+}

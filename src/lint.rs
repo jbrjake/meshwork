@@ -82,10 +82,54 @@ pub fn lint_store(store: &RepoStore) -> Vec<Finding> {
     check_budgets(store, &valid, &mut out);
     check_misplaced(store, &mut out);
     check_docs(store, &valid, &mut out);
+    check_trivial_verify(store, &valid, &mut out);
 
     out.sort();
     out.dedup();
     out
+}
+
+/// mw-221f3jt: statically trivially-satisfiable verifies warn on live
+/// tasks — the golf denylist (`true`, `echo`, `touch`) plus presence
+/// checks (`test -f`, DSL `exists`) whose path is already there at lint
+/// time; a verify green before the work proves nothing about the work.
+/// Static tier only (no execution, no trust-gate interaction); the start
+/// red-check (mw-175bn4c) is the dynamic tier. Warn, never error — a
+/// presence check can be legitimately green while a close is pending.
+fn check_trivial_verify(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
+    for t in valid {
+        if matches!(t.status, Status::Done | Status::Dropped) {
+            continue;
+        }
+        let Some(v) = t.verify.as_deref() else {
+            continue;
+        };
+        if let Some(why) = trivial_reason(&store.root, v.trim()) {
+            out.push(finding(
+                Severity::Warning,
+                "verify-trivial",
+                &t.id,
+                format!("verify `{v}` {why} — it cannot detect the work"),
+            ));
+        }
+    }
+}
+
+/// Why a verify is trivially satisfiable, if it is. Exact shapes only:
+/// compound commands (`&&`, `|`, `;`) are someone's real gate — unjudged.
+fn trivial_reason(root: &std::path::Path, v: &str) -> Option<String> {
+    let toks: Vec<&str> = v.split_whitespace().collect();
+    let present =
+        |path: &str| !path.starts_with('/') && !path.contains("..") && root.join(path).exists();
+    match toks.as_slice() {
+        ["true" | ":"] | ["exit", "0"] => Some("always exits 0".into()),
+        ["echo", ..] => Some("echo always exits 0".into()),
+        ["touch", ..] => Some("touch satisfies itself".into()),
+        ["test", "-f" | "-e", path] | ["exists", path] if present(path) => {
+            Some(format!("is already green ({path} exists today)"))
+        }
+        _ => None,
+    }
 }
 
 /// MW-F3 (mw-8r1a): a live task's `docs:` links must resolve — file and
