@@ -9,13 +9,6 @@ seq: 120
 docs:
   - DESIGN-meshwork.md#§-10-migration
 created: 2026-08-07T13:47Z
-handoff: |
-  You are next by the M2 ordering constraint: this must land before leras
-  migrates (2.6 is blocked on you). Import parser is src/cli/import.rs.
-  Decide: child tasks via parent: (B8 supports arbitrary depth) or a loud
-  refusal listing the dropped lines — silent loss is the one forbidden
-  outcome. Red-first; goldens for import live in
-  fixtures/golden/import-todo.md.
 ---
 Pilot evidence (sazed, 2026-08-07, abe358b): TODO.md had 124 checkboxes,
 109 top-level + 15 indented. `import todo` took exactly the 109 and folded

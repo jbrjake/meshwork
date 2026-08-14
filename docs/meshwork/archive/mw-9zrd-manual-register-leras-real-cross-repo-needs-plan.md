@@ -10,35 +10,6 @@ docs:
   - REQUIREMENTS-meshwork.md#§-4-acceptance-gate-for-v1   # clause 3
   - REQUIREMENTS-meshwork.md#§-g-portfolio
 created: 2026-08-05
-handoff: |
-  Pre-migration queue is FULLY COMPLETE and RELEASED as of 2026-08-10.
-  v0.2.1 is the tag leras pins: cut at b82b4f4, gates green, 4 platform
-  binaries + skill tarball up, narrative notes applied from
-  RELEASE-NOTES-v0.2.1.md. It carries all four sequence-state guards
-  (dangling-sequence lint, portfolio autoprune — owner ruled no flag,
-  drop
-  inbound cross-repo warning, plus the registry_hygiene split). The
-  v0.2.0/HEAD delta concern from the previous handoff is closed.
-  
-  Optional, not blocking: sazed still pins v0.2.0 — fine to leave; bump
-  to
-  v0.2.1 whenever a sazed session is open anyway (edit .meshwork-version,
-  reinstall binary + skill per the adoption skill).
-  
-  2026-08-12 update: README numbers recomputed per-project over the full
-  post-migration history (commits 1b8db2a..dd657c4); all 41 adoption
-  sessions mined — nine tasks filed + evidence comments on ten ranked
-  ones
-  (b13fd89; mw-bd390q6 and mw-dx4pndb need §6 rulings). Owner-directed
-  mw-rn1pxhp (plugin marketplace) sits at seq 72, right behind this task.
-  None of it blocks the manual list.
-  
-  This task's manual list stands as written (owner present): portfolio
-  repo
-  init + repos.toml naming sazed + leras + meshwork, leras migration per
-  references/adopt.md (pin .meshwork-version to v0.2.1), one real
-  cross-repo needs, portfolio ready shows the edge, flip PLAN 2.6 ✓ +
-  Position in the close commit.
 ---
 
 ## log

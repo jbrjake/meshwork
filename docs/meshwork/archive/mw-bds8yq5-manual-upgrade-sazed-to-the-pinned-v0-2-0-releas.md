@@ -8,11 +8,6 @@ docs:
   - .claude/skills/meshwork/references/install.md
 status: done
 created: 2026-08-10T16:31Z
-handoff: |
-  v0.2.0 is live (tag 775a7fd). sazed pins v0.1.5 — bump
-  .meshwork-version, install per the skill's references/install.md,
-  refresh sazed's skill copy from the release tarball, then prime + lint
-  there on the new pin. Repo-local everything; nothing global.
 ---
 sazed pins v0.1.5; v0.2.0 published 2026-08-10 (tag at 775a7fd, 4 platform
 binaries + skill tarball). Per-repo ritual, nothing global: bump

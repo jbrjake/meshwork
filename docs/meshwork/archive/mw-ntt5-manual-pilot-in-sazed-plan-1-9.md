@@ -11,13 +11,6 @@ docs:
   - DESIGN-meshwork.md#§-10-migration   # MW-J3
 created: 2026-08-05
 needs: [mw-der3, mw-a8tv, mw-0pj8qgv, mw-zp1h12d, mw-n6nvzpa, mw-3wnhhvp]
-handoff: |
-  Pilot is fully unblocked: v0.1.5 is released with darwin arm64 + linux
-  arm64/x86_64 + windows binaries and the skill tarball — pin v0.1.5 in
-  sazed's .meshwork-version. The binary now has the MW-E5 trust gate
-  (first close of each task needs --approve or MESHWORK_TRUST=1), minute
-  stamps, prime provenance, add --batch. README documents the current UX
-  with real transcripts.
 ---
 
 ## log
