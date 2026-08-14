@@ -87,6 +87,8 @@ entry = "- " date " [" author "] " text
 
 Neither date nor author may be empty; a nonconforming entry is a warning, and the line is skipped, not fatal. A comment's identity is `SHA-256(date NUL author NUL text)` as lowercase hex — date and author as written, text with continuations joined by `\n`, `NUL` a single zero byte (mw-xvtf5jx). Every consumer that dedups comments (the mirror, UI layers, replication) MUST use this hash; the mirror's issue-comment markers abbreviate it to the first 8 hex chars. Minute-resolution stamps are what make it trustworthy: same-day identical text no longer collides.
 
+**External evidence references** — a reserved convention, not a parse rule (like the `@ <short-sha>` anchor above). A log note or comment MAY cite an event in an external append-only evidence ledger as `[evt:<ledger>:<hash8>]` — `<ledger>` a lowercase slug naming the ledger, `<hash8>` the first 8 lowercase hex chars of the event's identity hash in that ledger's own terms. The reverse convention is the same key: an external event attesting to a task SHOULD carry its `gid` verbatim. Any attestation tool can then join events to task history with plain SQL — an agreed key and nothing more; no integration, no execution, no network (REQUIREMENTS §3; mw-cp11qh0).
+
 ## Merge semantics
 
 The store is safe under concurrent edits in separate clones: creation is file-per-task; status edits touch one frontmatter line; log/comments append at end-of-file under the committed `merge=union` attribute.

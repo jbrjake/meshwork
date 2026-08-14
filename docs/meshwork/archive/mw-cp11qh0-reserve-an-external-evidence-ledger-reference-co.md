@@ -1,7 +1,7 @@
 ---
 id: mw-cp11qh0
 title: Reserve an external evidence-ledger reference convention
-status: open
+status: done
 category: core/format
 needs: [mw-dg5j1sv]
 verify: grep -qi 'ledger' FORMAT.md
@@ -23,3 +23,5 @@ append-only histories later.
 
 ## log
 - 2026-08-06 created
+- 2026-08-14T13:06Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-14T13:08Z doing→done — verify exit 0 @ 98631a4+2
