@@ -1,7 +1,7 @@
 ---
 id: mw-8kfqz2z
 title: "SKILL.md: name the vacuous-verify traps — zero-match cargo filters, self-satisfied greps, piped exits"
-status: open
+status: done
 category: skill
 discovered-from: mw-9zrd
 relates: [mw-175bn4c, mw-221f3jt]
@@ -29,3 +29,5 @@ sh -c at authoring time and watch it fail — exit 1, not 127.
 
 ## log
 - 2026-08-10T22:22Z created
+- 2026-08-14T13:08Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-14T13:10Z doing→done — verify exit 0 @ e043e2d+2

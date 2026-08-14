@@ -73,6 +73,16 @@ the repo's committed `./meshwork` shim, which execs the pinned binary
   door check"), never a finding or a status — a finding-shaped title hides
   the fix it implies. The `verify:` must FAIL while the work is undone; a
   verify that already passes proves nothing about the work.
+- The vacuous-verify traps, by name: bare `cargo test FILTER` — zero
+  matching tests still exit 0; demand observed passes:
+  `out=$(cargo test F 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'`.
+  Greps satisfiable by prose that already exists — the task's own file and
+  rotated archives count; target artifacts that cannot pre-exist. Piped
+  tails (`cmd | grep …`) — the pipe reports the tail's exit, not the
+  gate's. Tool mismatch — close runs `sh -c`, which lacks agent-shell
+  functions like `rg`; author in grep/test/cargo. The ritual: run the
+  verify through `sh -c` at authoring time and watch it fail — exit 1,
+  not 127.
 - The CLI surface is frozen by design. If a verb doesn't exist, it's a
   deliberate non-goal — don't script around it; raise it with the owner.
 - meshwork never touches the network (GitHub mirroring is a future explicit
