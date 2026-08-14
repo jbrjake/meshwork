@@ -13,6 +13,14 @@ if [[ -f $SKILL ]]; then
   B=$(wc -c < "$SKILL")
   [[ $B -le 8192 ]] || { echo "smoke: FAIL $SKILL ${B}B > 8192B skill budget"; exit 1; }
 fi
+# Release-consistency guard (2026-08-14 incident): install.md must resolve
+# the release tag at install time, never hardcode one — a stale pin shipped
+# inside every skill tarball from v0.1.1 through v0.3.0.
+INSTALL=.claude/skills/meshwork/references/install.md
+if [[ -f $INSTALL ]] && grep -qE '^echo "v[0-9]' "$INSTALL"; then
+  echo "smoke: FAIL $INSTALL hardcodes a release pin — resolve via gh release view"; exit 1
+fi
+
 cargo fmt --all -- --check >/dev/null 2>&1 || { echo "smoke: FAIL formatting (run: cargo fmt)"; exit 1; }
 
 # Fast unit tier only (unit tests live in src/ modules of the binary). No RUSTFLAGS here:
