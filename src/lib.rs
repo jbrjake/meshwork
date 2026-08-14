@@ -17,4 +17,5 @@ pub mod store;
 pub mod tables;
 pub mod trust;
 pub mod verify_dsl;
+pub mod verify_exec;
 pub mod write;

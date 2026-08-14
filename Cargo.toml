@@ -16,6 +16,9 @@ serde_yaml_ng = "0.10"
 # MW-E5 trust-gate hashes (mw-9rc4vs6); RustCrypto, already in the tree
 # transitively via datafusion — declared, never assumed.
 sha2 = "0.10"
+# verify-DSL `contains /regex/` execution (mw-dthxs3q); already in the
+# tree transitively via datafusion — declared, never assumed.
+regex = "1"
 thiserror = "2"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 toml = "0.8"

@@ -118,3 +118,128 @@ fn grammar_legacy_shell_fallback() {
         );
     }
 }
+
+// mw-dthxs3q: the executor half — argv-only spawn (no shell anywhere),
+// env scrubbed to a pinned set, cwd = repo root, wall-clock timeout,
+// byte-capped output. DSL verifies bypass the MW-E5 trust gate because
+// this module makes them safe by construction.
+
+use meshwork::verify_exec::{execute, run_argv};
+use std::time::Duration;
+
+fn dsl(text: &str) -> Vec<meshwork::verify_dsl::Predicate> {
+    match classify(text) {
+        Classified::Dsl(p) => p,
+        other => panic!("{text} did not parse as DSL: {:?}", render_class(&other)),
+    }
+}
+
+fn render_class(c: &Classified) -> String {
+    match c {
+        Classified::Dsl(_) => "DSL".into(),
+        Classified::Malformed(m) => format!("MALFORMED {m}"),
+        Classified::LegacyShell => "SHELL".into(),
+    }
+}
+
+/// exists/absent/contains evaluate natively — no process at all.
+#[test]
+fn exec_native_predicates() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::write(root.join("door.md"), "the Q21 batch door\n").unwrap();
+
+    for pass in [
+        "exists door.md",
+        "absent GONE.md",
+        "contains door.md Q21",
+        "contains door.md /Q[0-9]+ batch/",
+        "all(exists door.md, contains door.md Q21)",
+    ] {
+        assert!(execute(root, &dsl(pass)).is_ok(), "{pass} should pass");
+    }
+    for (fail, why) in [
+        ("exists GONE.md", "missing file"),
+        ("absent door.md", "present file"),
+        ("contains door.md Q99", "literal absent"),
+        ("contains GONE.md Q21", "unreadable file"),
+        ("all(exists door.md, exists GONE.md)", "one conjunct fails"),
+    ] {
+        assert!(execute(root, &dsl(fail)).is_err(), "{fail}: {why}");
+    }
+}
+
+/// run spawns argv-style: metacharacters reach the child verbatim —
+/// there is no shell to give them meaning.
+#[test]
+fn exec_run_argv_no_shell() {
+    let dir = tempfile::tempdir().unwrap();
+    let argv = |v: &[&str]| v.iter().map(ToString::to_string).collect::<Vec<_>>();
+    let out = run_argv(
+        dir.path(),
+        &argv(&["echo", "$(pwd)", ";", "a&&b"]),
+        Duration::from_secs(5),
+        4096,
+    )
+    .unwrap();
+    assert!(
+        out.contains("$(pwd)") && out.contains("a&&b"),
+        "metacharacters must arrive literal: {out}"
+    );
+    // Exit status is the verdict.
+    assert!(run_argv(dir.path(), &argv(&["false"]), Duration::from_secs(5), 4096).is_err());
+}
+
+/// The child sees the pinned env set, not the caller's environment.
+#[test]
+fn exec_env_scrubbed() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = run_argv(
+        dir.path(),
+        &["printenv".to_string()],
+        Duration::from_secs(5),
+        65536,
+    )
+    .unwrap();
+    // cargo sets CARGO_PKG_NAME for this test process; a scrubbed child
+    // must not inherit it. PATH survives — the runner needs resolving.
+    assert!(
+        !out.contains("CARGO_PKG_NAME="),
+        "caller env leaked into the child: {out}"
+    );
+    assert!(out.contains("PATH="), "pinned set keeps PATH: {out}");
+}
+
+/// A hung child dies at the wall clock, loudly.
+#[test]
+fn exec_timeout_kills() {
+    let dir = tempfile::tempdir().unwrap();
+    let started = std::time::Instant::now();
+    let err = run_argv(
+        dir.path(),
+        &["sleep".to_string(), "30".to_string()],
+        Duration::from_millis(300),
+        4096,
+    )
+    .unwrap_err();
+    assert!(err.contains("timeout"), "{err}");
+    assert!(
+        started.elapsed() < Duration::from_secs(10),
+        "the kill must not wait out the child"
+    );
+}
+
+/// Output is byte-capped; the child still runs to completion.
+#[test]
+fn exec_output_capped() {
+    let dir = tempfile::tempdir().unwrap();
+    let out = run_argv(
+        dir.path(),
+        &["seq".to_string(), "1".to_string(), "200000".to_string()],
+        Duration::from_secs(30),
+        4096,
+    )
+    .unwrap();
+    assert!(out.len() <= 4096, "cap held: {} bytes", out.len());
+    assert!(out.starts_with("1\n"), "capped from the head: {out}");
+}

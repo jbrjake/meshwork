@@ -1,7 +1,7 @@
 ---
 id: mw-dthxs3q
 title: "Verify DSL: executor — argv-only spawn, scrubbed env, timeout"
-status: open
+status: done
 category: core/verify
 needs: [mw-sascrgs]
 parent: mw-6895bkg
@@ -21,3 +21,5 @@ depth for the run predicate.
 
 ## log
 - 2026-08-06 created
+- 2026-08-14T15:18Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-14T15:23Z doing→done — verify exit 0 @ 7437912+8
