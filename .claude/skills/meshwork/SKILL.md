@@ -58,6 +58,15 @@ the repo's committed `./meshwork` shim, which execs the pinned binary
   creation is a one-document `add --batch -`, not a hand-written file.
 - `seq` is the priority primitive (integers, gaps of 10; lower = sooner). There
   is no priority field and no due date, deliberately.
+- How tasks mesh: `--parent <id>` = section umbrella — `ready` hides the
+  parent while any child lives. `--needs <id>` (later: `dep add <a> --needs
+  <b>`; `repo#id` crosses repos) = hard order — gates `ready`. `relates:` =
+  soft link, never gates (no flag; frontmatter or `add --batch`). `--from` =
+  provenance, non-gating. Priority is graph then `seq`, never list order.
+- Graph verbs before raw SQL: `tree <id>`, `why <id>` (open-blocker
+  frontier), `blocked`. Parent progress needs SQL — the idiom, verbatim
+  (`"rows":[[0]]` = all children terminal):
+  `meshwork q "SELECT COUNT(*) AS n FROM edges e JOIN tasks t ON e.src_gid = t.gid WHERE e.kind = 'parent' AND e.dst_gid = '<repo>#<id>' AND t.status NOT IN ('done', 'dropped')" --json`
 - Every task should carry a `verify:` command (lint warns when missing) and
   `docs:` links (`path#§-anchor`) tying it to requirements/design sections.
 - Author tasks as work orders. The title is an imperative action ("Fix the
