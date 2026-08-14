@@ -53,3 +53,44 @@ fn needs_verify() {
     let v: serde_json::Value = serde_json::from_str(&js).unwrap();
     assert_eq!(v["data"]["rows"][0]["needs_verify"], false, "{js}");
 }
+
+/// mw-175bn4c: a verify already green at start cannot detect the work.
+/// The red-check is advisory (mw-kkvs8zq precedent: a warning is
+/// behavior, no new surface) and executes only text this clone already
+/// trusts (MW-E5) — untrusted verifies never run; the skip says so.
+#[test]
+fn verify_red_check() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+
+    // Green at start: the warning names the class; the start proceeds.
+    let green = add_id(&repo, &["add", "Green verify", "--verify", "true"]);
+    let assert = meshwork(&repo).args(["start", &green]).assert().success();
+    let err = stderr_of(&assert);
+    assert!(err.contains("already green"), "{err}");
+
+    // Red at start: armed — the check stays quiet.
+    let red = add_id(&repo, &["add", "Red verify", "--verify", "false"]);
+    let assert = meshwork(&repo).args(["start", &red]).assert().success();
+    assert!(
+        !stderr_of(&assert).contains("red-check"),
+        "armed verify is quiet"
+    );
+
+    // Exit 127: close's shell can't even run it — say so, proceed.
+    let broken = add_id(&repo, &["add", "Broken verify", "--verify", "no-such-cmd-mw175"]);
+    let assert = meshwork(&repo).args(["start", &broken]).assert().success();
+    let err = stderr_of(&assert);
+    assert!(err.contains("127"), "{err}");
+
+    // Untrusted text never executes — the skip is loud, the start proceeds.
+    let cold = add_id(&repo, &["add", "Cold clone", "--verify", "true"]);
+    let assert = meshwork(&repo)
+        .env_remove("MESHWORK_TRUST")
+        .args(["start", &cold])
+        .assert()
+        .success();
+    let err = stderr_of(&assert);
+    assert!(err.contains("red-check skipped"), "{err}");
+    assert!(!err.contains("already green"), "did not execute: {err}");
+}

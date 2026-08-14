@@ -45,12 +45,15 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
     let tasks_dir = root.join("docs").join("meshwork");
     if let Some(path) = find_task_file(&tasks_dir, &args.id) {
         if let ParsedTask::Valid(t) = parse_task_file(&path) {
-            if t.verify.as_deref().is_none_or(|v| v.trim().is_empty()) {
-                return Err(format!(
-                    "cannot start {id}: needs-verify — write the done-test first: \
-                     `meshwork set {id} --verify '<cmd>'`, then start (mw-6wdpz1b)",
-                    id = args.id
-                ));
+            match t.verify.as_deref().map(str::trim) {
+                None | Some("") => {
+                    return Err(format!(
+                        "cannot start {id}: needs-verify — write the done-test first: \
+                         `meshwork set {id} --verify '<cmd>'`, then start (mw-6wdpz1b)",
+                        id = args.id
+                    ));
+                }
+                Some(verify) => red_check(&root, &args.id, verify),
             }
         }
     }
@@ -64,6 +67,41 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
         claimant.as_deref(),
         json,
     )
+}
+
+/// mw-175bn4c: a verify already green at start cannot detect the work —
+/// the sister of the needs-verify gate above (absent vs present-but-
+/// vacuous). Advisory by the mw-kkvs8zq precedent (a warning is behavior,
+/// no new surface); execution stays behind the MW-E5 trust gate, so
+/// untrusted text never runs — that skip is loud instead of silent.
+fn red_check(root: &std::path::Path, id: &str, verify: &str) {
+    if !(crate::trust::env_trusted() || crate::trust::is_approved(root, id, verify)) {
+        eprintln!(
+            "note: red-check skipped for {id} — verify unapproved for this \
+             clone (MW-E5; approve at close, or MESHWORK_TRUST=1)"
+        );
+        return;
+    }
+    let exit = std::process::Command::new("sh")
+        .args(["-c", verify])
+        .current_dir(root)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map_or(-1, |s| s.code().unwrap_or(-1));
+    match exit {
+        0 => eprintln!(
+            "warning: red-check: {id}'s verify is already green (exit 0) — \
+             it cannot detect the work; tighten it, or close if the work is \
+             done (mw-175bn4c)"
+        ),
+        127 => eprintln!(
+            "warning: red-check: {id}'s verify exits 127 under sh -c — \
+             close's shell won't have agent-shell functions; recast in \
+             grep/test/cargo (mw-175bn4c)"
+        ),
+        _ => {}
+    }
 }
 
 pub(crate) fn block(args: &BlockArgs, json: bool) -> Result<(), String> {

@@ -1,7 +1,7 @@
 ---
 id: mw-175bn4c
 title: "Red-check the verify: a gate already green at add/start cannot detect the work"
-status: open
+status: done
 category: core/verify
 verify: out=$(cargo test e2e::verify_red_check 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 discovered-from: mw-ntt5
@@ -29,6 +29,8 @@ Decide the two together — same surface ruling.
 
 ## log
 - 2026-08-07T13:47Z created
+- 2026-08-14T13:33Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-14T13:45Z doing→done — verify exit 0 @ c239c7f+4
 
 ## comments
 - 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Field evidence: sa-va0tvyx was minted with a placeholder grep already green at mint (dbc4d8cd), Q21's doc-mention verify was green from birth and later closed on it, and leras faba7815's manual red-check found 3 of 27 verifies GREEN before any work — 2 of them rotted anchors. Red-at-add/start would have caught every one at authoring time.
