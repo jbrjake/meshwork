@@ -5,6 +5,14 @@ cd "$(dirname "$0")/.."
 if ! command -v cargo >/dev/null 2>&1; then echo "smoke: SKIP (no cargo on this machine)"; exit 0; fi
 
 ./scripts/check-file-length.sh || exit 1
+
+# Skill budget (bytes, MW-D5 doctrine): SKILL.md loads whole into context on
+# trigger; references/ load on demand and are exempt.
+SKILL=.claude/skills/meshwork/SKILL.md
+if [[ -f $SKILL ]]; then
+  B=$(wc -c < "$SKILL")
+  [[ $B -le 8192 ]] || { echo "smoke: FAIL $SKILL ${B}B > 8192B skill budget"; exit 1; }
+fi
 cargo fmt --all -- --check >/dev/null 2>&1 || { echo "smoke: FAIL formatting (run: cargo fmt)"; exit 1; }
 
 # Fast unit tier only (unit tests live in src/ modules of the binary). No RUSTFLAGS here:
