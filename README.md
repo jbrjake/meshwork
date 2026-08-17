@@ -70,6 +70,8 @@ created: 2026-08-12T21:28Z
 - 2026-08-12T21:29Z [claude] Smoking gun! You're absolutely right. This seam is load-bearing. On it. Cerebrating...
 ```
 
+Prefer to watch it run? `./scripts/demo.sh` plays that whole loop on a throwaway scratch repo — one command, zero network, cleans up after itself.
+
 ## why?
 
 If you code with agents for more than toy projects, you manage your context window size rather than rely on compaction. You have to make sure new agents get on-boarded at session start and kept on-task.
@@ -135,6 +137,8 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 | worklist fidelity | a 733-line TODO.md + a 666-line HANDOFF.md (48 checkbox entries, hard-wrapped ~12 lines each) | 68 tasks, 63 dependency edges |
 
 *See `scripts/busywork-tokens.py` for the math.*
+
+Because the store keeps what every other setup throws away — task logs, session claims, timestamps — it can also measure agent context-switch cost itself: across 87 measured sessions, the median session reaches its first task action in **9.1 minutes**, and switching repos costs nothing extra (8.8 min after a cross-repo session vs 11.1 same-repo — the store carries the context). Method and denominators: [docs/setup-cost-matrix.md](docs/setup-cost-matrix.md).
 
 *The repos are developed with different models (A: Opus, B: Fable), so compare before/after within a table, not across the two.*
 
@@ -410,6 +414,8 @@ gh release download "$VER" -R jbrjake/meshwork \
 ```
 
 Hooks and scripts invoke `~/.meshwork/versions/$(cat .meshwork-version)/meshwork`, so two repos can disagree. The adoption skill commits a two-line `./meshwork` shim so humans, hooks, and homunculi all reach the pinned version without re-deriving that path.
+
+Building from source works too: `cargo install --git https://github.com/jbrjake/meshwork` (or `cargo build --release` in a clone).
 
 ### claude skill
 
