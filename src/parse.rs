@@ -163,6 +163,13 @@ pub struct Task {
     pub discovered_from: Option<String>,
     /// Soft links (MW-B1).
     pub relates: Vec<String>,
+    /// Addressee of an ask — a repo name or `repo#id`; surfaced in that
+    /// repo's prime/ready via the portfolio union until a non-dropped task
+    /// `answers:` it. Read-time join, never a transport (mw-hfvtx0s).
+    pub to: Option<String>,
+    /// The ask gid this task answers — projects as an `answers` edge;
+    /// never gates ready (mw-hfvtx0s).
+    pub answers: Option<String>,
     /// Close gate command, run via `sh -c` (MW-E2).
     pub verify: Option<String>,
     /// Repo-relative doc links with optional `#§-anchors` (MW-F1).
@@ -237,6 +244,10 @@ struct Frontmatter {
     #[serde(default)]
     relates: Option<Vec<String>>,
     #[serde(default)]
+    to: Option<String>,
+    #[serde(default)]
+    answers: Option<String>,
+    #[serde(default)]
     verify: Option<String>,
     #[serde(default)]
     docs: Option<Vec<String>>,
@@ -270,6 +281,8 @@ pub(crate) const KNOWN_KEYS: &[&str] = &[
     "parent",
     "discovered-from",
     "relates",
+    "to",
+    "answers",
     "verify",
     "docs",
     "attachments",
@@ -339,6 +352,8 @@ pub fn parse_task_str(file_name: &str, text: &str) -> ParsedTask {
         parent: fm.parent,
         discovered_from: fm.discovered_from,
         relates: fm.relates.unwrap_or_default(),
+        to: fm.to,
+        answers: fm.answers,
         verify: fm.verify,
         docs: fm.docs.unwrap_or_default(),
         attachments: fm.attachments.unwrap_or_default(),

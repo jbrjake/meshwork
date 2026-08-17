@@ -50,6 +50,8 @@ Filename: `<id>-<slug>.md`. The slug is cosmetic and never load-bearing; the ID 
 | `parent` | id | same-repo nesting, child points up |
 | `discovered-from` | id | provenance edge |
 | `relates` | id list | soft links |
+| `to` | string | addressee of an ask: a repo name or `repo#id` — see *Addressed tasks* below |
+| `answers` | id | the ask gid this task answers; projects as an `answers` edge, never gates readiness |
 | `verify` | string | close-gate command — DSL predicates (preferred, DESIGN §12b) or legacy shell; untrusted input (MW-E5); readers treat it as opaque text and never execute it |
 | `docs` | list | repo-relative paths, optional `#§-anchor` |
 | `attachments` | list | store-relative `attachments/<id>/<file>` paths |
@@ -64,6 +66,8 @@ Filename: `<id>-<slug>.md`. The slug is cosmetic and never load-bearing; the ID 
 **Stamps.** Minted stamps are UTC minute resolution: `YYYY-MM-DDTHH:MMZ` (17 chars). Date-only `YYYY-MM-DD` is legal forever. Stamps sort lexicographically; last-activity of a file is the max stamp in it, always derived, never stored.
 
 **Identity strings** (comment authors, `claimed-by`) are self-professed free strings — no accounts, no verification; an identity is a claim, recorded as claimed.
+
+**Addressed tasks.** An *ask* is a task carrying `to:` — it lives in its author's store and is never copied anywhere. Delivery is a read-time join: a reader assembling repo R's view SHOULD surface every non-terminal ask in the loaded set whose `to:` repo-segment (the text before `#`, or the whole value) equals R, unless a non-`dropped` task anywhere in the set carries `answers:` naming the ask's gid. There is no transport, no broker, and no write into the addressee's store; an unavailable sender repo simply contributes nothing. (mw-hfvtx0s)
 
 ## Tail-section grammars
 
@@ -109,8 +113,8 @@ The projection is six tables. `repo` is the registry name from the portfolio's `
 
 | table | columns |
 |---|---|
-| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status` (the five values, or `invalid`), `category`, `verify`, `waived`, `seq`, `created`, `blocked_reason`, `claimed_by`, `github`, `path`, `error` (invalid rows only) |
-| `edges` | `src_gid`, `dst_gid`, `kind` (`needs`\|`parent`\|`discovered-from`\|`relates`), `resolved` (dst present in the loaded/registered set); `parent` edges stored child→parent; bare targets qualify with the declaring repo |
+| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status` (the five values, or `invalid`), `category`, `verify`, `waived`, `seq`, `created`, `blocked_reason`, `claimed_by`, `github`, `addressed_to` (the `to:` key), `path`, `error` (invalid rows only) |
+| `edges` | `src_gid`, `dst_gid`, `kind` (`needs`\|`parent`\|`discovered-from`\|`relates`\|`answers`), `resolved` (dst present in the loaded/registered set); `parent` edges stored child→parent; bare targets qualify with the declaring repo |
 | `labels` | `gid`, `label` (exploded) |
 | `comments` | `gid`, `ord` (1-based file position), `date`, `author`, `text`, `hash` (the identity hash above) |
 | `log` | `gid`, `ord` (1-based file position), `date` (as written; NULL if the entry has none), `from_status`, `to_status` (NULL for free text), `note` — the `## log` grammar above, exactly |

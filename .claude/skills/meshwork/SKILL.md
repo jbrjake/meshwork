@@ -65,6 +65,9 @@ the repo's committed shim — `docs/meshwork/meshwork` (pre-v0.3.1 adopters:
   <b>`; `repo#id` crosses repos) = hard order — gates `ready`. `relates:` =
   soft link, never gates (no flag; frontmatter or `add --batch`). `--from` =
   provenance, non-gating. Priority is graph then `seq`, never list order.
+  `to: <repo>` = an ask addressed to another repo — it surfaces in THAT
+  repo's prime/ready until a task anywhere carries `answers: <its-gid>`
+  (frontmatter only, like relates; asks stay in your store, nothing is sent).
 - Graph verbs before raw SQL: `tree <id>`, `why <id>` (open-blocker
   frontier), `blocked`. Parent progress needs SQL — the idiom, verbatim
   (`"rows":[[0]]` = all children terminal):

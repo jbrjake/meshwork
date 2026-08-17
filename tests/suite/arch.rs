@@ -7,6 +7,7 @@ use std::path::Path;
 /// Model modules: everything in src/ that is not the CLI shell or the
 /// crate roots. None of them may mention the CLI layer or clap.
 const MODEL_MODULES: &[&str] = &[
+    "addressed.rs",
     "clock.rs",
     "docs.rs",
     "edit.rs",

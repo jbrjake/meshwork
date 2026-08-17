@@ -14,7 +14,7 @@ use std::io::Read as _;
 
 /// Frontmatter keys whose values are ids — the only places `@handle` refs
 /// are resolved (a literal `@` in a title or verify stays untouched).
-const EDGE_KEYS: &[&str] = &["needs", "parent", "discovered-from", "relates"];
+const EDGE_KEYS: &[&str] = &["needs", "parent", "discovered-from", "relates", "answers"];
 
 struct Entry {
     handle: Option<String>,

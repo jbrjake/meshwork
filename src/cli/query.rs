@@ -24,6 +24,8 @@ pub(crate) struct QArgs {
 
 /// Rows a listing shows by default (MW-D2).
 const LISTING_CAP: usize = 20;
+/// Incoming asks stay a footnote, never a second worklist (MW-D2 spirit).
+const ADDRESSED_CAP: usize = 5;
 
 /// The normative `ready` SQL (DESIGN §5, MW-B6) minus its `LIMIT 20`: the
 /// cap is applied at render time because the `… and N more` marker needs
@@ -48,9 +50,10 @@ ORDER BY coalesce(t.seq, 999999), t.created";
 /// inject (a done/dropped dep is satisfied — the one delta the frozen
 /// predicate needs; anything else already blocks conservatively as NULL,
 /// and an injected open task would leak into listings).
-fn local_session() -> Result<SessionContext, String> {
+fn local_session() -> Result<(SessionContext, String), String> {
     let root = crate::cli::require_store_root()?;
     let store = crate::store::load_repo(&root).map_err(|e| e.to_string())?;
+    let repo = store.repo.clone();
     let refs = crate::registry::foreign_refs(&[&store]);
     let mut foreign = Vec::new();
     if !refs.is_empty() {
@@ -62,7 +65,8 @@ fn local_session() -> Result<SessionContext, String> {
                 .collect();
         }
     }
-    crate::tables::session_for(&[store], &foreign).map_err(|e| e.to_string())
+    let ctx = crate::tables::session_for(&[store], &foreign).map_err(|e| e.to_string())?;
+    Ok((ctx, repo))
 }
 
 /// Execute SQL, returning column names + batches (schema survives empty
@@ -92,14 +96,15 @@ pub(crate) fn run_query(
 /// Run SQL over the local store, rows as strings — for sibling verbs
 /// (`blocked`, later `prime`) that share the canned-SQL pipeline.
 pub(crate) fn sql_rows_local(sql: &str) -> Result<Vec<Vec<String>>, String> {
-    let ctx = local_session()?;
+    let (ctx, _) = local_session()?;
     let (_, batches) = run_query(&ctx, sql)?;
     Ok(string_rows(&batches))
 }
 
 pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
-    let ctx = local_session()?;
+    let (ctx, repo) = local_session()?;
     let (_, batches) = run_query(&ctx, READY_SQL)?;
+    let inbox = crate::addressed::inbox(&repo);
     let rows = string_rows(&batches);
     let total = rows.len();
     let cap = if args.all {
@@ -117,9 +122,13 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
                     "needs_verify": r[3].is_empty() })
             })
             .collect();
+        let addressed: Vec<_> = inbox
+            .iter()
+            .map(|a| serde_json::json!({ "gid": a.gid, "title": a.title }))
+            .collect();
         crate::cli::emit_json(
             "ready",
-            &serde_json::json!({ "total": total, "rows": shown }),
+            &serde_json::json!({ "total": total, "rows": shown, "addressed": addressed }),
         );
     } else {
         for row in &rows[..cap] {
@@ -145,12 +154,23 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
         if total == 0 {
             println!("nothing ready");
         }
+        // Incoming asks — the read-time join (mw-hfvtx0s). Foreign gids
+        // appear ONLY here, labeled; the main list stays local-only.
+        if !inbox.is_empty() {
+            println!("addressed to this repo ({}):", inbox.len());
+            for a in inbox.iter().take(ADDRESSED_CAP) {
+                println!("{}  {}", a.gid, a.title);
+            }
+            if inbox.len() > ADDRESSED_CAP {
+                println!("… and {} more addressed", inbox.len() - ADDRESSED_CAP);
+            }
+        }
     }
     Ok(())
 }
 
 pub(crate) fn q(args: &QArgs, json: bool) -> Result<(), String> {
-    let ctx = local_session()?;
+    let (ctx, _) = local_session()?;
     let (columns, batches) = run_query(&ctx, &args.sql)?;
 
     if json {

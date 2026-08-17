@@ -112,6 +112,8 @@ fn render_text(t: &Task, rel: &str, shown_from: usize, commits: &[(String, Strin
     kv("parent", t.parent.clone());
     kv("discovered-from", t.discovered_from.clone());
     kv("relates", join_nonempty(&t.relates));
+    kv("to", t.to.clone());
+    kv("answers", t.answers.clone());
     kv("verify", t.verify.clone());
     kv("seq", t.seq.map(|s| s.to_string()));
     kv("created", t.created.clone());
@@ -224,6 +226,7 @@ fn emit_json(
             "attachments": t.attachments, "seq": t.seq, "github": t.github,
             "created": t.created, "blocked_reason": t.blocked_reason,
             "claimed_by": t.claimed_by, "waived": t.waived, "handoff": t.handoff,
+            "to": t.to, "answers": t.answers,
             "description": t.description, "log": t.log,
             "comments": { "total": t.comments.len(), "shown": shown },
             "commits": commits.iter().take(COMMIT_CAP)

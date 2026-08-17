@@ -28,6 +28,8 @@ const BODY_HEAD_LINES: usize = 3;
 const VOICE_LINES: usize = 6;
 /// Recently-done rows (§7b: last ~5, dated from log lines).
 const DONE_ROWS: usize = 5;
+/// Incoming asks shown in prime — a nudge, never a second worklist.
+const ADDRESSED_ROWS: usize = 3;
 /// Dependents named on a blocks-line before collapsing to +N.
 const BLOCKS_NAMED: usize = 3;
 /// Visible marker when the budget forces a cut.
@@ -362,20 +364,22 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     let mut next_block = next_block_lines(&tasks, &ready);
     let mut also_ready = also_ready_lines(&tasks, &ready);
     let dones = recent_dones(&tasks);
+    let inbox = crate::addressed::inbox(&store.repo);
 
     if json {
         let next_task = ready
             .first()
             .and_then(|r| tasks.iter().find(|t| t.id == r[0]).copied());
-        emit_prime_json(
-            &counts,
-            &ready,
-            &ranked,
-            &weather,
-            next_task,
-            &dones,
-            provenance_line(&root).as_deref(),
-        );
+        emit_prime_json(&PrimeJson {
+            counts: &counts,
+            ready: &ready,
+            rollup: &ranked,
+            weather: &weather,
+            next: next_task,
+            dones: &dones,
+            inbox: &inbox,
+            provenance: provenance_line(&root).as_deref(),
+        });
         return Ok(());
     }
 
@@ -390,6 +394,20 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     if !weather.is_empty() {
         lines.push("weather:".to_string());
         lines.append(&mut weather);
+    }
+    // Incoming asks (mw-hfvtx0s) — between weather and next: they inform
+    // the session before it commits to a task, but never displace next.
+    if !inbox.is_empty() {
+        lines.push(format!("addressed to this repo ({}):", inbox.len()));
+        for a in inbox.iter().take(ADDRESSED_ROWS) {
+            lines.push(clamp_bytes(&format!("- {} {}", a.gid, a.title), LINE_CLAMP));
+        }
+        if inbox.len() > ADDRESSED_ROWS {
+            lines.push(format!(
+                "… and {} more addressed",
+                inbox.len() - ADDRESSED_ROWS
+            ));
+        }
     }
     lines.append(&mut next_block);
     if !also_ready.is_empty() {
@@ -428,21 +446,27 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     Ok(())
 }
 
-fn emit_prime_json(
-    counts: &BTreeMap<&str, usize>,
-    ready: &[Vec<String>],
-    rollup: &[(&str, i64, usize)],
-    weather: &[String],
-    next: Option<&Task>,
-    dones: &[(String, &str, &str)],
-    provenance: Option<&str>,
-) {
-    let ready_rows: Vec<_> = ready
+/// The digest's sections, bundled for the JSON emitter — one view, one arg.
+struct PrimeJson<'a> {
+    counts: &'a BTreeMap<&'a str, usize>,
+    ready: &'a [Vec<String>],
+    rollup: &'a [(&'a str, i64, usize)],
+    weather: &'a [String],
+    next: Option<&'a Task>,
+    dones: &'a [(String, &'a str, &'a str)],
+    inbox: &'a [crate::addressed::Ask],
+    provenance: Option<&'a str>,
+}
+
+fn emit_prime_json(v: &PrimeJson) {
+    let ready_rows: Vec<_> = v
+        .ready
         .iter()
         .take(READY_ROWS)
         .map(|r| serde_json::json!({ "id": r[0], "title": r[1] }))
         .collect();
-    let rollup_rows: Vec<_> = rollup
+    let rollup_rows: Vec<_> = v
+        .rollup
         .iter()
         .take(ROLLUP_GROUPS)
         .map(|(g, s, n)| {
@@ -450,21 +474,28 @@ fn emit_prime_json(
                 "min_seq": if *s == i64::MAX { None } else { Some(*s) } })
         })
         .collect();
-    let next_row = next.map(|t| {
+    let next_row = v.next.map(|t| {
         serde_json::json!({ "id": t.id, "title": t.title, "handoff": t.handoff,
             "verify": t.verify, "docs": t.docs, "category": t.category })
     });
-    let done_rows: Vec<_> = dones
+    let done_rows: Vec<_> = v
+        .dones
         .iter()
         .map(|(d, id, title)| serde_json::json!({ "date": d, "id": id, "title": title }))
+        .collect();
+    let addressed: Vec<_> = v
+        .inbox
+        .iter()
+        .map(|a| serde_json::json!({ "gid": a.gid, "title": a.title }))
         .collect();
     crate::cli::emit_json(
         "prime",
         &serde_json::json!({
-            "counts": counts, "provenance": provenance,
-            "ready_total": ready.len(), "ready": ready_rows,
-            "rollup": rollup_rows, "rollup_total": rollup.len(),
-            "weather": weather, "next": next_row, "recently_done": done_rows,
+            "counts": v.counts, "provenance": v.provenance,
+            "ready_total": v.ready.len(), "ready": ready_rows,
+            "rollup": rollup_rows, "rollup_total": v.rollup.len(),
+            "weather": v.weather, "next": next_row, "recently_done": done_rows,
+            "addressed": addressed,
         }),
     );
 }

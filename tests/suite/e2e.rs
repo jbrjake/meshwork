@@ -85,6 +85,7 @@ fn add_id(repo: &Path, args: &[&str]) -> String {
 }
 
 include!("e2e_add_batch.rs");
+include!("e2e_addressed.rs");
 include!("e2e_archive.rs");
 include!("e2e_claim.rs");
 include!("e2e_comment_identity.rs");

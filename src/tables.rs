@@ -110,6 +110,7 @@ fn tasks_schema() -> Arc<Schema> {
         utf8(true, "blocked_reason"),
         utf8(true, "claimed_by"),
         Field::new("github", DataType::Int64, true),
+        utf8(true, "addressed_to"),
         utf8(false, "path"),
         utf8(true, "error"),
     ]))
@@ -134,6 +135,7 @@ fn tasks_batch(
     let mut blocked_reason: Vec<Option<String>> = Vec::new();
     let mut claimed_by: Vec<Option<String>> = Vec::new();
     let mut github: Vec<Option<i64>> = Vec::new();
+    let mut addressed_to: Vec<Option<String>> = Vec::new();
     let mut path = Vec::new();
     let mut error: Vec<Option<String>> = Vec::new();
 
@@ -155,6 +157,7 @@ fn tasks_batch(
                     blocked_reason.push(t.blocked_reason.clone());
                     claimed_by.push(t.claimed_by.clone());
                     github.push(t.github.and_then(|n| i64::try_from(n).ok()));
+                    addressed_to.push(t.to.clone());
                     error.push(None);
                 }
                 ParsedTask::Invalid(inv) => {
@@ -170,6 +173,7 @@ fn tasks_batch(
                     blocked_reason.push(None);
                     claimed_by.push(None);
                     github.push(None);
+                    addressed_to.push(None);
                     error.push(Some(inv.error.clone()));
                 }
             }
@@ -192,6 +196,7 @@ fn tasks_batch(
         blocked_reason.push(None);
         claimed_by.push(None);
         github.push(None);
+        addressed_to.push(None);
         path.push(f.path.clone());
         error.push(None);
     }
@@ -210,6 +215,7 @@ fn tasks_batch(
         Arc::new(StringArray::from(blocked_reason)),
         Arc::new(StringArray::from(claimed_by)),
         Arc::new(Int64Array::from(github)),
+        Arc::new(StringArray::from(addressed_to)),
         Arc::new(StringArray::from(path)),
         Arc::new(StringArray::from(error)),
     ];
@@ -217,8 +223,9 @@ fn tasks_batch(
 }
 
 /// Qualify an edge target: `repo#id` refs pass through, bare ids get the
-/// declaring store's repo (DESIGN §4).
-fn qualify(store: &RepoStore, target: &str) -> String {
+/// declaring store's repo (DESIGN §4). Shared with the addressed join.
+#[must_use]
+pub fn qualify_ref(store: &RepoStore, target: &str) -> String {
     if target.contains('#') {
         target.to_string()
     } else {
@@ -262,7 +269,7 @@ fn edges_batch(
             let src_gid = store.gid(&t.id);
             let mut push = |target: &str, k: &str| {
                 src.push(src_gid.clone());
-                dst.push(qualify(store, target));
+                dst.push(qualify_ref(store, target));
                 kind.push(k.to_string());
             };
             for n in &t.needs {
@@ -276,6 +283,9 @@ fn edges_batch(
             }
             for r in &t.relates {
                 push(r, "relates");
+            }
+            if let Some(a) = &t.answers {
+                push(a, "answers"); // never gates ready (mw-hfvtx0s)
             }
         }
     }
