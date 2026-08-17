@@ -2,7 +2,7 @@
 
 **for when you make a real mesh out of things**
 
-Opinionated minimalist todo list for clankers. Tasks get their own human-readable markdown files logged in git. There's a Rust CLI to manage them. No database: the CLI runs SQL queries directly against the markdown. And it can materialize them into a byte-budgeted session-start digest to keep agents on track.
+An opinionated, minimalist todo list for clankers. Tasks get their own human-readable markdown files logged in git. There's a Rust CLI to manage them. There's no database: the CLI runs SQL queries directly against the markdown. And it can materialize them into a token-conscious session-start digest to keep agents on track.
 
 It's a mesh twice over: because tasks are modeled as a graph with edges to related tasks, and also because the git repos federate. A task in one project can depend on a task in another, and you can set up a portfolio view spanning multiple repos.
 
@@ -32,7 +32,7 @@ next → ac-acnxdkg Do the thing with the stuff
   [stuff/doodads]
   verify: cargo test stuff::thing
 
-$ meshwork start ac-acnxdkg --as claude
+$ meshwork start ac-acnxdkg --as claude # irl it uses a shim to pull in session id
 ac-acnxdkg open→doing
 $ meshwork comment ac-acnxdkg --as claude "Smoking gun! You're absolutely right. This seam is load-bearing. On it. Cerebrating..."
 ac-acnxdkg: comment added as [claude]
@@ -70,7 +70,7 @@ created: 2026-08-12T21:28Z
 - 2026-08-12T21:29Z [claude] Smoking gun! You're absolutely right. This seam is load-bearing. On it. Cerebrating...
 ```
 
-Prefer to watch it run? `./scripts/demo.sh` plays that whole loop on a throwaway scratch repo — one command, zero network, cleans up after itself.
+*`./scripts/demo.sh` plays that whole loop on a throwaway scratch repo. It doesn't hit the network and it cleans up after itself.*
 
 ## why?
 
@@ -101,7 +101,7 @@ Of course, they're terrible at counting. So it can take them like 3-4 tries to c
 
 ### without meshwork
 
-*Measured 2026-08-04, across the all-time history of two working repos.*
+*Measured 2026-08-04, across the history of two working repos.*
 
 | | Project A | Project B |
 |---|---|---|
@@ -114,9 +114,11 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 ### with meshwork
 
-*Measured after both repos migrated to meshwork (Project A 2026-08-07, Project B 2026-08-10). Each table: that repo's last 10 sessions before meshwork vs its working sessions after migrating.*
+*Measured after both repos migrated to meshwork (Project A 2026-08-07, Project B 2026-08-10). Each table shows a repo's last 10 sessions before meshwork vs its working sessions after migrating.*
 
-*Every turn repeats the entire conversation, so the first things in context get repeated the most. Project A's pre-migration sessions opened by reading ~28K tokens of TODO.md + HANDOFF.md. Re-paid on all 153 requests after it, that one read compounds to ~4M tokens across all 153 turns after that. And that's before you account for all the TODO and HANDOFF edits the agent makes during the session. Altogether it's 4.19M tokens. The same content landing at request 150 would have compounded to ~0.1M tokens.*
+Every turn repeats the entire conversation, so the first things in context get repeated the most. Project A's pre-migration sessions opened by reading ~28K tokens of TODO.md + HANDOFF.md. Reran on all 153 following requests, that read compounds to ~4M tokens. And that's before you account for all the TODO and HANDOFF edits the agent makes during the session. Altogether it's 4.19M tokens.
+
+Four million accrued busywork tokens across turns is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork, sessions seem to work more efficiently. Project A sessions carry 90K → 113K real work tokens/session and run ~28% longer (154 → 197 useful requests/session).
 
 **Project A** (Claude Opus sessions):
 
@@ -138,12 +140,6 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 *See `scripts/busywork-tokens.py` for the math.*
 
-Because the store keeps what every other setup throws away — task logs, session claims, timestamps — it can also measure agent context-switch cost itself: across 87 measured sessions, the median session reaches its first task action in **9.1 minutes**, and switching repos costs nothing extra (8.8 min after a cross-repo session vs 11.1 same-repo — the store carries the context). Method and denominators: [docs/setup-cost-matrix.md](docs/setup-cost-matrix.md).
-
-*The repos are developed with different models (A: Opus, B: Fable), so compare before/after within a table, not across the two.*
-
-Four million accrued busywork tokens across turns is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork the freed context went to work: Project A sessions carry 90K → 113K real work tokens/session and run ~28% longer (154 → 197 useful requests/session).
-
 ## when meshwork makes sense
 
 | reach for meshwork when… | reach for something else when… |
@@ -152,20 +148,21 @@ Four million accrued busywork tokens across turns is a drop in the bucket for an
 | tasks have a **runnable definition of done** (`verify:` a test, a grep, a file) | done-ness is a conversation |
 | **git is the source of truth** and work must survive offline, in worktrees, across machines | you need webhooks, boards, assignees, notifications |
 | one owner, a portfolio of repos | a team that needs permissions and a web UI |
-| you want the tracker's own output **capped in bytes**, because context is the scarce resource | context is free because a human is reading |
+| you want the tracker's own output **capped in bytes**, because context is the scarce resource | context is 'free' because a human is reading |
 
-## the workflow
+## the command line workflow
 
-> Every terminal transcript below is pasted from a real run of the binary.
+*Every terminal transcript below is pasted from a real run of the binary.*
 
 ### bootstrapping
 
 Adopt in an existing repo with `meshwork init`.
+
 Or migrate an existing TODO.md with `meshwork import todo TODO.md`, and each checkbox becomes a task file. Nested checkboxes get parent/child relationships.
 
 ### adding tasks
 
-File work as tasks with real dependencies and a runnable definition of done:
+File work as tasks with dependencies and a runnable definition of done:
 
 ```
 $ meshwork add "Reproduce the 600M-row spill cliff" --cat engine/spill --verify "test -f repro.log"
@@ -201,7 +198,7 @@ You can draft a task without `--verify`, but one's got to exist to start it, and
 
 #### batching
 
-Filing a whole interlinked batch at once is `add --batch`: a stream of task documents on stdin, `@handle` refs between siblings that don't have ids yet, all files written or none. Each document is the same frontmatter a task file carries, minus the `id:` — meshwork mints those:
+Filing a whole interlinked batch at once is `add --batch`. You provide a stream of task documents on stdin, you set `@handle` refs between siblings that don't have ids yet, and all files get written or none do. Each document is the same frontmatter a task file carries, minus the `id:` that meshwork will add:
 
 ```
 $ meshwork add --batch - <<'EOF'
@@ -357,7 +354,7 @@ handoff: |
 
 Hand-editing is legal and expected but never necessary. Fields can all be set by the CLI with `meshwork add` at creation and `meshwork set <id>` after. `meshwork lint` validates them (schema, cycles, dangling edges, post-merge damage), and `meshwork lint --fix` repairs what it can. A file that fails to parse isn't dropped. It shows up as an `invalid` row in every listing until someone fixes it.
 
-The format has a spec, [FORMAT.md](FORMAT.md), that's versioned and self-contained. Anyone can implement against it without having to embrace this project's code.
+The format has a spec, [FORMAT.md](FORMAT.md), that's versioned and self-contained. Anyone can implement against it without having to use this project's code.
 
 When a task reaches `done` or `dropped`, to de-clutter, its file moves to `docs/meshwork/archive/` automatically (and moves back on `reopen`). Archived tasks stay loaded and queryable. Dependency resolution, SQL, and the digest are location-blind.
 
@@ -380,7 +377,7 @@ docs | 1
 
 The `## log` lines are a table too, with every status transition timestamped, so that includes questions like 'how long have tasks been blocked?' and 'how long do tasks take to complete?'
 
-The CLI also has a `--json` flag for scripts and agents.
+The CLI also has a `--json` output flag for scripts and agents.
 
 ## in a decentralized, federated mesh
 
@@ -390,7 +387,7 @@ With a lightweight [portfolio](docs/portfolios.md) (it's just a tiny git repo ho
 
 ## boundaries
 
-- **Zero network required.** A one-way, append-only GitHub mirror (issues created, comments appended, nothing ever edited or closed remotely) is designed and queued.
+- **Zero network required.** A one-way, append-only GitHub mirror (issues created, comments appended, nothing ever edited or closed remotely) is planned at some point.
 - **Never installs git hooks, never writes outside the repo.** The SessionStart hook that injects `prime` is Claude Code configuration you add yourself, once.
 - **`verify:` is untrusted input.** Nothing shells out until this clone's operator approves the exact text (`close --approve`; `MESHWORK_TRUST=1` for checkouts reviewed before the runner touched them).
 - **The CLI surface is frozen.** Anything not in the design doc's verb table is a non-goal, enforced by a test that diffs `--help` against the spec. Feature ideas default to the rejection list so this doesn't turn into Jira.
