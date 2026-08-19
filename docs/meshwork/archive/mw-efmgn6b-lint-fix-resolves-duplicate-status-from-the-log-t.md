@@ -7,7 +7,7 @@ verify: run cargo test e2e::merge_union_poison_status_from_log
 seq: 250
 docs:
   - FORMAT.md#merge-semantics
-status: open
+status: done
 created: 2026-08-08T14:09Z
 ---
 Review finding (2026-08-08). Union-merge can leave two `status:` lines.
@@ -17,3 +17,5 @@ true status.
 
 ## log
 - 2026-08-08T14:09Z created
+- 2026-08-19T20:26Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-19T21:04Z doing→done — verify exit 0 @ 30bf225+5

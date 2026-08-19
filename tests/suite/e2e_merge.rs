@@ -202,3 +202,57 @@ fn merge_union_poison() {
     assert!(repaired.contains("open→blocked"), "B's log entry survives");
     assert!(repaired.contains("lint --fix"), "repair is logged");
 }
+
+/// mw-efmgn6b: when union merge duplicates `status:`, `--fix` derives the
+/// true value by replaying the `## log` — the latest transition wins —
+/// instead of keeping whichever side's line happened to land first, which
+/// silently loses a transition.
+#[test]
+fn merge_union_poison_status_from_log() {
+    let (dir, a) = origin_and_clone_a();
+    init_store(&a);
+    let shared = add_task(&a, "Contested status");
+    commit_push(&a, "base");
+    let b = clone_b(dir.path());
+
+    // B moves first (doing, 09:00); A moves later (blocked, 11:00). The
+    // merge runs in B, so B's earlier status line is the union's first
+    // occurrence — first-value repair would resurrect `doing` and lose
+    // A's later transition. The log tail knows better.
+    meshwork(&b)
+        .env("MESHWORK_TODAY", "2026-08-18T09:00Z")
+        .args(["start", &shared])
+        .assert()
+        .success();
+    commit_only(&b, "b starts");
+
+    meshwork(&a)
+        .env("MESHWORK_TODAY", "2026-08-18T11:00Z")
+        .args(["block", &shared, "--reason", "vendor fix pending"])
+        .assert()
+        .success();
+    commit_push(&a, "a blocks");
+    merge_origin(&b);
+
+    let lint1 = stdout_of(&meshwork(&b).arg("lint").assert().code(1));
+    assert!(lint1.contains("duplicate-key"), "{lint1}");
+    meshwork(&b).args(["lint", "--fix"]).assert().success();
+    meshwork(&b).arg("lint").assert().success();
+
+    let repaired = std::fs::read_to_string(task_file(&b, &shared)).unwrap();
+    let fm = repaired.split("\n---").next().unwrap();
+    assert_eq!(fm.matches("\nstatus:").count(), 1, "one status line:\n{repaired}");
+    assert!(
+        fm.contains("status: blocked"),
+        "status must come from the log tail (A's later transition), \
+         not first occurrence:\n{repaired}"
+    );
+    assert!(
+        fm.contains("vendor fix pending"),
+        "blocked reason survives:\n{repaired}"
+    );
+    assert!(
+        repaired.contains("from the log tail"),
+        "derivation is logged:\n{repaired}"
+    );
+}

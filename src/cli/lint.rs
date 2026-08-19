@@ -89,7 +89,6 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     }
 }
 
-/// Union merge's signature damage: the same top-level key twice. Keep the
 /// Restore the union attribute lines lint errors on (mw-mtn4hp8): append
 /// exactly the missing canonical lines, preserving whatever else the file
 /// carries; create it when absent.
@@ -115,7 +114,6 @@ fn fix_gitattributes(store: &RepoStore) -> Result<usize, String> {
     Ok(1)
 }
 
-/// first value, drop the rest, log the repair in the task (MW-I1/I2).
 /// Move terminal tasks into `archive/` and live ones back out
 /// (mw-45e2qf4) — the `misplaced` warning's mechanical repair.
 fn fix_misplaced(store: &RepoStore) -> Result<usize, String> {
@@ -136,6 +134,11 @@ fn fix_misplaced(store: &RepoStore) -> Result<usize, String> {
     Ok(moved)
 }
 
+/// Union merge's signature damage: the same top-level key twice. Keep the
+/// first value, drop the rest, log the repair in the task (MW-I1/I2) —
+/// except a duplicated `status:`, whose true value is derived by
+/// replaying the `## log` (mw-efmgn6b); position falls back only when the
+/// log carries no transitions.
 fn fix_duplicate_keys(store: &RepoStore) -> Result<usize, String> {
     let today = crate::clock::stamp();
     let mut fixed = 0;
@@ -156,7 +159,28 @@ fn fix_duplicate_keys(store: &RepoStore) -> Result<usize, String> {
             continue;
         };
         let mut repaired = repaired;
+        // A duplicated `status:` is never resolved by line order — either
+        // side may land first, and picking it silently loses the other
+        // side's transition. The log has the answer: replay it.
+        let mut derived = false;
+        if dropped.iter().any(|l| l.starts_with("status:")) {
+            if let Some(truth) = status_from_log(&repaired) {
+                repaired = set_scalar(&repaired, "status", Some(truth.as_str()))?;
+                repaired = append_section_entry(
+                    &repaired,
+                    "log",
+                    &format!(
+                        "{today} lint --fix: status resolved to {} from the log tail (union merge duplicate)",
+                        truth.as_str()
+                    ),
+                );
+                derived = true;
+            }
+        }
         for line in &dropped {
+            if derived && line.starts_with("status:") {
+                continue; // covered by the derivation entry above
+            }
             repaired = append_section_entry(
                 &repaired,
                 "log",
@@ -199,6 +223,36 @@ fn drop_duplicate_keys(text: &str) -> Option<(String, Vec<String>)> {
         return None;
     }
     Some((format!("---\n{}{tail}", kept.join("\n")), dropped))
+}
+
+/// The true status after union damage (mw-efmgn6b): replay the `## log`,
+/// latest transition wins — date order, later file position on ties, so
+/// interleaved same-minute merges still resolve deterministically. `None`
+/// when the log carries no transition entries.
+fn status_from_log(text: &str) -> Option<Status> {
+    let mut in_log = false;
+    let mut best: Option<(String, Status)> = None;
+    for line in text.lines() {
+        let trimmed = line.trim_end();
+        if trimmed == "## log" {
+            in_log = true;
+            continue;
+        }
+        if trimmed.starts_with("## ") {
+            in_log = false;
+            continue;
+        }
+        let Some(entry) = trimmed.strip_prefix("- ").filter(|_| in_log) else {
+            continue;
+        };
+        let parsed = crate::parse::parse_log_line(entry);
+        if let (Some(date), Some(to)) = (parsed.date, parsed.to) {
+            if best.as_ref().is_none_or(|(d, _)| date >= *d) {
+                best = Some((date, to));
+            }
+        }
+    }
+    best.map(|(_, status)| status)
 }
 
 /// Post-merge duplicate IDs (MW-A4): the earliest side (created date, then
