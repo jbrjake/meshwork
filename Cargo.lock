@@ -2065,6 +2065,7 @@ dependencies = [
  "assert_cmd",
  "clap",
  "datafusion",
+ "libc",
  "predicates",
  "regex",
  "serde",
