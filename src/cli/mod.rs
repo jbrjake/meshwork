@@ -26,7 +26,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(name = "meshwork", version, about, disable_help_subcommand = true)]
 struct Cli {
-    /// Emit the stable, versioned JSON shape instead of text (MW-C3).
+    /// Emit stable, versioned JSON instead of text.
     #[arg(long, global = true)]
     json: bool,
     #[command(subcommand)]
@@ -50,7 +50,7 @@ enum Cmd {
     /// Copy a file into attachments/<id>/ and record it.
     Attach(notes::AttachArgs),
     /// open → doing; records an advisory claimed-by: when an identity
-    /// resolves (MW-K1 chain via --as; mw-tb6gdr9).
+    /// resolves (--as, `$MESHWORK_AUTHOR`, or config `default_author`).
     Start(transition::StartArgs),
     /// open|doing → blocked; demands --reason.
     Block(transition::BlockArgs),
@@ -76,9 +76,9 @@ enum Cmd {
     Prime,
     /// Structural checks; --fix repairs merge damage.
     Lint(lint::LintArgs),
-    /// Append-only GitHub view (M3).
+    /// Append-only GitHub view (not built yet).
     Mirror(stubs::MirrorArgs),
-    /// Union of every registered repo (M2).
+    /// Union of every registered repo.
     Portfolio(portfolio::PortfolioArgs),
     /// Migrate a TODO.md into the store.
     Import(stubs::ImportArgs),
@@ -117,7 +117,7 @@ fn forgiveness(e: &clap::Error) -> Option<String> {
     };
     Some(format!(
         "error: no verb `{verb}` — did you mean `{near}`? {hint}\n\
-         (the CLI surface is DESIGN §6, frozen — MW-D4)"
+         (the verb set is fixed; `meshwork --help` lists all of it)"
     ))
 }
 
@@ -149,7 +149,7 @@ pub(crate) fn prose_payload(value: &str) -> Result<String, String> {
 pub(crate) fn require_store_root() -> Result<PathBuf, String> {
     let cwd = std::env::current_dir().map_err(|e| e.to_string())?;
     let Some(root) = crate::store::find_git_root(&cwd) else {
-        return Err("not inside a git repo (MW-A3)".to_string());
+        return Err("not inside a git repo — meshwork stores live in one".to_string());
     };
     if !root
         .join("docs")

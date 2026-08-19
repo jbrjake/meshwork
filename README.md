@@ -38,7 +38,7 @@ $ meshwork comment ac-acnxdkg --as claude "Smoking gun! You're absolutely right.
 ac-acnxdkg: comment added as [claude]
 ...
 $ meshwork close ac-acnxdkg --approve
-approving verify for ac-acnxdkg (this clone only, MW-E5):
+approving verify for ac-acnxdkg (this clone only):
   verify: cargo test stuff::thing
 
 running 1 test
@@ -254,7 +254,7 @@ Try to close something, and the first refusal isn't even about the work:
 
 ```
 $ meshwork close sa-jt7zg9w
-meshwork: refusing unapproved verify for sa-jt7zg9w (MW-E5, DESIGN §12b)
+meshwork: refusing unapproved verify for sa-jt7zg9w
   verify: test -f docs/postmortem.md
   task files arrive via merge and are untrusted; review the command, then:
   meshwork close sa-jt7zg9w --approve   (records approval for this clone)
@@ -269,7 +269,7 @@ Anyway, approve the verification run, and meshwork gets to the real objection. A
 
 ```
 $ meshwork close sa-jt7zg9w --approve
-approving verify for sa-jt7zg9w (this clone only, MW-E5):
+approving verify for sa-jt7zg9w (this clone only):
   verify: test -f docs/postmortem.md
 meshwork: sa-jt7zg9w stays open: verify exit 1 (`test -f docs/postmortem.md`)
 ```
@@ -285,7 +285,7 @@ $ meshwork comment sa-nmvpyqr --as claude "cliff reproduces at batch=64k; tracks
 sa-nmvpyqr: comment added as [claude]
 $ touch repro.log        # stand-in for the actual work
 $ meshwork close sa-nmvpyqr --approve
-approving verify for sa-nmvpyqr (this clone only, MW-E5):
+approving verify for sa-nmvpyqr (this clone only):
   verify: test -f repro.log
 sa-nmvpyqr doing→done (verify exit 0)
 ```

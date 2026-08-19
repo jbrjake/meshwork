@@ -19,22 +19,22 @@ const HANDOFF_WRAP: usize = 72;
 pub(crate) struct SetArgs {
     /// Task id.
     id: String,
-    /// Per-repo order weight, lower sooner; gaps of 10 (MW-G4).
+    /// Per-repo order weight, lower sooner; gaps of 10.
     #[arg(long, value_name = "N")]
     seq: Option<i64>,
-    /// Doc link `path#§-anchor` to append; repeatable (MW-F1).
+    /// Doc link `path#§-anchor` to append; repeatable.
     #[arg(long = "docs", alias = "doc", value_name = "LINK")]
     docs: Vec<String>,
-    /// Handoff voice to the next session; replaces the block (DESIGN §7b).
+    /// Handoff voice to the next session; replaces the block.
     /// `@<file>` reads the file, `-` reads stdin — prose never transits
-    /// shell quoting (mw-rz4ey2h).
+    /// shell quoting.
     #[arg(long, value_name = "TEXT|@FILE|-")]
     handoff: Option<String>,
-    /// Category slash-path (MW-B4).
+    /// Category slash-path.
     #[arg(long = "cat", alias = "category", value_name = "PATH")]
     cat: Option<String>,
-    /// Verify command `close` runs (MW-E2); replacing it re-arms the MW-E5
-    /// approval gate automatically (content-hash TOFU).
+    /// Verify command `close` runs; replacing it re-arms this clone's
+    /// approval prompt automatically.
     #[arg(long, value_name = "CMD")]
     verify: Option<String>,
     /// One-line title. The filename slug is cosmetic and never renamed.

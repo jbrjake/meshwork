@@ -31,12 +31,18 @@ fn mirror_branch_guard() {
         err.contains("feature-x") && err.contains("main"),
         "names both branches: {err}"
     );
-    assert!(!err.contains("M3"), "guard fires before the stub: {err}");
+    assert!(
+        !err.contains("not built yet"),
+        "guard fires before the stub: {err}"
+    );
 
     git(&repo, &["checkout", "-q", "main"]);
     let assert = meshwork(&repo).args(["mirror", "push"]).assert().failure();
     let err = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
-    assert!(err.contains("M3"), "on default → through to the stub: {err}");
+    assert!(
+        err.contains("not built yet"),
+        "on default → through to the stub: {err}"
+    );
 }
 
 /// No origin/HEAD → indeterminate default → refused with the fix named;
@@ -68,5 +74,8 @@ fn mirror_branch_guard_indeterminate_and_override() {
         out.contains("allow_non_default") && out.contains("feature-y"),
         "override is loud: {out}"
     );
-    assert!(err.contains("M3"), "push path reached (still the stub): {err}");
+    assert!(
+        err.contains("not built yet"),
+        "push path reached (still the stub): {err}"
+    );
 }

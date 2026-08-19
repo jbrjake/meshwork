@@ -30,7 +30,7 @@ enum PortfolioAction {
         /// SQL over the unioned six tables.
         sql: String,
     },
-    /// Renumber seq weights when gaps exhaust (§15.2).
+    /// Renumber seq weights when gaps exhaust.
     Seq,
 }
 

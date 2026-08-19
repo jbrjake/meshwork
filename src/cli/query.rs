@@ -11,7 +11,7 @@ use datafusion::prelude::SessionContext;
 
 #[derive(clap::Args)]
 pub(crate) struct ReadyArgs {
-    /// Show every ready task instead of the first 20 (MW-D2).
+    /// Show every ready task instead of the first 20.
     #[arg(long)]
     all: bool,
 }

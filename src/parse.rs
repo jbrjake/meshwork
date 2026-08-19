@@ -324,7 +324,7 @@ pub fn parse_task_str(file_name: &str, text: &str) -> ParsedTask {
     };
     if let Some(key) = duplicate_top_level_key(fm_text) {
         return invalid(format!(
-            "duplicate frontmatter key `{key}` — union-merge damage; run lint --fix (MW-I2)"
+            "duplicate frontmatter key `{key}` — union-merge damage; run lint --fix"
         ));
     }
     let fm: Frontmatter = match serde_yaml_ng::from_str(fm_text) {
@@ -421,7 +421,7 @@ fn top_level_keys(fm_text: &str) -> impl Iterator<Item = String> + '_ {
 fn warn_unknown_keys(fm_text: &str, warnings: &mut Vec<String>) {
     for key in top_level_keys(fm_text) {
         if !KNOWN_KEYS.contains(&key.as_str()) {
-            warnings.push(format!("unknown frontmatter key `{key}` (MW-A6)"));
+            warnings.push(format!("unknown frontmatter key `{key}`"));
         }
     }
 }

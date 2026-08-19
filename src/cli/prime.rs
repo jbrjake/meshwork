@@ -33,7 +33,7 @@ const ADDRESSED_ROWS: usize = 3;
 /// Dependents named on a blocks-line before collapsing to +N.
 const BLOCKS_NAMED: usize = 3;
 /// Visible marker when the budget forces a cut.
-const TAIL: &str = "… truncated (6KB budget, MW-D3)";
+const TAIL: &str = "… truncated (6KB budget)";
 
 /// Store provenance, one line (mw-3jwwh5d): HEAD short-sha, uncommitted
 /// task-file edits, commits ahead of upstream — status and rev-list scoped

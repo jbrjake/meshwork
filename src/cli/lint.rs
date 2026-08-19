@@ -262,7 +262,7 @@ fn reslug(
     let text = append_section_entry(
         &text,
         "log",
-        &format!("{today} lint --fix: re-slugged from {old_id} (post-merge duplicate, MW-A4)"),
+        &format!("{today} lint --fix: re-slugged from {old_id} (post-merge duplicate)"),
     );
     let new_name = file_name.replacen(old_id, new_id, 1);
     std::fs::write(tasks_dir.join(&new_name), text).map_err(|e| e.to_string())?;

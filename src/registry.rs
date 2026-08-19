@@ -196,7 +196,7 @@ pub fn portfolio_dir() -> Result<PathBuf, String> {
     match default {
         Some(dir) if dir.join("repos.toml").exists() => Ok(dir),
         Some(dir) => Err(format!(
-            "no portfolio registry: {} has no repos.toml — create it (MW-G2), or set \
+            "no portfolio registry: {} has no repos.toml — create it, or set \
              MESHWORK_PORTFOLIO=<dir>",
             dir.display()
         )),

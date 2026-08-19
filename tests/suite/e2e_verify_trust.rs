@@ -30,7 +30,10 @@ fn verify_trust_gate_refuses_unapproved() {
 
     let assert = untrusted(&repo).args(["close", &id]).assert().failure();
     let err = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
-    assert!(err.contains("MW-E5"), "names the requirement: {err}");
+    assert!(
+        err.contains("refusing unapproved verify"),
+        "refusal is loud: {err}"
+    );
     assert!(err.contains("--approve"), "names the approval step: {err}");
     assert!(err.contains("touch"), "verify text on screen: {err}");
     assert!(!marker.exists(), "nothing executed");
@@ -93,7 +96,10 @@ fn verify_trust_changed_text_revokes() {
 
     let assert = untrusted(&repo).args(["close", &id]).assert().failure();
     let err = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
-    assert!(err.contains("MW-E5"), "changed text re-gates: {err}");
+    assert!(
+        err.contains("refusing unapproved verify"),
+        "changed text re-gates: {err}"
+    );
 }
 
 /// `MESHWORK_TRUST=1` is the reviewed-checkout grant (CI, the gate): no

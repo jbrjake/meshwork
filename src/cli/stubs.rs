@@ -13,13 +13,13 @@ pub(crate) struct MirrorArgs {
 
 #[derive(clap::Subcommand)]
 enum MirrorAction {
-    /// Create/append the GitHub view; dry-run unless --yes (MW-H1).
+    /// Create/append the GitHub view; dry-run unless --yes.
     Push {
         /// Actually push (default is a dry run).
         #[arg(long)]
         yes: bool,
     },
-    /// Report local↔remote drift; never writes (MW-H4).
+    /// Report local↔remote drift; never writes.
     Status,
 }
 
@@ -30,7 +30,7 @@ pub(crate) fn mirror(args: &MirrorArgs, _json: bool) -> Result<(), String> {
     if let MirrorAction::Push { .. } = &args.action {
         branch_guard()?;
     }
-    Err("mirror lands at M3 (PLAN 3.1–3.4); everything else works offline (MW-H5)".into())
+    Err("mirror is not built yet; everything else works offline".into())
 }
 
 /// mw-pvfrpd4: mirror is append-only and unretractable, so `push` refuses
@@ -56,7 +56,7 @@ fn branch_guard() -> Result<(), String> {
     if store.config.mirror_allow_non_default() {
         println!(
             "mirror: allow_non_default set \u{2014} pushing from `{current}` \
-             (append-only is unretractable, mw-pvfrpd4)"
+             (append-only is unretractable)"
         );
         return Ok(());
     }
@@ -68,7 +68,7 @@ fn branch_guard() -> Result<(), String> {
             } else {
                 Err(format!(
                     "mirror push refused: on `{current}`, default branch is `{default}` \
-                     \u{2014} append-only publishes are unretractable (mw-pvfrpd4); merge \
+                     \u{2014} append-only publishes are unretractable; merge \
                      first, or set [mirror] allow_non_default = true (loud) in \
                      docs/meshwork/config.toml"
                 ))
@@ -90,7 +90,7 @@ pub(crate) struct ImportArgs {
 
 #[derive(clap::Subcommand)]
 enum ImportAction {
-    /// Convert a baseline-checkbox TODO.md into task files (MW-J3).
+    /// Convert a checkbox TODO.md into task files.
     Todo {
         /// Path to the TODO.md to import.
         path: PathBuf,

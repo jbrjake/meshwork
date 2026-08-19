@@ -84,7 +84,7 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
         };
         if task.parent.as_deref().is_some_and(|p| p.contains('#')) {
             return Err(format!(
-                "batch task {n}: parent must stay in-repo — hierarchy never crosses repos (MW-B3)"
+                "batch task {n}: parent must stay in-repo — hierarchy never crosses repos"
             ));
         }
         files.push((
@@ -223,7 +223,7 @@ fn parse_entry(fm: &str, body: &str) -> Result<Entry, String> {
                 }
                 if !crate::parse::KNOWN_KEYS.contains(&key) {
                     return Err(format!(
-                        "unknown frontmatter key `{key}` — schema keys only (mw-16pyc5g); \
+                        "unknown frontmatter key `{key}` — schema keys only; \
                          the whole batch is refused"
                     ));
                 }

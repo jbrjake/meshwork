@@ -35,14 +35,16 @@ pub(crate) fn check(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) 
                 &t.id,
                 format!(
                     "verify `{v}` is legacy shell — runs only behind the per-clone \
-                     MW-E5 gate; prefer the DSL (exists/absent/contains/run, DESIGN §12b)"
+                     approval gate; prefer the DSL (exists/absent/contains/run)"
                 ),
             )),
             Classified::Malformed(why) => out.push(finding(
                 Severity::Warning,
                 "verify-malformed",
                 &t.id,
-                format!("verify `{v}` is keyword-led but does not parse ({why}) — close will refuse it (DESIGN §12b)"),
+                format!(
+                    "verify `{v}` is keyword-led but does not parse ({why}) — close will refuse it"
+                ),
             )),
             Classified::Dsl(_) => {}
         }

@@ -2,7 +2,7 @@
 name = "meshwork"
 version = "0.3.2"
 edition = "2021"
-description = "Task graph as markdown-in-git, queried with SQL, no database. See REQUIREMENTS-meshwork.md."
+description = "Task graph as markdown-in-git, queried with SQL, no database."
 license = "MIT"
 publish = false
 

@@ -11,36 +11,36 @@ pub(crate) struct AddArgs {
     /// One-line title.
     #[arg(required_unless_present = "batch")]
     title: Option<String>,
-    /// Several tasks at once from a file ("-" = stdin): concatenated §2
+    /// Several tasks at once from a file ("-" = stdin): concatenated task
     /// documents, `id:` omitted, local `handle:` names usable as @refs in
-    /// needs/parent/from/relates — atomic, all files or none (mw-af4kbjy).
+    /// needs/parent/from/relates — atomic, all files or none.
     #[arg(long, value_name = "FILE", conflicts_with_all = ["title", "cat", "label", "needs", "parent", "from", "verify", "seq", "docs"])]
     batch: Option<String>,
-    /// Print the would-be task file(s), write nothing (mw-0wvndqa).
+    /// Print the would-be task file(s), write nothing.
     #[arg(long)]
     dry_run: bool,
-    /// Category slash-path, e.g. engine/spill (MW-B4).
+    /// Category slash-path, e.g. engine/spill.
     #[arg(long = "cat", alias = "category", value_name = "PATH")]
     cat: Option<String>,
-    /// Cross-cutting label; repeatable (MW-B5).
+    /// Cross-cutting label; repeatable.
     #[arg(long = "label", value_name = "LABEL")]
     label: Vec<String>,
-    /// Hard dependency id (`repo#id` crosses repos); repeatable (MW-B1/B3).
+    /// Hard dependency id (`repo#id` crosses repos); repeatable.
     #[arg(long = "needs", value_name = "ID")]
     needs: Vec<String>,
-    /// Same-repo parent id (MW-B1; parent never crosses repos, MW-B3).
+    /// Same-repo parent id; a parent never crosses repos.
     #[arg(long, value_name = "ID")]
     parent: Option<String>,
-    /// Provenance: the task this one was discovered from (MW-E4).
+    /// Provenance: the task this one was discovered from.
     #[arg(long = "from", value_name = "ID")]
     from: Option<String>,
-    /// Verify command `close` runs via `sh -c` (MW-E2).
+    /// Verify command `close` runs via `sh -c`.
     #[arg(long, value_name = "CMD")]
     verify: Option<String>,
-    /// Per-repo order weight, lower sooner; gaps of 10 (MW-G4, mw-0f4j).
+    /// Per-repo order weight, lower sooner; gaps of 10.
     #[arg(long, value_name = "N")]
     seq: Option<i64>,
-    /// Doc link `path#§-anchor`; repeatable (MW-F1, mw-0f4j).
+    /// Doc link `path#§-anchor`; repeatable.
     #[arg(long = "docs", alias = "doc", value_name = "LINK")]
     docs: Vec<String>,
 }
@@ -52,11 +52,9 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let config = crate::store::load_config(&root).map_err(|e| e.to_string())?;
     if args.parent.as_deref().is_some_and(|p| p.contains('#')) {
-        return Err(
-            "parent must stay in-repo — hierarchy never crosses repos (MW-B3); \
+        return Err("parent must stay in-repo — hierarchy never crosses repos; \
                     use sequence.md tranches for portfolio grouping"
-                .to_string(),
-        );
+            .to_string());
     }
 
     let tasks_dir = root.join("docs").join("meshwork");
@@ -133,7 +131,7 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
         println!("{id}");
         println!("  {rel}");
         if args.verify.is_none() {
-            eprintln!("note: no --verify set — lint will warn until it is (MW-E2)");
+            eprintln!("note: no --verify set — lint will warn until it is");
         }
     }
     Ok(())

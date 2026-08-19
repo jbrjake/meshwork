@@ -16,7 +16,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     let cwd = std::env::current_dir().map_err(|e| e.to_string())?;
     let Some(root) = find_git_root(&cwd) else {
         return Err(
-            "not inside a git repo — meshwork stores travel with a repo (MW-A3); \
+            "not inside a git repo — meshwork stores travel with a repo; \
              run `git init` first"
                 .to_string(),
         );
@@ -31,11 +31,11 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
 
     let alias = default_alias(&root);
     if !crate::id::valid_alias(&alias) {
-        return Err(format!("alias `{alias}` must match [a-z0-9]+ (mw-a6jdf5s)"));
+        return Err(format!("alias `{alias}` must match [a-z0-9]+"));
     }
     let author = git_user_name(&root);
     let mut config = String::new();
-    config.push_str("# meshwork store config (hand-editable; DESIGN §1).\n");
+    config.push_str("# meshwork store config (hand-editable).\n");
     config.push_str("# alias prefixes every task ID — pick it before the first `add`;\n");
     config.push_str("# IDs embed it forever.\n");
     let _ = writeln!(config, "alias = \"{alias}\"");
@@ -45,7 +45,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     if let Some(author) = &author {
         let _ = writeln!(config, "default_author = \"{author}\"");
     }
-    config.push_str("\n# Cosmetic names for category depths (MW-B8) — uncomment to taste:\n");
+    config.push_str("\n# Cosmetic names for category depths — uncomment to taste:\n");
     config.push_str("# [hierarchy]\n# levels = [\"saga\", \"epic\", \"sprint\", \"story\"]\n");
 
     let created = [

@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 #[derive(clap::Args)]
 pub(crate) struct BlockedArgs {
-    /// Show every blocked task instead of the first 20 (MW-D2).
+    /// Show every blocked task instead of the first 20.
     #[arg(long)]
     all: bool,
 }

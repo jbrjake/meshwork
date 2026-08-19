@@ -13,10 +13,10 @@ pub(crate) struct CommentArgs {
     /// Task id.
     id: String,
     /// Comment text; newlines become continuation lines. `@<file>` reads
-    /// the file, `-` reads stdin (mw-rz4ey2h).
+    /// the file, `-` reads stdin.
     #[arg(value_name = "TEXT|@FILE|-")]
     text: String,
-    /// Author identity — a free string, a claim (MW-K1). Falls back to
+    /// Author identity — a free string, a claim. Falls back to
     /// the `MESHWORK_AUTHOR` env var, then config `default_author`.
     #[arg(long = "as", value_name = "AUTHOR")]
     author: Option<String>,
@@ -71,7 +71,7 @@ pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
 
     let author = resolve_author(&root, args.author.as_deref())?.ok_or(
         "no author: use --as <author>, set MESHWORK_AUTHOR, or add \
-         default_author to docs/meshwork/config.toml (MW-K1)",
+         default_author to docs/meshwork/config.toml",
     )?;
 
     let today = crate::clock::stamp();
@@ -144,7 +144,7 @@ pub(crate) fn attach(args: &AttachArgs, json: bool) -> Result<(), String> {
     if bytes > 1_048_576 && !json {
         eprintln!(
             "note: {bytes} bytes >1MB — lint will warn; a 50-line excerpt usually \
-             carries the signal (MW-K3)"
+             carries the signal"
         );
     }
     if json {

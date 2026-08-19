@@ -9,10 +9,10 @@ use crate::store::find_task_file;
 pub(crate) struct ShowArgs {
     /// Task id (e.g. az-k7f3).
     id: String,
-    /// Anchor-scoped excerpts of linked docs, ~4KB per link (MW-F2).
+    /// Anchor-scoped excerpts of linked docs, ~4KB per link.
     #[arg(long)]
     docs: bool,
-    /// Render all comments instead of the last 3 (MW-K4).
+    /// Render all comments instead of the last 3.
     #[arg(long)]
     comments: bool,
 }

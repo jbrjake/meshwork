@@ -399,7 +399,7 @@ fn render(item: &TodoItem, id: &str, parent_id: Option<&str>, today: &str) -> St
             .context
             .first()
             .cloned()
-            .unwrap_or_else(|| "unstated at import — fill in (MW-E1)".to_string());
+            .unwrap_or_else(|| "unstated at import — fill in".to_string());
         let _ = writeln!(fm, "blocked-reason: {}", yaml_scalar(&reason));
     }
     let description = item.context.join("\n");

@@ -342,13 +342,13 @@ fn cli_surface_frozen() {
     let cmt_help = stdout_of(&meshwork(&repo).args(["comment", "--help"]).assert().success());
     assert!(cmt_help.contains("@FILE"), "{cmt_help}");
 
-    // Unbuilt verbs never pretend: honest errors naming their milestone.
+    // Unbuilt verbs never pretend: honest errors, no fake output.
     init_store(&repo);
     meshwork(&repo)
         .args(["mirror", "status"])
         .assert()
         .failure()
-        .stderr(predicates::str::contains("M3"));
+        .stderr(predicates::str::contains("not built yet"));
     // portfolio ready/q went live at 2.2 (mw-9093); next/seq stay honest
     // stubs until 2.4 — pinned in e2e_portfolio.rs.
 }

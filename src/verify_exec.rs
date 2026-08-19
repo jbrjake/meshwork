@@ -81,7 +81,7 @@ fn require_non_vacuous(argv: &[String], out: &str) -> Result<(), String> {
     }
     Err(format!(
         "run {}: vacuous pass — exit 0 but no `ok. N passed` (N ≥ 1) in the \
-         output; a cargo test filter matching nothing still exits 0 (DESIGN §12b)",
+         output; a cargo test filter matching nothing still exits 0",
         argv.join(" ")
     ))
 }

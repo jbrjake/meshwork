@@ -19,8 +19,8 @@ pub(crate) struct IdArg {
 pub(crate) struct StartArgs {
     /// Task id (e.g. az-k7f3).
     id: String,
-    /// Claim identity — self-professed, advisory (MW-K1 chain: this flag,
-    /// then `$MESHWORK_AUTHOR`, then config `default_author`). No identity
+    /// Claim identity — self-professed, advisory (falls back to
+    /// `$MESHWORK_AUTHOR`, then config `default_author`). No identity
     /// resolving = no claim; the start still happens.
     #[arg(long = "as", value_name = "AUTHOR")]
     author: Option<String>,
@@ -31,7 +31,7 @@ pub(crate) struct BlockArgs {
     /// Task id (e.g. az-k7f3).
     id: String,
     /// Blocker + unblock condition — required; a bare "blocked" helps no
-    /// one at session start (MW-E1).
+    /// one at session start.
     #[arg(long, required = true, value_name = "TEXT")]
     reason: String,
 }
@@ -49,7 +49,7 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
                 None | Some("") => {
                     return Err(format!(
                         "cannot start {id}: needs-verify — write the done-test first: \
-                         `meshwork set {id} --verify '<cmd>'`, then start (mw-6wdpz1b)",
+                         `meshwork set {id} --verify '<cmd>'`, then start",
                         id = args.id
                     ));
                 }
@@ -82,14 +82,14 @@ fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, veri
     match classify(verify) {
         Classified::Malformed(why) => eprintln!(
             "warning: red-check: {id}'s verify is malformed and close will \
-             refuse it: {why} (DESIGN §12b)"
+             refuse it: {why}"
         ),
         Classified::Dsl(preds) => {
             let has_run = preds.iter().any(|p| matches!(p, Predicate::Run { .. }));
             if has_run && !trusted() && !store_only(root, task_path) {
                 eprintln!(
                     "note: red-check skipped for {id} — run verify gated for \
-                     this clone (MW-E5/§12b; approve at close, or MESHWORK_TRUST=1)"
+                     this clone (approve at close, or MESHWORK_TRUST=1)"
                 );
                 return;
             }
@@ -97,7 +97,7 @@ fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, veri
                 eprintln!(
                     "warning: red-check: {id}'s verify is already green — it \
                      cannot detect the work; tighten it, or close if the work \
-                     is done (mw-175bn4c)"
+                     is done"
                 );
             }
         }
@@ -105,7 +105,7 @@ fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, veri
             if !trusted() {
                 eprintln!(
                     "note: red-check skipped for {id} — verify unapproved for this \
-                     clone (MW-E5; approve at close, or MESHWORK_TRUST=1)"
+                     clone (approve at close, or MESHWORK_TRUST=1)"
                 );
                 return;
             }
@@ -120,12 +120,12 @@ fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, veri
                 0 => eprintln!(
                     "warning: red-check: {id}'s verify is already green (exit 0) — \
                      it cannot detect the work; tighten it, or close if the work is \
-                     done (mw-175bn4c)"
+                     done"
                 ),
                 127 => eprintln!(
                     "warning: red-check: {id}'s verify exits 127 under sh -c — \
                      close's shell won't have agent-shell functions; recast in \
-                     grep/test/cargo (mw-175bn4c)"
+                     grep/test/cargo"
                 ),
                 _ => {}
             }

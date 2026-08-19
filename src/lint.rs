@@ -148,7 +148,7 @@ fn check_gitattributes(store: &RepoStore, out: &mut Vec<Finding>) {
             ".gitattributes",
             format!(
                 "missing `{}` — merge=union is the store's whole concurrency \
-                 mechanism; lint --fix restores it (mw-mtn4hp8)",
+                 mechanism; lint --fix restores it",
                 missing.join("`, `")
             ),
         ));
@@ -167,7 +167,7 @@ fn check_alias(store: &RepoStore, out: &mut Vec<Finding>) {
             "config.toml",
             format!(
                 "alias `{alias}` must match [a-z0-9]+ — a dash or uppercase \
-                 corrupts ID recovery from invalid files (mw-a6jdf5s)"
+                 corrupts ID recovery from invalid files"
             ),
         ));
     }
@@ -211,7 +211,7 @@ fn check_duplicate_ids(valid: &[&Task], out: &mut Vec<Finding>) {
                 Severity::Error,
                 "duplicate-id",
                 id,
-                format!("{n} files claim this id — lint --fix re-slugs one (MW-A4)"),
+                format!("{n} files claim this id — lint --fix re-slugs one"),
             ));
         }
     }
@@ -229,7 +229,7 @@ fn check_edges(valid: &[&Task], ids: &[&str], out: &mut Vec<Finding>) {
                     "parent-crossrepo",
                     &t.id,
                     format!(
-                        "parent `{parent}` crosses repos — hierarchy is per-repo (MW-B3); \
+                        "parent `{parent}` crosses repos — hierarchy is per-repo; \
                          use sequence.md tranches"
                     ),
                 ));
@@ -358,8 +358,7 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 Severity::Error,
                 "blocked-no-reason",
                 &t.id,
-                "blocked without blocked-reason — name the blocker + unblock condition (MW-E1)"
-                    .to_string(),
+                "blocked without blocked-reason — name the blocker + unblock condition".to_string(),
             ));
         }
         if t.status == Status::Open && t.verify.is_none() {
@@ -367,7 +366,7 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 Severity::Warning,
                 "no-verify",
                 &t.id,
-                "open without verify: — close will demand --waive (MW-E2)".to_string(),
+                "open without verify: — close will demand --waive".to_string(),
             ));
         }
         if t.status == Status::Done {
@@ -376,10 +375,7 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                     Severity::Warning,
                     "parent-rollup",
                     &t.id,
-                    format!(
-                        "done, but children still live: {} (MW-B7)",
-                        children.join(", ")
-                    ),
+                    format!("done, but children still live: {}", children.join(", ")),
                 ));
             }
         }
@@ -394,7 +390,7 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 &t.id,
                 format!(
                     "claimed-by on a {} task — claims live on doing/blocked; \
-                     a transition should have released it (mw-tb6gdr9)",
+                     a transition should have released it",
                     t.status.as_str()
                 ),
             ));
@@ -406,7 +402,7 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 &t.id,
                 format!(
                     "claimed by {a} and {b} with no release between — parallel \
-                     sessions started the same task; coordinate, never auto-resolve (mw-tb6gdr9)"
+                     sessions started the same task; coordinate, never auto-resolve"
                 ),
             ));
         }
@@ -417,8 +413,7 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 Severity::Warning,
                 "handoff-stale",
                 &t.id,
-                "handoff: on a closed task — the voice belongs on whatever is up next (DESIGN §7b)"
-                    .to_string(),
+                "handoff: on a closed task — the voice belongs on whatever is up next".to_string(),
             ));
         }
     }
@@ -502,10 +497,7 @@ fn check_budgets(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
                     Severity::Warning,
                     "file-size",
                     &subject,
-                    format!(
-                        "{} bytes >64KB — usually means split the task (§15.5)",
-                        meta.len()
-                    ),
+                    format!("{} bytes >64KB — usually means split the task", meta.len()),
                 ));
             }
         }
@@ -517,7 +509,7 @@ fn check_budgets(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
                 "description-size",
                 &t.id,
                 format!(
-                    "description {}B over the ~2KB budget — long design goes behind docs: (MW-A5)",
+                    "description {}B over the ~2KB budget — long design goes behind docs:",
                     t.description.len()
                 ),
             ));
@@ -536,7 +528,7 @@ fn check_budgets(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
                     "attachment-size",
                     &t.id,
                     format!(
-                        "attachment `{rel}` is {} bytes >1MB — excerpt it (MW-K3)",
+                        "attachment `{rel}` is {} bytes >1MB — excerpt it",
                         meta.len()
                     ),
                 )),

@@ -16,11 +16,11 @@ pub(crate) struct CloseArgs {
     /// Task id (e.g. az-k7f3).
     id: String,
     /// Close without running verify; the reason lands in the `waived`
-    /// column (`WHERE waived IS NOT NULL`, §15.3).
+    /// column (`WHERE waived IS NOT NULL`).
     #[arg(long, value_name = "REASON")]
     waive: Option<String>,
     /// Show the verify text and record this clone's approval of it before
-    /// running (MW-E5 trust gate; approval is per-clone, DESIGN §12b).
+    /// running (approval is per-clone).
     #[arg(long)]
     approve: bool,
 }
@@ -39,12 +39,12 @@ fn require_trusted(
         return Ok(());
     }
     if approve {
-        println!("approving verify for {id} (this clone only, MW-E5):\n  verify: {verify}");
+        println!("approving verify for {id} (this clone only):\n  verify: {verify}");
         crate::trust::record_approval(root, id, verify)
             .map_err(|e| format!("recording approval: {e}"))
     } else {
         Err(format!(
-            "refusing unapproved verify for {id} (MW-E5, DESIGN §12b)\n  \
+            "refusing unapproved verify for {id}\n  \
              verify: {verify}\n  \
              task files arrive via merge and are untrusted; review the \
              command, then:\n  \
@@ -163,7 +163,7 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
     let Some(verify) = &task.verify else {
         return Err(format!(
             "{} has no verify: — a task without a machine check closes only \
-             with --waive \"<reason>\" (MW-E2)",
+             with --waive \"<reason>\"",
             args.id
         ));
     };
@@ -178,7 +178,7 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
             // reviewable act, and a downgrade to shell reopens the hole.
             return Err(format!(
                 "refusing malformed verify for {id}: {why}\n  verify: {verify}\n  \
-                 keyword-led text never runs as shell (DESIGN §12b) — fix it: \
+                 keyword-led text never runs as shell — fix it: \
                  meshwork set {id} --verify '<predicate>'",
                 id = args.id
             ));
@@ -284,7 +284,7 @@ fn gate_run(
         crate::provenance::Provenance::Trusted => return Ok(()),
         crate::provenance::Provenance::RodeAlong { arrival, path } => format!(
             "the task arrived with non-store content: {arrival} carried `{path}` \
-             (ride-along, DESIGN §12b) — a task must never self-verify against \
+             (a ride-along) — a task must never self-verify against \
              code that arrived with it"
         ),
         crate::provenance::Provenance::Unknown { why } => {
@@ -292,12 +292,12 @@ fn gate_run(
         }
     };
     if approve {
-        println!("approving verify for {id} (this clone only, MW-E5):\n  verify: {verify}");
+        println!("approving verify for {id} (this clone only):\n  verify: {verify}");
         crate::trust::record_approval(root, id, verify)
             .map_err(|e| format!("recording approval: {e}"))
     } else {
         Err(format!(
-            "refusing run verify for {id} (MW-E5, DESIGN §12b)\n  verify: {verify}\n  {why}\n  \
+            "refusing run verify for {id}\n  verify: {verify}\n  {why}\n  \
              review the named arrival, then: meshwork close {id} --approve\n  \
              reviewed checkouts (CI, gates) may grant MESHWORK_TRUST=1 instead"
         ))
