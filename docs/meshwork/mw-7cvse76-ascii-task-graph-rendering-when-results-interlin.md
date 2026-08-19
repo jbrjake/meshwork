@@ -4,7 +4,7 @@ title: ASCII task-graph rendering when results interlink
 status: open
 category: core/render
 verify: run cargo test e2e::graph_render
-seq: 260
+seq: 950
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface # frozen surface — flags/behavior need the ruling
   - REQUIREMENTS-meshwork.md#§-d-context-discipline # MW-D5 byte budgets bound the art
