@@ -10,21 +10,19 @@ docs:
   - REQUIREMENTS-meshwork.md#§-d-context-discipline # MW-D5 byte budgets bound the art
 created: 2026-08-06
 handoff: |
-  Format-hardening review is DONE: 8 tasks closed 2026-08-07 (log grammar
-  + log SQL table, MW-E5 ruling + TOFU trust gate on close, FORMAT.md
-  spec, registry rename aliases, mirror branch guard, comment identity
-  hash, commit trace) — you're the last big one from it. Before you
-  draw: prime's 6144B budget INCLUDES your art (MW-D5; clamp_bytes in
-  write.rs), tree/why/blocked goldens are byte-pinned (re-bless via
-  MESHWORK_BLESS=1 + reviewed diff), and show grew a commits: tail —
-  don't collide section names. Owner addition: the art must also show
-  category hierarchy (cluster boxes vs depth lanes — decide at impl).
-  Session note: close now trust-gates shell verifies — meshwork close
-  <id> --approve on first close per clone, or MESHWORK_TRUST=1. Also ready
-  behind you: archive compaction (mw-bvxpeef, owner request — bundles
-  sized for git, no LFS), §12b adjacent surfaces mw-2pz0zqc/mw-8fmsws3
-  (terminal-escape task matters to YOUR renderer), parse.rs split
-  (mw-0y66mhb, 502 lines).
+  Up next after the 2026-08-19 sweep (startup bench, gate §7 prime
+  coverage, log-tail status derivation, no-verify covers doing, SIGPIPE,
+  FORMAT conformance corpus — see those archive files). You're the last
+  big format-hardening item. Before drawing: read your own comment thread
+  — the byte-budget ruling (art counts inside prime's 6144B; auto only
+  when >1 edge AND it fits; a flag forces it) and the category-hierarchy
+  owner addition (cluster boxes vs depth lanes, implementer's choice).
+  Still needs the owner at impl time: ONLY the flag's name and its §6
+  wording — tee both up as a one-word question like the mw-hz1ezcg
+  proposal. Goldens for tree/why/blocked are byte-pinned (MESHWORK_BLESS=1
+  + reviewed diff); layout is hand-rolled (dep posture). Separately
+  pending the owner: mw-hz1ezcg sits blocked on the §6 bulk-bless ruling
+  (proposal in its comments); a nod there also unblocks mw-yyf1bab.
 ---
 Owner-requested 2026-08-06 (scope creep acknowledged and ruled worth
 it): when a result set contains >=2 tasks interlinked by needs/parent/

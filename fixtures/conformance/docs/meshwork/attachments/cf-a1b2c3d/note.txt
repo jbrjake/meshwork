@@ -1,0 +1,1 @@
+Attachment payloads are plain files; only the frontmatter path projects.

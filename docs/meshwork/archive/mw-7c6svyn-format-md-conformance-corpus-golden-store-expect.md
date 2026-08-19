@@ -7,7 +7,7 @@ verify: run cargo test format::conformance_corpus
 seq: 260
 docs:
   - FORMAT.md#task-file
-status: open
+status: done
 created: 2026-08-08T14:09Z
 ---
 Review finding (2026-08-08). A golden store + expected parse output a
@@ -18,3 +18,5 @@ anyone implements a reader from FORMAT.md.
 
 ## log
 - 2026-08-08T14:09Z created
+- 2026-08-19T21:31Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-19T21:39Z doing→done — verify exit 0 @ d886d4b+6
