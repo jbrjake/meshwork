@@ -7,7 +7,7 @@ verify: cargo bench --bench startup && test -f docs/bench-startup.md
 seq: 220
 docs:
   - DESIGN-meshwork.md#§-14-gate
-status: open
+status: done
 created: 2026-08-08T14:09Z
 ---
 Review finding (2026-08-08). hyperfine `meshwork --version` vs
@@ -18,3 +18,5 @@ number. Right now neither is known.
 
 ## log
 - 2026-08-08T14:09Z created
+- 2026-08-19T19:47Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-19T20:00Z doing→done — verify exit 0 @ d9304b3+8

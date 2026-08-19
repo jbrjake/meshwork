@@ -28,6 +28,12 @@ assert_cmd = "2"
 predicates = "3"
 tempfile = "3"
 
+# benches/startup.rs is a spawn-and-time harness (mw-xjyhs9y), not a
+# libtest #[bench] target — it needs its own main().
+[[bench]]
+name = "startup"
+harness = false
+
 # Baseline hard mode: manifest lints stay warn-heavy so mid-TDD builds pass;
 # warnings-as-errors lives in the gates (verify_meshwork.sh §2).
 [lints.clippy]

@@ -15,6 +15,7 @@ mod perf;
 mod query;
 mod ride_along;
 mod stub_gh;
+mod synth;
 mod tables;
 mod unit;
 mod verify_dsl;
