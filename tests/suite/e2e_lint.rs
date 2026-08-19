@@ -91,3 +91,33 @@ fn invalid_visible() {
         .failure()
         .stderr(predicates::str::contains("INVALID"));
 }
+
+/// mw-dkwf26w: the no-verify warning covers `doing` tasks, not just open —
+/// the task closest to closing is where a missing definition of done
+/// matters most. The CLI can't mint this state (`start` refuses without a
+/// verify), but imports and merges create it directly.
+#[test]
+fn lint_doing_missing_verify() {
+    let (_g, repo) = git_repo("doing-no-verify");
+    init_store(&repo);
+    let id = add_task(&repo, "Imported mid-flight");
+
+    // Strip the verify and flip to doing, as an import would deliver it.
+    let path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&path).unwrap();
+    let text = text
+        .lines()
+        .filter(|l| !l.starts_with("verify:"))
+        .map(|l| if l == "status: open" { "status: doing" } else { l })
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n";
+    std::fs::write(&path, text).unwrap();
+
+    let out = stdout_of(&meshwork(&repo).arg("lint").assert().success());
+    let line = out
+        .lines()
+        .find(|l| l.contains("no-verify"))
+        .unwrap_or_else(|| panic!("no-verify warning missing for a doing task:\n{out}"));
+    assert!(line.contains(&id), "{out}");
+}

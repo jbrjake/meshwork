@@ -1,7 +1,7 @@
 ---
 id: mw-dkwf26w
 title: "lint: no-verify warning must cover doing tasks, not just open"
-status: open
+status: done
 category: core/verify
 verify: run cargo test e2e::lint_doing_missing_verify
 discovered-from: mw-ntt5
@@ -20,3 +20,5 @@ predate the gate (imports create them directly).
 
 ## log
 - 2026-08-07T13:47Z created
+- 2026-08-19T21:05Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-19T21:22Z doing→done — verify exit 0 @ c8792ad+2

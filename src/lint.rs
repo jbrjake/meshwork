@@ -337,8 +337,9 @@ fn find_cycle(edges: &BTreeMap<String, Vec<String>>) -> Option<Vec<String>> {
         .find_map(|n| visit(n, edges, &mut Vec::new(), &mut done))
 }
 
-/// blocked-without-reason (MW-E1), missing verify while open (MW-E2),
-/// done parents with live children (MW-B7).
+/// blocked-without-reason (MW-E1), missing verify while live — open or
+/// doing, where the missing definition of done bites hardest (MW-E2,
+/// mw-dkwf26w) — done parents with live children (MW-B7).
 fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
     let live_children: BTreeMap<&str, Vec<&str>> = valid
         .iter()
@@ -361,12 +362,15 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 "blocked without blocked-reason — name the blocker + unblock condition".to_string(),
             ));
         }
-        if t.status == Status::Open && t.verify.is_none() {
+        if matches!(t.status, Status::Open | Status::Doing) && t.verify.is_none() {
             out.push(finding(
                 Severity::Warning,
                 "no-verify",
                 &t.id,
-                "open without verify: — close will demand --waive".to_string(),
+                format!(
+                    "{} without verify: — close will demand --waive",
+                    t.status.as_str()
+                ),
             ));
         }
         if t.status == Status::Done {
