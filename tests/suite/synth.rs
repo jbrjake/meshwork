@@ -2,6 +2,7 @@
 //! and `benches/startup.rs` (mw-xjyhs9y) — the bench includes this file
 //! via `#[path]`, so it must stay std-only and self-contained.
 
+use std::fmt::Write as _;
 use std::path::Path;
 
 /// Deterministic LCG — the corpus must be identical run-to-run; ids come
@@ -22,6 +23,14 @@ impl Lcg {
 /// Write a synthetic store: config.toml + `n` task files with a realistic
 /// mix — ~20% done, ~10% doing, a third carrying a needs edge, some seq.
 pub fn synth_store(root: &Path, alias: &str, n: usize, lcg: &mut Lcg) {
+    synth_store_commented(root, alias, n, lcg, 0);
+}
+
+/// `synth_store` plus a `comments`-deep tail of ~200-byte comment lines
+/// on every task — the parse-time-input growth case (mw-4m169xc):
+/// read-time output is byte-capped, parse-time input isn't.
+/// `comments = 0` reproduces `synth_store` byte-for-byte.
+pub fn synth_store_commented(root: &Path, alias: &str, n: usize, lcg: &mut Lcg, comments: usize) {
     let tasks = root.join("docs").join("meshwork");
     std::fs::create_dir_all(&tasks).unwrap();
     std::fs::write(
@@ -46,16 +55,26 @@ pub fn synth_store(root: &Path, alias: &str, n: usize, lcg: &mut Lcg) {
         } else {
             String::new()
         };
-        std::fs::write(
-            tasks.join(format!("{id}-synthetic-{i}.md")),
-            format!(
-                "---\nid: {id}\ntitle: Synthetic task {i}\nstatus: {status}\n\
-                 category: synth/load\nverify: \"true\"\n{needs}{seq}\
-                 created: 2026-07-01\n---\nGenerated corpus row (gate §7).\n\n\
-                 ## log\n- 2026-07-01 created\n"
-            ),
-        )
-        .unwrap();
+        let mut body = format!(
+            "---\nid: {id}\ntitle: Synthetic task {i}\nstatus: {status}\n\
+             category: synth/load\nverify: \"true\"\n{needs}{seq}\
+             created: 2026-07-01\n---\nGenerated corpus row (gate §7).\n\n\
+             ## log\n- 2026-07-01 created\n"
+        );
+        if comments > 0 {
+            body.push_str("\n## comments\n");
+            for c in 0..comments {
+                let _ = writeln!(
+                    body,
+                    "- 2026-07-0{}T10:00Z [synth] Comment {c} on task {i}: \
+                     a realistically sized note carrying enough prose that \
+                     the parse-time cost of a long comment tail shows up in \
+                     the measurement rather than rounding to nothing.",
+                    (c % 7) + 2
+                );
+            }
+        }
+        std::fs::write(tasks.join(format!("{id}-synthetic-{i}.md")), body).unwrap();
         prev = Some(id);
     }
 }

@@ -267,7 +267,7 @@ House pattern (verify_alpha.sh precedent: numbered sections, one exit 0):
 | 4 | `cargo llvm-cov --fail-under-lines 80` | coverage <80% (house number) |
 | 5 | file caps: warn >500, fail >750 lines per source file (house numbers) | ceiling breach |
 | 6 | trace: every MW-* MUST in REQUIREMENTS appears in TRACE.md mapped to a test name that exists in the test binaries | unmapped requirement or phantom test |
-| 7 | perf (owned machines, release build): `ready` cold <100ms at 1K synthetic tasks, portfolio <1s at 20 synthetic repos; N≥7 reps, median (MW-C4) | regression |
+| 7 | perf (owned machines, release build): `ready` cold <100ms at 1K synthetic tasks, portfolio <1s at 20 synthetic repos, `prime` cold <100ms at 1K comment-tailed tasks (mw-4m169xc — the SessionStart hot path; while it holds, the `.cache/tasks.jsonl` projection stays deferrable); N≥7 reps, median (MW-C4) | regression |
 | 8 | self-host (from M1): `meshwork lint` + `meshwork prime` clean on meshwork's own `docs/meshwork/`; prime output ≤6KB measured | dogfood breakage |
 
 No network anywhere in the gate (MW-J6). The live scratch-GitHub drill (REQUIREMENTS §4) is a manual acceptance step outside it.

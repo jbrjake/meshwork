@@ -83,7 +83,7 @@ else
 fi
 
 # ---------------------------------------------------------------- §7 perf (MW-C4; N>=7 median; arrives M2)
-section 7 "perf: ready <100ms @1K tasks, portfolio <1s @20 repos"
+section 7 "perf: ready + prime <100ms @1K tasks, portfolio <1s @20 repos"
 if PATH="$TEST_PATH" cargo test -- --list 2>/dev/null | grep -q '^perf::'; then
   # Exit code, not output-grep: cargo's doc-test phase ends the merged
   # stream with a blank line, so `tail -1` sees "" and a grep for the ok

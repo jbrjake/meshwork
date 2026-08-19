@@ -1,5 +1,6 @@
 //! `perf::` — gate §7 (PLAN 2.5, MW-C4): cold `ready` <100ms at 1K tasks,
-//! `portfolio ready` <1s at 20 repos; N≥7 reps, median. Budgets are
+//! `portfolio ready` <1s at 20 repos, cold `prime` <100ms at 1K
+//! comment-tailed tasks (mw-4m169xc); N≥7 reps, median. Budgets are
 //! defined for RELEASE builds on the owned machines — §7 runs
 //! `cargo test --release -- --ignored perf::`; under a debug build (gate
 //! §3's --include-ignored sweep) the tests print a note and skip, because
@@ -7,7 +8,7 @@
 //! deterministic. Medians print as `perf-median <name> <ms>` for
 //! scripts/check-perf.sh's 1.5× regression wall (baseline rule).
 
-use crate::synth::{synth_store, Lcg};
+use crate::synth::{synth_store, synth_store_commented, Lcg};
 use assert_cmd::Command;
 use std::fmt::Write as _;
 use std::path::Path;
@@ -58,6 +59,37 @@ fn ready_1k_cold() {
     assert!(
         med < 100,
         "MW-C4: cold ready at 1K tasks — {med}ms >= 100ms"
+    );
+}
+
+/// Gate §7 covers the `SessionStart` hot path (mw-4m169xc): cold `prime`
+/// at 1K tasks, every task carrying a 3-comment tail — parse-time input
+/// is the axis that grows without bound; read-time output is already
+/// byte-capped (§7). Same 100ms family budget as `ready`: while this
+/// holds, the `.cache/tasks.jsonl` projection stays deferrable.
+#[test]
+#[ignore = "gate §7 runs perf:: on release builds (MW-C4)"]
+fn prime_1k() {
+    if cfg!(debug_assertions) {
+        eprintln!("perf::prime_1k: budgets are release-only; skipping in debug");
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path().join("synth1k");
+    synth_store_commented(&repo, "pf", 1000, &mut Lcg(11), 3);
+    git_init(&repo);
+
+    let mut samples = Vec::new();
+    for _ in 0..REPS {
+        let t = Instant::now();
+        meshwork_at(&repo).arg("prime").assert().success();
+        samples.push(t.elapsed().as_millis());
+    }
+    let med = median_ms(samples);
+    println!("perf-median prime_1k {med}");
+    assert!(
+        med < 100,
+        "gate §7: cold prime at 1K comment-tailed tasks — {med}ms >= 100ms"
     );
 }
 
