@@ -8,7 +8,7 @@ verify: run cargo test format::version_matches_envelope
 seq: 270
 docs:
   - FORMAT.md#§-config-toml
-status: open
+status: done
 created: 2026-08-08T14:09Z
 ---
 Review finding (2026-08-08). Two version numbers describe the same
@@ -18,6 +18,8 @@ other now, while it's a one-line assert.
 
 ## log
 - 2026-08-08T14:09Z created
+- 2026-08-20T11:40Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-20T11:43Z doing→done — verify exit 0 @ 6c64454+7
 
 ## comments
 - 2026-08-09T23:17Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Review finding (2026-08-09) extends this: FORMAT.md never mentions the --json envelope's schema field at all — a reader sees format = 1 on disk and {"meshwork":{"version":…,"schema":…}} in output with no stated relationship. When pinning, state the mapping (or the independence) in FORMAT.md itself, not just in the assert.

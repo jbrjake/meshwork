@@ -2,12 +2,13 @@
 id: mw-51x0wty
 title: "Authoring a verify records the authoring clone's approval (MW-E5 carve-out)"
 category: core/verify
-relates: [mw-hz1ezcg, mw-9rc4vs6, mw-f1x71yg]
+relates: [mw-hz1ezcg, mw-9rc4vs6, mw-f1x71yg, mw-2kgkn0j]
 verify: run cargo test e2e::add_authored_verify_preapproved
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
-status: open
+status: blocked
 created: 2026-08-09T23:35Z
+blocked-reason: same owner ruling as mw-2kgkn0j (approve-at-mint carve-out) — one decision unblocks both
 ---
 Field evidence (sazed, 2026-08-09). The session wrote a verify, ran
 `close`, was refused ("task files arrive via merge and are untrusted"),
@@ -26,3 +27,4 @@ clone's own CLI is approval."
 
 ## log
 - 2026-08-09T23:35Z created
+- 2026-08-20T11:42Z open→blocked — same owner ruling as mw-2kgkn0j (approve-at-mint carve-out) — one decision unblocks both

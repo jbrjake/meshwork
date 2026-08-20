@@ -2,13 +2,14 @@
 id: mw-2kgkn0j
 title: "Approve-at-mint: a verify authored by this clone is already trusted"
 category: core/verify
-relates: [mw-9rc4vs6, mw-hz1ezcg]
+relates: [mw-9rc4vs6, mw-hz1ezcg, mw-51x0wty]
 verify: run cargo test e2e::approve_at_mint
 seq: 290
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
-status: open
+status: blocked
 created: 2026-08-08T16:42Z
+blocked-reason: "needs owner ruling on the trust-boundary wording before any code: authoring-through-this-clone's-CLI counts as approval (approve-at-mint). Evidence is filed on-task; unblock by recording the nod (or refusal) in a comment"
 ---
 Field evidence (sazed, first 8 post-migration sessions, reviewed
 2026-08-08): every trust refusal observed (6 of 6) was immediately
@@ -23,6 +24,7 @@ prompts — that asymmetry is the point, and it needs the §12b ruling.
 
 ## log
 - 2026-08-08T16:42Z created
+- 2026-08-20T11:42Z open→blocked — needs owner ruling on the trust-boundary wording before any code: authoring-through-this-clone's-CLI counts as approval (approve-at-mint). Evidence is filed on-task; unblock by recording the nod (or refusal) in a comment
 
 ## comments
 - 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Adoption-week evidence from both stores: the MW-E5 refusal fired in 5 of 5 leras post-migration sessions — every time on a verify the same session had just authored (faba7815, ea33cc32, 4545e5a6, cb94b3f3, 4e5b1f04) — and in 14 of 34 sazed sessions, ~63 --approve invocations total. Every refusal was rubber-stamped within seconds, zero outcome changes; by mid-week agents pass --approve preemptively on first attempt. The gate is training the reflex that will neutralize it against genuinely merge-arrived verifies. Approve-at-mint removes exactly the noise half (with mw-51x0wty and mw-hz1ezcg as siblings), and HEAD's set --verify content-hash re-arming composes cleanly with it.
