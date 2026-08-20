@@ -6,7 +6,7 @@ verify: run cargo test lint::fix_stray_body_relocation
 docs:
   - FORMAT.md#task-file
   - FORMAT.md#tail-section-grammars
-status: open
+status: done
 created: 2026-08-09T23:35Z
 ---
 Field evidence (sazed, 2026-08-09). Nine task files were hand-written
@@ -21,3 +21,7 @@ anything else — including `##` headings — is stray body. Relocate it
 above `## log` preserving order, and assert the multiset of non-blank
 lines is unchanged (the invariant the agent had to hand-roll). One
 command instead of a nine-file structural rewrite.
+
+## log
+- 2026-08-20T11:51Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-20T12:04Z doing→done — verify exit 0 @ c0b180a+13

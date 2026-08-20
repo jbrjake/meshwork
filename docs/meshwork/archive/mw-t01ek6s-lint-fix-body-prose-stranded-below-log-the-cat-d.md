@@ -7,7 +7,7 @@ verify: run cargo test lint::stray_prose_below_log
 seq: 310
 docs:
   - FORMAT.md#tail-section-grammars
-status: open
+status: done
 created: 2026-08-08T16:42Z
 ---
 Field evidence (sazed, 2026-08-08): agents extend task descriptions with
@@ -19,3 +19,7 @@ sorted-line digests). The damage is mechanical and the repair is
 deterministic: prose after the trailing run of `- ` log lines belongs to
 the body. Detect it in lint, relocate it in lint --fix, per the FORMAT
 tail-section grammar.
+
+## log
+- 2026-08-20T11:51Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-20T12:04Z doing→done — verify exit 0 @ c0b180a+12

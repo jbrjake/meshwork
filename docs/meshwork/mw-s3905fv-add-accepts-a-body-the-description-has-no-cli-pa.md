@@ -7,8 +7,9 @@ verify: run cargo test e2e::add_body
 seq: 300
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface
-status: open
+status: blocked
 created: 2026-08-08T16:42Z
+blocked-reason: "surface delta awaiting its own owner ruling: which body path (stdin when piped / --body @file / batch-of-one idiom). The 2026-08-10 ruling covered mw-rz4ey2h+mw-f1x71yg only; fafd694 is the precedent for landing without the nod"
 ---
 Field evidence (sazed): every substantive task filed post-migration went
 `add`, then `cat >> <file>` or a python heredoc to attach the
@@ -22,3 +23,4 @@ together.
 
 ## log
 - 2026-08-08T16:42Z created
+- 2026-08-20T11:43Z open→blocked — surface delta awaiting its own owner ruling: which body path (stdin when piped / --body @file / batch-of-one idiom). The 2026-08-10 ruling covered mw-rz4ey2h+mw-f1x71yg only; fafd694 is the precedent for landing without the nod
