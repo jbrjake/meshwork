@@ -8,7 +8,7 @@ verify: run cargo test lint::verify_changed_since_approval
 seq: 200
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
-status: open
+status: done
 created: 2026-08-08T14:09Z
 ---
 Review finding (2026-08-08). Approval already blocks execution on a
@@ -19,3 +19,5 @@ through.
 
 ## log
 - 2026-08-08T14:09Z created
+- 2026-08-20T11:18Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-20T11:32Z doing→done — verify exit 0 @ e9e1978+9
