@@ -172,14 +172,22 @@ fn substantive_log_tail(t: &Task) -> Option<&String> {
 /// blocked with reasons, freshest comments across the active frontier (§7b).
 fn weather_lines(tasks: &[&Task], ready_ids: &BTreeSet<&str>) -> Vec<String> {
     let mut out = Vec::new();
+    let today = crate::clock::today();
     for t in tasks.iter().filter(|t| t.status == Status::Doing) {
         let claim = t
             .claimed_by
             .as_deref()
             .map_or(String::new(), |c| format!(" [claimed: {c}]"));
+        // mw-06j1wqe: age the rot in place — the digest must not keep
+        // normalizing a doing list that only ever grows.
+        let stale = t
+            .last_activity_date()
+            .and_then(|d| crate::clock::days_between(&d, &today))
+            .filter(|a| *a >= crate::lint::STALE_DOING_DAYS)
+            .map_or(String::new(), |a| format!(" [stale: {a}d]"));
         let tail = substantive_log_tail(t).map_or(String::new(), |l| format!(" \u{2014} {l}"));
         out.push(clamp_bytes(
-            &format!("- doing {} {}{claim}{}", t.id, t.title, tail),
+            &format!("- doing {} {}{claim}{stale}{}", t.id, t.title, tail),
             LINE_CLAMP,
         ));
     }

@@ -127,7 +127,7 @@ LIMIT 20;
 | `ready / blocked / tree / why` | §5 |
 | `q "SELECT …" [--json]` | raw SQL (MW-C1) |
 | `prime` | §7 |
-| `lint [--fix]` | schema, cycles, anchors, attachment size, post-merge damage (MW-I2/K3); verify hygiene on live tasks (§12b): `verify-trivial` (mw-221f3jt), `verify-shell` (legacy shell — migration pressure, mw-4aqmf0t), `verify-malformed` (will refuse at close), `verify-changed-since-approval` (approved-vs-current diff, mw-yyf1bab; prime carries the ids as a nudge) — warnings all |
+| `lint [--fix]` | schema, cycles, anchors, attachment size, post-merge damage (MW-I2/K3); verify hygiene on live tasks (§12b): `verify-trivial` (mw-221f3jt), `verify-shell` (legacy shell — migration pressure, mw-4aqmf0t), `verify-malformed` (will refuse at close), `verify-changed-since-approval` (approved-vs-current diff, mw-yyf1bab; prime carries the ids as a nudge); tail hygiene: `stray-tail-content` on live tasks, relocated by `--fix` (mw-t01ek6s/mw-n3xgfs0, FORMAT.md Stray content); doing-rot (mw-06j1wqe): `doing-stale` past the activity window, `doing-unclaimed` — warnings all |
 | `mirror push / mirror status` | §8 |
 | `portfolio ready / next / q / seq` | §9; union pipeline + sequence overlay; every run autoprunes satisfied sequence.md entries (mw-chcqk6g, owner-ruled — no flag) |
 | `import todo <path>` | §10 migration |
@@ -143,7 +143,7 @@ Every verb: `--json`, stable schema, versioned in-band — the envelope is `{"me
 Hand-written HANDOFF.md is retired: it duplicates graph state. prime becomes the full handoff view, same 6KB cap, sections in order:
 
 1. **headline** — counts + category rollup capped at top 5 groups (group by first two category segments; rank by min seq among open members — seq is the priority primitive, there is no priority field; rest collapses to `… +N`, MW-D2 pattern).
-2. **weather** — all derived, never stored: freshest comments across the active frontier (ready+doing+blocked, newest first, byte-capped) + blocked-with-reasons.
+2. **weather** — all derived, never stored: freshest comments across the active frontier (ready+doing+blocked, newest first, byte-capped) + blocked-with-reasons; doing lines past the staleness window carry `[stale: Nd]` (mw-06j1wqe — the digest must not normalize a doing list that only grows).
 2b. **addressed** (mw-hfvtx0s, when any): incoming asks from the read-time join (§2), top 3 — informs the session before it commits to a task, never displaces next.
 3. **next** — top ready task: its `handoff:` commentary FIRST, then category, blocks-line (what it unblocks), verify, docs: refs, body head verbatim, last-2 comment tail (MW-K4).
 4. **also-ready** one-liners with blocks-lines.

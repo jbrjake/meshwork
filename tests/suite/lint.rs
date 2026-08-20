@@ -300,6 +300,69 @@ fn trivial_verify_warn() {
     }
 }
 
+/// mw-06j1wqe: doing-rot pressure. A doing task whose newest dated
+/// activity is older than the staleness window warns (`doing-stale`),
+/// and a doing task nobody claims warns (`doing-unclaimed`) — in the
+/// field the doing list only ever grew, and nothing pushed back.
+#[test]
+fn stale_doing_warn() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    let today = meshwork::clock::stamp();
+    let task = |id: &str, status: &str, claimed: Option<&str>, log_date: &str| {
+        let claim = claimed.map_or(String::new(), |c| format!("claimed-by: {c}\n"));
+        format!(
+            "---\nid: {id}\ntitle: T {id}\nstatus: {status}\n{claim}verify: \"true\"\n---\n\n\
+             ## log\n- {log_date} created\n"
+        )
+    };
+    for (name, body) in [
+        (
+            "zz-rot1-old.md",
+            task("zz-rot1", "doing", Some("worker"), "2026-01-01"),
+        ),
+        (
+            "zz-frs1-fresh.md",
+            task("zz-frs1", "doing", Some("worker"), &today),
+        ),
+        (
+            "zz-unc1-unclaimed.md",
+            task("zz-unc1", "doing", None, &today),
+        ),
+        (
+            "zz-opn1-open.md",
+            task("zz-opn1", "open", None, "2026-01-01"),
+        ),
+    ] {
+        std::fs::write(mw.join(name), body).unwrap();
+    }
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "doing-stale", "zz-rot1"),
+        "{f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "doing-stale", "zz-frs1"),
+        "fresh activity is not rot: {f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "doing-unclaimed", "zz-unc1"),
+        "{f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "doing-unclaimed", "zz-rot1"),
+        "claimed doing is owned: {f:?}"
+    );
+    for code in ["doing-stale", "doing-unclaimed"] {
+        assert!(
+            !has(&f, Severity::Warning, code, "zz-opn1"),
+            "open tasks are the queue, not rot: {f:?}"
+        );
+    }
+}
+
 /// mw-t01ek6s: `cat >>` appends below the tail sections, where the parser
 /// ignores content silently — lint names the stranded prose on live
 /// tasks. Terminal rot is history, not noise.

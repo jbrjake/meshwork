@@ -50,6 +50,10 @@ pub(crate) fn finding(severity: Severity, code: &str, subject: &str, message: St
     }
 }
 
+/// mw-06j1wqe: days of dated silence before a doing task reads as rot.
+/// Shared with prime's weather annotation — one number, both surfaces.
+pub const STALE_DOING_DAYS: i64 = 3;
+
 /// Description byte budget (MW-A5: ~2KB, bytes — never lines).
 const DESCRIPTION_BUDGET: usize = 2048;
 /// Whole-file growth signal (§15.5): usually means the task should split.
@@ -342,6 +346,7 @@ fn find_cycle(edges: &BTreeMap<String, Vec<String>>) -> Option<Vec<String>> {
 /// doing, where the missing definition of done bites hardest (MW-E2,
 /// mw-dkwf26w) — done parents with live children (MW-B7).
 fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
+    let today = crate::clock::today();
     let live_children: BTreeMap<&str, Vec<&str>> = valid
         .iter()
         .filter(|t| matches!(t.status, Status::Open | Status::Doing | Status::Blocked))
@@ -363,6 +368,7 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 "blocked without blocked-reason — name the blocker + unblock condition".to_string(),
             ));
         }
+        check_doing_rot(t, &today, out);
         if matches!(t.status, Status::Open | Status::Doing) && t.verify.is_none() {
             out.push(finding(
                 Severity::Warning,
@@ -421,6 +427,41 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
                 "handoff: on a closed task — the voice belongs on whatever is up next".to_string(),
             ));
         }
+    }
+}
+
+/// mw-06j1wqe: doing-rot. In the field the doing list only ever grew —
+/// finished-in-fact tasks sat unclosed, unclaimed imports sat unowned,
+/// and the digest normalized all of it. Warnings both; prime carries the
+/// age on its weather lines.
+fn check_doing_rot(t: &Task, today: &str, out: &mut Vec<Finding>) {
+    if t.status != Status::Doing {
+        return;
+    }
+    if t.claimed_by.as_deref().is_none_or(|c| c.trim().is_empty()) {
+        out.push(finding(
+            Severity::Warning,
+            "doing-unclaimed",
+            &t.id,
+            "doing with no claimant — in-flight work needs an owner; \
+             start --as claims it, or reopen to requeue"
+                .to_string(),
+        ));
+    }
+    if let Some(age) = t
+        .last_activity_date()
+        .and_then(|d| crate::clock::days_between(&d, today))
+        .filter(|a| *a >= STALE_DOING_DAYS)
+    {
+        out.push(finding(
+            Severity::Warning,
+            "doing-stale",
+            &t.id,
+            format!(
+                "doing with no dated activity for {age} days — close it, \
+                 push it, or reopen to requeue; rot hides the real queue"
+            ),
+        ));
     }
 }
 

@@ -204,6 +204,36 @@ pub struct Task {
     pub warnings: Vec<String>,
 }
 
+impl Task {
+    /// Newest ISO-dated activity: the max log-entry date (dates are
+    /// as-written, so non-date first tokens are skipped), falling back
+    /// to `created:`. `None` when the file carries no date anywhere.
+    /// Feeds the doing-rot signals (mw-06j1wqe).
+    #[must_use]
+    pub fn last_activity_date(&self) -> Option<String> {
+        self.log
+            .iter()
+            .filter_map(|entry| {
+                let tok = entry.split_whitespace().next()?;
+                iso_dated(tok).then(|| tok.to_string())
+            })
+            .max()
+            .or_else(|| self.created.clone().filter(|c| iso_dated(c)))
+    }
+}
+
+/// `YYYY-MM-DD` prefix check — cheap, and strict enough for judging
+/// as-written dates without validating them.
+fn iso_dated(s: &str) -> bool {
+    let b = s.as_bytes();
+    b.len() >= 10
+        && b[..4].iter().all(u8::is_ascii_digit)
+        && b[4] == b'-'
+        && b[5..7].iter().all(u8::is_ascii_digit)
+        && b[7] == b'-'
+        && b[8..10].iter().all(u8::is_ascii_digit)
+}
+
 /// A file that failed to parse — kept visible, never dropped (MW-I2).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Invalid {

@@ -124,6 +124,56 @@ fn weather_skips_import_log() {
     assert!(!new1.contains('\u{2014}'), "bare created is provenance: {new1}");
 }
 
+/// mw-06j1wqe: prime's weather ages the rot in place — a doing task with
+/// old dated activity carries `[stale: Nd]`, a fresh one stays bare, so
+/// the digest stops normalizing a doing list that only ever grows.
+#[test]
+fn prime_annotates_stale_doing() {
+    let (_g, repo) = git_repo("doing-rot");
+    init_store(&repo);
+    let id = stdout_of(
+        &meshwork(&repo)
+            .env("MESHWORK_TODAY", "2026-08-01")
+            .args(["add", "Left running", "--verify", "true"])
+            .assert()
+            .success(),
+    )
+    .lines()
+    .next()
+    .unwrap()
+    .to_string();
+    meshwork(&repo)
+        .env("MESHWORK_TODAY", "2026-08-01")
+        .args(["start", &id, "--as", "worker"])
+        .assert()
+        .success();
+
+    let fresh = stdout_of(
+        &meshwork(&repo)
+            .env("MESHWORK_TODAY", "2026-08-02")
+            .arg("prime")
+            .assert()
+            .success(),
+    );
+    assert!(
+        fresh.contains(&id) && !fresh.contains("[stale:"),
+        "one day of silence is not rot:\n{fresh}"
+    );
+
+    let later = stdout_of(
+        &meshwork(&repo)
+            .env("MESHWORK_TODAY", "2026-08-20")
+            .arg("prime")
+            .assert()
+            .success(),
+    );
+    let line = later
+        .lines()
+        .find(|l| l.contains(&id))
+        .unwrap_or_else(|| panic!("doing line present:\n{later}"));
+    assert!(line.contains("[stale: 19d]"), "aged in place: {line}");
+}
+
 /// mw-yyf1bab: prime nudges when a live verify no longer matches what
 /// this clone approved — the session hears about the edit before it
 /// commits to a task; lint carries the full approved-vs-current diff.
