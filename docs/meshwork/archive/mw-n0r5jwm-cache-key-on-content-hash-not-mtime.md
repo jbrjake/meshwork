@@ -7,7 +7,7 @@ verify: run cargo test cache::checkout_does_not_invalidate
 seq: 240
 docs:
   - FORMAT.md#projection
-status: open
+status: done
 created: 2026-08-08T14:09Z
 handoff: |
   Unblocked 2026-08-19: your blocker (gate §7 covers prime, mw-4m169xc)
@@ -29,3 +29,5 @@ lands.
 
 ## log
 - 2026-08-08T14:09Z created
+- 2026-08-20T11:34Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-20T11:39Z doing→done — verify exit 0 @ 4598ea9+8
