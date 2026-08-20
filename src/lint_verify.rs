@@ -1,10 +1,14 @@
 //! Verify-shaped lint checks, split from `lint.rs` at the 500-line
 //! target: the static tier of verify hygiene. Trivially-satisfiable
-//! verifies (mw-221f3jt), plus the migration-pressure pair (mw-4aqmf0t,
+//! verifies (mw-221f3jt), the migration-pressure pair (mw-4aqmf0t,
 //! DESIGN §12b): `verify-shell` warns on legacy shell text — legal
 //! forever behind the MW-E5 gate, but loud so stores drift toward the
 //! DSL — and `verify-malformed` warns on keyword-led text that will
-//! refuse at close. Warnings all; nothing here executes anything.
+//! refuse at close — plus `verify-changed-since-approval` (mw-yyf1bab):
+//! a live verify differing from what this clone approved, shown as
+//! approved-vs-current, because the close-time re-approval prompt is
+//! only a speed bump if the operator is clicking through. Warnings all;
+//! nothing here executes anything.
 
 use crate::lint::{finding, Finding, Severity};
 use crate::parse::{Status, Task};
@@ -13,6 +17,19 @@ use crate::verify_dsl::{classify, Classified};
 
 /// All verify-shaped checks over the live tasks.
 pub(crate) fn check(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
+    for (t, approved) in changed_since_approval(&store.root, valid) {
+        let now = t.verify.as_deref().map(str::trim).unwrap_or_default();
+        out.push(finding(
+            Severity::Warning,
+            "verify-changed-since-approval",
+            &t.id,
+            format!(
+                "verify changed since this clone approved it — approved: \
+                 `{approved}`, now: `{now}`; review the change (close --approve \
+                 re-records)"
+            ),
+        ));
+    }
     for t in valid {
         if matches!(t.status, Status::Done | Status::Dropped) {
             continue;
@@ -49,6 +66,29 @@ pub(crate) fn check(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) 
             Classified::Dsl(_) => {}
         }
     }
+}
+
+/// mw-yyf1bab: live tasks whose current verify differs from the newest
+/// text this clone approved, with that approved text. Empty when no
+/// approvals are recorded (fresh clone, hash-era file, CI). Shared with
+/// prime, which surfaces the ids as a session-start nudge.
+pub(crate) fn changed_since_approval<'a>(
+    root: &std::path::Path,
+    tasks: &[&'a Task],
+) -> Vec<(&'a Task, String)> {
+    let approved = crate::trust::approved_texts(root);
+    if approved.is_empty() {
+        return Vec::new();
+    }
+    tasks
+        .iter()
+        .filter(|t| !matches!(t.status, Status::Done | Status::Dropped))
+        .filter_map(|t| {
+            let now = t.verify.as_deref()?.trim();
+            let then = approved.get(&t.id)?;
+            (then.trim() != now).then(|| (*t, then.clone()))
+        })
+        .collect()
 }
 
 /// mw-221f3jt: why a verify is trivially satisfiable, if it is. Exact

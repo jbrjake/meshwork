@@ -299,3 +299,74 @@ fn trivial_verify_warn() {
         );
     }
 }
+
+/// mw-yyf1bab: a verify edited after this clone approved it is the
+/// silent-weakening attack — lint shows approved-vs-current instead of
+/// leaving the change to a close-time prompt the operator clicks through.
+#[test]
+fn verify_changed_since_approval() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("repo");
+    let mw = root.join("docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    let task = |verify: &str| {
+        format!("---\nid: zz-chg1\ntitle: Weakened\nstatus: open\nverify: {verify:?}\n---\n")
+    };
+    let file = mw.join("zz-chg1-weakened.md");
+    std::fs::write(&file, task("run cargo test real::gate")).unwrap();
+    meshwork::trust::record_approval(&root, "zz-chg1", "run cargo test real::gate").unwrap();
+
+    let clean = lint_store(&load_repo(&root).unwrap());
+    assert!(
+        !clean
+            .iter()
+            .any(|x| x.code == "verify-changed-since-approval"),
+        "matching approval stays silent: {clean:?}"
+    );
+
+    std::fs::write(&file, task("true")).unwrap();
+    let f = lint_store(&load_repo(&root).unwrap());
+    assert!(
+        has(
+            &f,
+            Severity::Warning,
+            "verify-changed-since-approval",
+            "zz-chg1"
+        ),
+        "{f:?}"
+    );
+    // The diff is the finding: both what was approved and what stands now.
+    assert!(
+        has(
+            &f,
+            Severity::Warning,
+            "verify-changed-since-approval",
+            "real::gate"
+        ),
+        "approved text on screen: {f:?}"
+    );
+    assert!(
+        has(
+            &f,
+            Severity::Warning,
+            "verify-changed-since-approval",
+            "true"
+        ),
+        "current text on screen: {f:?}"
+    );
+
+    // Terminal tasks are history — an old approval mismatch is not noise.
+    std::fs::write(
+        &file,
+        "---\nid: zz-chg1\ntitle: Weakened\nstatus: done\nverify: \"true\"\n---\n",
+    )
+    .unwrap();
+    let done = lint_store(&load_repo(&root).unwrap());
+    assert!(
+        !done
+            .iter()
+            .any(|x| x.code == "verify-changed-since-approval"),
+        "terminal tasks stay silent: {done:?}"
+    );
+}

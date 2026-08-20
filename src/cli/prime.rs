@@ -336,6 +336,28 @@ fn counts_line(counts: &BTreeMap<&str, usize>, invalid: usize, repo: &str) -> St
     format!("{repo} — {}", parts.join(", "))
 }
 
+/// The `!` advisory tail: invalid-file count, plus verifies edited after
+/// this clone approved them (mw-yyf1bab) — surfaced before the session
+/// commits to a task; lint carries the full approved-vs-current diff.
+fn advisory_lines(root: &std::path::Path, tasks: &[&Task], invalid: usize) -> Vec<String> {
+    let mut out = Vec::new();
+    if invalid > 0 {
+        out.push(format!("! {invalid} invalid file(s) \u{2014} run lint"));
+    }
+    let changed = crate::lint_verify::changed_since_approval(root, tasks);
+    if !changed.is_empty() {
+        let ids: Vec<&str> = changed.iter().map(|(t, _)| t.id.as_str()).collect();
+        out.push(clamp_bytes(
+            &format!(
+                "! verify changed since approval: {} \u{2014} lint shows the diff",
+                ids.join(", ")
+            ),
+            LINE_CLAMP,
+        ));
+    }
+    out
+}
+
 pub(crate) fn run(json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let store = load_repo(&root).map_err(|e| e.to_string())?;
@@ -430,9 +452,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
             lines.push(clamp_bytes(&format!("- {date} {id} {title}"), LINE_CLAMP));
         }
     }
-    if invalid > 0 {
-        lines.push(format!("! {invalid} invalid file(s) \u{2014} run lint"));
-    }
+    lines.append(&mut advisory_lines(&root, &tasks, invalid));
 
     let mut out = String::new();
     for line in &lines {

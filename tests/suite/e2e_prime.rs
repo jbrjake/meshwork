@@ -123,3 +123,24 @@ fn weather_skips_import_log() {
     let new1 = out.lines().find(|l| l.contains("wo-new1")).expect("doing line");
     assert!(!new1.contains('\u{2014}'), "bare created is provenance: {new1}");
 }
+
+/// mw-yyf1bab: prime nudges when a live verify no longer matches what
+/// this clone approved — the session hears about the edit before it
+/// commits to a task; lint carries the full approved-vs-current diff.
+#[test]
+fn prime_flags_verify_changed_since_approval() {
+    let (_g, repo) = fixture_repo("alpha");
+    let before = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(
+        !before.contains("verify changed since approval"),
+        "no approvals recorded, nothing to flag:\n{before}"
+    );
+    // The operator approved one text; the store now carries another.
+    meshwork::trust::record_approval(&repo, "az-n33d", "test -f docs/spill-report-draft.md")
+        .unwrap();
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(
+        out.contains("! verify changed since approval: az-n33d"),
+        "the edited verify is named:\n{out}"
+    );
+}
