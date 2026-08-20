@@ -95,3 +95,52 @@ async fn conformance_corpus() {
          (if FORMAT.md sides with the new output: MESHWORK_BLESS=1, then review)"
     );
 }
+
+/// mw-5rgq9ka: one contract, one number — the `--json` envelope's
+/// `meshwork.schema` IS the store format version, observed from a real
+/// invocation, and FORMAT.md states the mapping (a reader otherwise
+/// meets `format = 1` on disk and `schema` in output with no stated
+/// relationship).
+#[test]
+fn version_matches_envelope() {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path().join("work");
+    std::fs::create_dir_all(&repo).unwrap();
+    assert!(std::process::Command::new("git")
+        .args(["init", "-q"])
+        .current_dir(&repo)
+        .status()
+        .unwrap()
+        .success());
+    let mw = |args: &[&str]| {
+        let mut cmd = assert_cmd::Command::cargo_bin("meshwork").unwrap();
+        // Hermetic per the suite's rule (mw-k7r5): HOME inside the
+        // tempdir so no real portfolio registry can reach the test.
+        cmd.current_dir(&repo)
+            .env("HOME", dir.path())
+            .env("MESHWORK_TRUST", "1")
+            .env_remove("MESHWORK_PORTFOLIO");
+        cmd.args(args);
+        cmd
+    };
+    mw(&["init"]).assert().success();
+    let out = mw(&["lint", "--json"]).assert().success();
+    let text = String::from_utf8(out.get_output().stdout.clone()).unwrap();
+    let envelope: serde_json::Value =
+        serde_json::from_str(text.lines().next().expect("one envelope line")).unwrap();
+    assert_eq!(
+        envelope["meshwork"]["schema"].as_u64(),
+        Some(meshwork::store::STORE_FORMAT),
+        "envelope schema and store format are the same number: {envelope}"
+    );
+
+    // The spec side of the pin: FORMAT.md must name the envelope and tie
+    // its `schema` to the format version.
+    let spec =
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("FORMAT.md"))
+            .unwrap();
+    assert!(
+        spec.contains("envelope") && spec.contains("`schema`"),
+        "FORMAT.md never states the envelope `schema` ≡ format mapping"
+    );
+}

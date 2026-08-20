@@ -166,13 +166,18 @@ pub(crate) fn require_store_root() -> Result<PathBuf, String> {
 }
 
 /// Every verb's JSON output:
-/// `{"meshwork":{"version":…,"schema":1},"verb":…,"data":…}` — identity
+/// `{"meshwork":{"version":…,"schema":…},"verb":…,"data":…}` — identity
 /// travels in-band (mw-5kp033j, amending MW-C3): per-repo version pinning
 /// makes cross-repo aggregation of mixed binaries the NORMAL case, so the
-/// stream itself must say who produced it. `schema` is the old `v`.
+/// stream itself must say who produced it. `schema` is the old `v`, and
+/// it IS the store format version (mw-5rgq9ka): one contract, one number,
+/// stated in FORMAT.md Versioning — never a second literal to drift.
 pub(crate) fn emit_json(verb: &str, data: &serde_json::Value) {
     let envelope = serde_json::json!({
-        "meshwork": { "version": env!("CARGO_PKG_VERSION"), "schema": 1 },
+        "meshwork": {
+            "version": env!("CARGO_PKG_VERSION"),
+            "schema": crate::store::STORE_FORMAT,
+        },
         "verb": verb,
         "data": data,
     });
