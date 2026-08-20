@@ -107,7 +107,7 @@ The file→row projection is **stable and deterministic**: the store at commit X
 git log -- "docs/meshwork/<id>-*" "docs/meshwork/archive/<id>-*"
 ```
 
-Any external reader, UI layer, or incremental engine builds on (projection at X) + (commits after X). `.cache/tasks.jsonl` is reserved as an optional materialization of this projection; it is never authoritative and deleting it is always safe.
+Any external reader, UI layer, or incremental engine builds on (projection at X) + (commits after X). `.cache/tasks.jsonl` is reserved as an optional materialization of this projection; it is never authoritative and deleting it is always safe. Its freshness key, decided before any implementation exists (mw-n0r5jwm): a hash of the store's **content** — the projection inputs as sorted (relative path, bytes) pairs, each field length-prefixed — never mtime, size/count heuristics, or inode metadata. `git checkout` rewrites mtimes wholesale on every branch switch, so a metadata key thrashes in exactly the worktree-heavy workflow this format targets; the projection is a pure function of content, so content is the key. Same rule for any third-party cache built over this projection.
 
 The projection is six tables. `repo` is the registry name from the portfolio's `repos.toml`, defaulting to the repo directory's name; `gid` is `repo#id` and is unique across a loaded set:
 

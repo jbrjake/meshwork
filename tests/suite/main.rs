@@ -4,6 +4,7 @@
 //! tempdir. Unit tests live in src/ modules. Everything offline (MW-J6).
 
 mod arch;
+mod cache;
 mod common;
 mod e2e;
 mod fixtures;

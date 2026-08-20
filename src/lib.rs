@@ -5,6 +5,7 @@
 //! (`MW-*`) and DESIGN-meshwork.md (`§*`).
 
 pub mod addressed;
+pub mod cache;
 pub mod cli;
 pub mod clock;
 pub mod docs;
