@@ -121,3 +121,40 @@ fn lint_doing_missing_verify() {
         .unwrap_or_else(|| panic!("no-verify warning missing for a doing task:\n{out}"));
     assert!(line.contains(&id), "{out}");
 }
+
+/// mw-t01ek6s/mw-n3xgfs0 wiring: `lint` flags the `cat >>` damage on
+/// disk, `lint --fix` relocates it above the tail with a log entry, and
+/// the finding clears.
+#[test]
+fn lint_fix_relocates_stray_tail() {
+    let (_g, repo) = git_repo("stray-tail");
+    init_store(&repo);
+    let id = add_task(&repo, "Damaged by cat");
+
+    let path = task_file(&repo, &id);
+    let mut text = std::fs::read_to_string(&path).unwrap();
+    text.push_str("Prose appended below the tail by cat >>.\n");
+    std::fs::write(&path, text).unwrap();
+
+    let out = stdout_of(&meshwork(&repo).arg("lint").assert().success());
+    assert!(
+        out.lines()
+            .any(|l| l.contains("stray-tail-content") && l.contains(&id)),
+        "damage flagged:\n{out}"
+    );
+
+    let out = stdout_of(&meshwork(&repo).args(["lint", "--fix"]).assert().success());
+    assert!(out.contains("fixed 1 file(s)"), "{out}");
+    assert!(
+        !out.contains("stray-tail-content"),
+        "finding cleared after fix:\n{out}"
+    );
+    let repaired = std::fs::read_to_string(&path).unwrap();
+    let body_at = repaired.find("Prose appended").expect("prose kept");
+    let log_at = repaired.find("## log").expect("log section");
+    assert!(body_at < log_at, "prose sits above the tail:\n{repaired}");
+    assert!(
+        repaired.contains("lint --fix: relocated 1 stray line"),
+        "repair is logged:\n{repaired}"
+    );
+}

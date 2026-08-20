@@ -82,6 +82,7 @@ pub fn lint_store(store: &RepoStore) -> Vec<Finding> {
     check_budgets(store, &valid, &mut out);
     check_misplaced(store, &mut out);
     check_docs(store, &valid, &mut out);
+    crate::lint_tail::check(store, &mut out);
     crate::lint_verify::check(store, &valid, &mut out);
 
     out.sort();

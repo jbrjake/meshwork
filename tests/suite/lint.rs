@@ -300,6 +300,102 @@ fn trivial_verify_warn() {
     }
 }
 
+/// mw-t01ek6s: `cat >>` appends below the tail sections, where the parser
+/// ignores content silently — lint names the stranded prose on live
+/// tasks. Terminal rot is history, not noise.
+#[test]
+fn stray_prose_below_log() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(mw.join("archive")).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    std::fs::write(
+        mw.join("zz-cat1-damaged.md"),
+        "---\nid: zz-cat1\ntitle: Damaged\nstatus: open\nverify: \"true\"\n---\n\
+         Real body.\n\n## log\n- 2026-08-01 created\n\
+         Appended paragraph the parser drops.\n",
+    )
+    .unwrap();
+    std::fs::write(
+        mw.join("zz-ok1-clean.md"),
+        "---\nid: zz-ok1\ntitle: Clean\nstatus: open\nverify: \"true\"\n---\n\
+         Body.\n\n## log\n- 2026-08-01 created\n  a legal continuation\n\n",
+    )
+    .unwrap();
+    std::fs::write(
+        mw.join("archive/zz-old1-done.md"),
+        "---\nid: zz-old1\ntitle: Old\nstatus: done\nverify: \"true\"\n---\n\
+         ## log\n- 2026-08-01 done\nstray but historical\n",
+    )
+    .unwrap();
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "stray-tail-content", "zz-cat1"),
+        "{f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "stray-tail-content", "zz-ok1"),
+        "legal tail lines stay clean: {f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "stray-tail-content", "zz-old1"),
+        "terminal rot is history: {f:?}"
+    );
+}
+
+/// mw-n3xgfs0: the mechanical repair — relocate stray tail content above
+/// `## log` preserving order, losing nothing (the multiset invariant the
+/// field repair had to hand-roll), leaving real entries as entries.
+#[test]
+fn fix_stray_body_relocation() {
+    let damaged = "---\nid: zz-fix1\ntitle: Fix\nstatus: open\nverify: \"true\"\n---\n\
+         Body head.\n\n## log\n- 2026-08-01 created\n\
+         Between-entries paragraph.\n- 2026-08-02 open\u{2192}doing\n\
+         ## notes\n- a bullet the parser ignores\nmore ignored prose\n\
+         ## comments\n- 2026-08-03 [me] real comment\n";
+    let (repaired, moved) = meshwork::lint_tail::relocate_stray(damaged).expect("stray found");
+    assert_eq!(
+        moved, 4,
+        "prose + heading + its 2 ignored lines: {repaired}"
+    );
+
+    // Nothing lost, nothing invented: same non-blank lines, reordered.
+    let multiset = |s: &str| {
+        let mut v: Vec<String> = s
+            .lines()
+            .filter(|l| !l.trim().is_empty())
+            .map(ToString::to_string)
+            .collect();
+        v.sort_unstable();
+        v
+    };
+    assert_eq!(multiset(damaged), multiset(&repaired));
+
+    // The relocated prose parses as body; the real entries survive.
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    let path = mw.join("zz-fix1-fix.md");
+    std::fs::write(&path, &repaired).unwrap();
+    let meshwork::parse::ParsedTask::Valid(t) = meshwork::parse::parse_task_file(&path) else {
+        panic!("repaired file must parse: {repaired}");
+    };
+    assert!(
+        t.description.contains("Between-entries paragraph.")
+            && t.description.contains("## notes")
+            && t.description.contains("more ignored prose"),
+        "stray content lives in the body now: {}",
+        t.description
+    );
+    assert_eq!(t.log.len(), 2, "{:?}", t.log);
+    assert_eq!(t.comments.len(), 1, "{:?}", t.comments);
+    assert!(t.warnings.is_empty(), "clean parse: {:?}", t.warnings);
+
+    // Idempotent: a repaired file has nothing left to move.
+    assert!(meshwork::lint_tail::relocate_stray(&repaired).is_none());
+}
+
 /// mw-yyf1bab: a verify edited after this clone approved it is the
 /// silent-weakening attack — lint shows approved-vs-current instead of
 /// leaving the change to a close-time prompt the operator clicks through.

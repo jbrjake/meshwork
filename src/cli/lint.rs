@@ -1,7 +1,9 @@
 //! `meshwork lint [--fix]` (PLAN 0.9): report every structural finding;
 //! `--fix` repairs exactly the mechanical damage — union-merge duplicate
-//! keys and post-merge duplicate IDs (MW-A4/I2). Modeling errors (cycles,
-//! missing reasons, dangling refs) stay human problems.
+//! keys, post-merge duplicate IDs (MW-A4/I2), misplaced terminal files,
+//! lost union attributes, and body prose stranded in the tail sections.
+//! Modeling errors (cycles, missing reasons, dangling refs) stay human
+//! problems.
 
 use crate::edit::{append_section_entry, set_scalar};
 use crate::id::{mint_unique, IdGen};
@@ -25,7 +27,8 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
         let repairs = fix_duplicate_keys(&store)?
             + fix_duplicate_ids(&store)?
             + fix_misplaced(&store)?
-            + fix_gitattributes(&store)?;
+            + fix_gitattributes(&store)?
+            + fix_stray_tail(&store)?;
         if repairs > 0 && !json {
             println!("fixed {repairs} file(s)");
         }
@@ -87,6 +90,44 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     } else {
         Ok(())
     }
+}
+
+/// Relocate parser-ignored tail content above the tail sections
+/// (mw-t01ek6s/mw-n3xgfs0) on live tasks — the `cat >>` damage class.
+/// Pure reorder plus one log entry recording the repair (MW-I1: repairs
+/// are logged in the file they touched).
+fn fix_stray_tail(store: &RepoStore) -> Result<usize, String> {
+    let today = crate::clock::stamp();
+    let mut fixed = 0;
+    for entry in &store.entries {
+        let ParsedTask::Valid(t) = &entry.parsed else {
+            continue;
+        };
+        if matches!(t.status, Status::Done | Status::Dropped) {
+            continue;
+        }
+        let path = crate::store::tasks_dir(&store.root).join(&entry.file_name);
+        // Earlier repairs (re-slug, relocation) may have moved this entry
+        // out from under the pre-fix snapshot — the reload below settles it.
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Some((repaired, moved)) = crate::lint_tail::relocate_stray(&text) else {
+            continue;
+        };
+        let s = if moved == 1 { "" } else { "s" };
+        let repaired = append_section_entry(
+            &repaired,
+            "log",
+            &format!(
+                "{today} lint --fix: relocated {moved} stray line{s} from the \
+                 tail sections into the body"
+            ),
+        );
+        std::fs::write(&path, repaired).map_err(|e| e.to_string())?;
+        fixed += 1;
+    }
+    Ok(fixed)
 }
 
 /// Restore the union attribute lines lint errors on (mw-mtn4hp8): append
