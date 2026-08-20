@@ -3,7 +3,7 @@ id: mw-nzeezr8
 title: "`dep add` corrupts block-style `needs:` frontmatter, reports success, and `lint --fix` cannot repair it"
 category: core/format
 labels: [bug]
-verify: cargo test dep_add_block_style_needs
+verify: run cargo test dep_add_block_style_needs
 status: open
 created: 2026-08-19T19:15Z
 ---

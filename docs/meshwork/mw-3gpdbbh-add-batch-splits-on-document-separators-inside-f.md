@@ -3,7 +3,7 @@ id: mw-3gpdbbh
 title: "`add --batch` splits on document separators inside fenced code blocks, creating phantom tasks"
 category: core/import
 labels: [bug]
-verify: cargo test batch_ignores_separators_in_fenced_code
+verify: run cargo test batch_ignores_separators_in_fenced_code
 status: open
 created: 2026-08-19T19:18Z
 ---
