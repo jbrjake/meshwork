@@ -7,7 +7,7 @@ verify: run cargo test lint::stale_doing_warn
 seq: 320
 docs:
   - DESIGN-meshwork.md#§-7-session-integration
-status: open
+status: done
 created: 2026-08-08T16:42Z
 ---
 Field evidence (sazed, 2026-08-08): 10 of 160 tasks sit in `doing`,
@@ -22,6 +22,8 @@ different signal. Rule on the pair together.
 
 ## log
 - 2026-08-08T16:42Z created
+- 2026-08-20T12:08Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-20T12:12Z doing→done — verify exit 0 @ 382edc7+9
 
 ## comments
 - 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Doing-rot is now measured, not hypothetical. sazed: 7 tasks imported as doing on 08-07 were still doing on 08-12 across all 34 sessions; the doing count never dropped below 8 (peak 12), eating ~8 lines of every 6KB prime and crowding also-ready down to 9 of 126 — in one prime the owner's seq-10 flagship was absent entirely, and the owner opened three separate sessions re-shouting priorities the store already carried (35e38bed, 1dc9fa1f, fc237a1a). leras: le-s3k2v7b imported [~] as doing with no claimant and sat in weather for all 5 sessions. Age display plus prime demotion would have surfaced every one of these.
