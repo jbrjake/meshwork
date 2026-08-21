@@ -12,21 +12,25 @@ use crate::lint::{finding, Finding, Severity};
 use crate::parse::{ParsedTask, Status};
 use crate::store::RepoStore;
 
-/// Flag live tasks whose files strand content in the tail sections.
-/// Terminal tasks are history — their rot is not noise (the docs-link
-/// precedent). Warning: `--fix` owns the repair.
+/// Flag live tasks whose files strand content in the tail sections, and
+/// any task whose body fence never closes. Stray content skips terminal
+/// tasks (history rot is not noise — the docs-link precedent); the fence
+/// check does not, because an open fence swallows the tail sections and
+/// corrupts projected history itself. Warnings: `--fix` owns the stray
+/// repair; only a human knows where a missing fence close belongs.
 pub(crate) fn check(store: &RepoStore, out: &mut Vec<Finding>) {
     for entry in &store.entries {
         let ParsedTask::Valid(t) = &entry.parsed else {
             continue;
         };
-        if matches!(t.status, Status::Done | Status::Dropped) {
-            continue;
-        }
         let path = crate::store::tasks_dir(&store.root).join(&entry.file_name);
         let Ok(text) = std::fs::read_to_string(&path) else {
             continue;
         };
+        check_unclosed_fence(&text, &t.id, out);
+        if matches!(t.status, Status::Done | Status::Dropped) {
+            continue;
+        }
         if let Some((_, moved)) = relocate_stray(&text) {
             out.push(finding(
                 Severity::Warning,
@@ -40,6 +44,41 @@ pub(crate) fn check(store: &RepoStore, out: &mut Vec<Finding>) {
             ));
         }
     }
+}
+
+/// mw-gw569q7: a fence that never closes swallows every later line —
+/// including the real `## log` / `## comments` — into fenced body content,
+/// so the task's history projects as empty. Found in the wild: a repro
+/// truncated at filing left an open fence that hid an archived task's log.
+/// Frontmatter never counts (a handoff block scalar may quote fences);
+/// only the body is scanned.
+fn check_unclosed_fence(text: &str, id: &str, out: &mut Vec<Finding>) {
+    let Some(body) = body_of(text) else {
+        return;
+    };
+    let mut fence = crate::parse::Fence::default();
+    for line in body.lines() {
+        fence.observe(line);
+    }
+    if fence.in_fence() {
+        out.push(finding(
+            Severity::Warning,
+            "fence-unclosed",
+            id,
+            "a fenced code block never closes — everything after its opener, \
+             including the log and comments sections, reads as fenced body \
+             content and vanishes from history (close the fence where the \
+             quoted content ends)"
+                .to_string(),
+        ));
+    }
+}
+
+/// The body span: everything after the frontmatter's closing fence.
+fn body_of(text: &str) -> Option<&str> {
+    let rest = text.strip_prefix("---\n")?;
+    let end = rest.find("\n---")?;
+    rest[end..].strip_prefix("\n---\n")
 }
 
 /// The parser's line classes inside `## log` / `## comments`.
@@ -59,11 +98,8 @@ fn is_tail_heading(line: &str) -> bool {
 /// tail heading, exactly what the parser discards).
 #[must_use]
 pub fn relocate_stray(text: &str) -> Option<(String, usize)> {
-    let rest = text.strip_prefix("---\n")?;
-    let end = rest.find("\n---")?;
-    // The close fence line is `---` alone; the body begins after its
-    // newline (a file ending at the fence has no body, so no stray).
-    let body = rest[end..].strip_prefix("\n---\n")?;
+    // A file ending at the close fence has no body, so no stray.
+    let body = body_of(text)?;
     let head_len = text.len() - body.len();
 
     let mut description: Vec<&str> = Vec::new();

@@ -147,6 +147,53 @@ fn status_flip_without_log() {
     );
 }
 
+/// mw-gw569q7: a body fence that never closes swallows every later line —
+/// including the real `## log`/`## comments` — into fenced content, so the
+/// task's history projects as empty. Fires on live AND terminal tasks (the
+/// found-in-the-wild case was archived; the cause deserves naming next to
+/// the status-unlogged symptom). A closed fence stays silent, and fence
+/// markers inside frontmatter block scalars never count.
+#[test]
+fn fence_unclosed_warn() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    std::fs::write(
+        mw.join("zz-opn1-unclosed.md"),
+        "---\nid: zz-opn1\ntitle: Unclosed fence\nstatus: open\nverify: \"true\"\n---\nRepro:\n\n```sh\nechoed but never closed\n\n## log\n- 2026-08-21 created\n",
+    )
+    .unwrap();
+    std::fs::write(
+        mw.join("zz-don1-unclosed-done.md"),
+        "---\nid: zz-don1\ntitle: Archived with open fence\nstatus: done\nverify: \"true\"\n---\n```\nquoted\n\n## log\n- 2026-08-21 open→done — verify exit 0\n",
+    )
+    .unwrap();
+    std::fs::write(
+        mw.join("zz-cls1-closed.md"),
+        "---\nid: zz-cls1\ntitle: Closed fence\nstatus: open\nverify: \"true\"\nhandoff: |\n  a quoted opener in frontmatter:\n  ```\n  never counts\n---\n```sh\nproperly closed\n```\n\n## log\n- 2026-08-21 created\n",
+    )
+    .unwrap();
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "fence-unclosed", "zz-opn1"),
+        "{f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "fence-unclosed", "zz-don1"),
+        "{f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "fence-unclosed", "zz-cls1"),
+        "{f:?}"
+    );
+    // The archived case shows cause and symptom side by side.
+    assert!(
+        has(&f, Severity::Warning, "status-unlogged", "zz-don1"),
+        "{f:?}"
+    );
+}
+
 /// The kitchen-sink corpus is error-free: its only findings are the two
 /// planted warnings (no-verify spike, >1MB attachment).
 #[test]
