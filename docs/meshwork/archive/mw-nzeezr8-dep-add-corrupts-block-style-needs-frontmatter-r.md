@@ -21,6 +21,7 @@ B=$(meshwork add "task beta"  | head -1)
 
 # a task whose needs: is block style, as --batch writes it
 cat > /tmp/b.md <<'EOF'
+```
 
 ## log
 - 2026-08-19T19:15Z created
