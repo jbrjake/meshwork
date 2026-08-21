@@ -54,7 +54,7 @@ attachments:
 seq: 40                  # per-repo order weight; portfolio overlay supersedes
 github: 214              # mirror issue number; set once, absent until mirrored (MW-H3)
 created: 2026-08-04
-blocked-reason:          # required non-empty iff status: blocked (MW-E1)
+blocked-reason:          # required non-empty when status: blocked (MW-E1); stale leftovers are legal
 ---
 Why/context, written to act cold — a few lines, not a narrative.
 Acceptance beyond `verify:` if any. Long design lives behind docs:, never here (MW-A5).

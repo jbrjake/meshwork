@@ -58,7 +58,7 @@ Filename: `<id>-<slug>.md`. The slug is cosmetic and never load-bearing; the ID 
 | `seq` | integer | per-repo order weight; lower = sooner; gaps of 10 by convention |
 | `github` | integer | mirror issue number; set once, never changes |
 | `created` | string | date stamp as minted |
-| `blocked-reason` | string | required non-empty iff `status: blocked` |
+| `blocked-reason` | string | required non-empty when `status: blocked`; a stale reason left behind on an unblocked task is legal — at most a lint finding, never invalid |
 | `claimed-by` | string | advisory claimant while doing/blocked; a claim, never a lock |
 | `waived` | string | reason recorded by `close --waive` |
 | `handoff` | string | authored note to the next session; meaningful only while the task is up next |

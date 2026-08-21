@@ -96,6 +96,52 @@ async fn conformance_corpus() {
     );
 }
 
+/// mw-hmg3f3d: `blocked-reason` is required WHEN blocked — the only-if
+/// half is dropped. A task that was blocked, got unblocked, and kept its
+/// reason is a store a human calls fine: it parses valid and draws no
+/// error (the binary never enforced the iff; the spec text was the bug —
+/// a third-party writer implementing it would fail healthy stores).
+#[test]
+fn stale_blocked_reason_legal() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    std::fs::write(
+        mw.join("zz-stl1-once-blocked.md"),
+        "---\nid: zz-stl1\ntitle: Once blocked\nstatus: open\nverify: \"true\"\n\
+         blocked-reason: waiting on the rig — resolved since\n---\nx\n",
+    )
+    .unwrap();
+    let store = load_repo(&dir.path().join("repo")).unwrap();
+    assert!(
+        store.entries.iter().any(|e| matches!(
+            &e.parsed,
+            meshwork::parse::ParsedTask::Valid(t) if t.id == "zz-stl1"
+        )),
+        "a stale blocked-reason must parse valid"
+    );
+    let f = lint_store(&store);
+    assert!(
+        !f.iter()
+            .any(|x| x.severity == Severity::Error && x.subject == "zz-stl1"),
+        "never an error: {f:?}"
+    );
+
+    // The spec side: FORMAT.md states required-when-blocked, not iff.
+    let spec =
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("FORMAT.md"))
+            .unwrap();
+    assert!(
+        !spec.contains("iff `status: blocked`"),
+        "FORMAT.md still demands the only-if half"
+    );
+    assert!(
+        spec.contains("required non-empty when `status: blocked`"),
+        "FORMAT.md lost the required-when-blocked rule"
+    );
+}
+
 /// mw-5rgq9ka: one contract, one number — the `--json` envelope's
 /// `meshwork.schema` IS the store format version, observed from a real
 /// invocation, and FORMAT.md states the mapping (a reader otherwise
