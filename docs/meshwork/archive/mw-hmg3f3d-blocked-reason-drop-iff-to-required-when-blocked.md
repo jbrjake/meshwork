@@ -5,7 +5,7 @@ category: core/format
 verify: run cargo test format::stale_blocked_reason_legal
 docs:
   - FORMAT.md#task-file
-status: open
+status: done
 created: 2026-08-09T23:17Z
 seq: 60
 ---
@@ -19,3 +19,5 @@ non-blocked task is at most a lint warning, never invalid.
 
 ## log
 - 2026-08-09T23:17Z created
+- 2026-08-21T21:03Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-21T21:06Z doing→done — verify exit 0 @ 52bbf88+2
