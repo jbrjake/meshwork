@@ -208,6 +208,88 @@ fn batch_rejects_unknown_keys() {
     assert!(!child.contains("from: @"), "{child}");
 }
 
+/// mw-3gpdbbh: a `---` separator inside a fenced code block is body
+/// content, not a document boundary. Observed live: a bug report whose
+/// repro quoted a task document produced a phantom task carrying the
+/// example's title and a dangling placeholder edge — silently, because
+/// the batch was still "atomic", just for the wrong set of files.
+#[test]
+fn batch_ignores_separators_in_fenced_code() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+
+    let batch = r#"---
+title: Bug with a quoted repro
+verify: "true"
+---
+Repro of the format:
+
+```sh
+cat > /tmp/b.md <<'EOF'
+---
+title: task delta
+needs: [REPLACE_WITH_A]
+---
+body of the example
+EOF
+```
+
+Tail prose after the fence.
+---
+title: Second real task
+verify: "true"
+---
+A tilde fence quoting a separator:
+
+~~~markdown
+---
+title: not a task either
+---
+~~~
+
+A four-backtick fence showing a three-backtick run — the inner run must
+not close the outer fence:
+
+````
+```
+---
+```
+````
+
+Done.
+"#;
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "--batch", "-"])
+            .write_stdin(batch)
+            .assert()
+            .success(),
+    );
+    let ids: Vec<&str> = out.lines().filter(|l| !l.starts_with(' ')).collect();
+    assert_eq!(ids.len(), 2, "phantom task minted: {out}");
+
+    // The quoted example stayed inside the first task's body, fence intact.
+    let first = std::fs::read_to_string(task_file(&repo, ids[0])).unwrap();
+    assert!(first.contains("title: Bug with a quoted repro"), "{first}");
+    assert!(first.contains("task delta"), "{first}");
+    assert!(first.contains("Tail prose after the fence."), "{first}");
+
+    // The tilde and long-run fences stayed inside the second task's body.
+    let second = std::fs::read_to_string(task_file(&repo, ids[1])).unwrap();
+    assert!(second.contains("not a task either"), "{second}");
+    assert!(second.contains("Done."), "{second}");
+
+    // No separate file was minted for the quoted example — its title
+    // would become the phantom's filename slug. (The string itself
+    // legitimately appears inside the first task's body.)
+    let phantom = std::fs::read_dir(repo.join("docs/meshwork"))
+        .unwrap()
+        .flatten()
+        .any(|e| e.file_name().to_string_lossy().contains("task-delta"));
+    assert!(!phantom, "a phantom task was minted for the quoted example");
+}
+
 #[test]
 fn add_batch_reads_from_file_too() {
     let (_g, repo) = git_repo("work");

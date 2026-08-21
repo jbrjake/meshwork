@@ -144,8 +144,10 @@ fn emit(json: bool, ids: &[String], files: &[(std::path::PathBuf, String, String
 
 /// Split concatenated §2 documents. A top-level `---` opens a frontmatter
 /// block; the matching `---` closes it; body runs until the next opener.
-/// (A bare `---` hr inside a batch body therefore starts a new document —
-/// batch bodies use `***` for rules.)
+/// A `---` inside a fenced code block is body content, never a boundary —
+/// task bodies quoting meshwork's own format are the common case in this
+/// very store. (A bare unfenced `---` hr inside a batch body still starts
+/// a new document — batch bodies use `***` for rules.)
 fn split_documents(input: &str) -> Result<Vec<Entry>, String> {
     let mut docs = Vec::new();
     let mut lines = input.lines().peekable();
@@ -171,11 +173,23 @@ fn split_documents(input: &str) -> Result<Vec<Entry>, String> {
             fm.push('\n');
         }
         let mut body = String::new();
+        let mut fence: Option<(char, usize)> = None;
         while let Some(line) = lines.peek() {
-            if line.trim_end() == "---" {
+            if fence.is_none() && line.trim_end() == "---" {
                 break;
             }
-            body.push_str(lines.next().unwrap_or_default());
+            let line = lines.next().unwrap_or_default();
+            match (fence, fence_run(line)) {
+                // A closing fence: same char, at least as long, bare.
+                (Some((ch, len)), Some((c, n, rest)))
+                    if c == ch && n >= len && rest.trim().is_empty() =>
+                {
+                    fence = None;
+                }
+                (None, Some((c, n, _info))) => fence = Some((c, n)),
+                _ => {}
+            }
+            body.push_str(line);
             body.push('\n');
         }
         let n = docs.len() + 1;
@@ -185,6 +199,23 @@ fn split_documents(input: &str) -> Result<Vec<Entry>, String> {
         return Err("empty batch — no task documents found".to_string());
     }
     Ok(docs)
+}
+
+/// A code-fence line per `CommonMark`: up to 3 leading spaces, then a run
+/// of 3+ backticks or tildes. Returns the fence char, run length, and the
+/// remainder (info string on an opener; must be blank on a closer).
+fn fence_run(line: &str) -> Option<(char, usize, &str)> {
+    let indent = line.len() - line.trim_start_matches(' ').len();
+    if indent > 3 {
+        return None; // indented code, not a fence
+    }
+    let s = &line[indent..];
+    let ch = s.chars().next().filter(|c| *c == '`' || *c == '~')?;
+    let run = s.chars().take_while(|c| *c == ch).count();
+    if run < 3 {
+        return None;
+    }
+    Some((ch, run, &s[run..]))
 }
 
 /// Pull `handle:` out (it never persists) and reject a supplied `id:`.
