@@ -6,7 +6,7 @@ labels: [bug]
 verify: run cargo test fenced_heading_stays_body
 discovered-from: mw-3gpdbbh
 seq: 40
-status: open
+status: done
 created: 2026-08-21T19:23Z
 ---
 Same damage class as the batch splitter, different boundary scanners. A
@@ -27,3 +27,10 @@ The splitter fix left a `fence_run` helper in `cli/add_batch.rs`
 close only on runs at least as long). Lift it somewhere shared and thread
 fence state through the body scanners; the batch test
 `batch_ignores_separators_in_fenced_code` is the shape to mirror.
+
+## log
+- 2026-08-21T19:40Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-21T19:52Z doing→done — verify exit 0 @ 179c096+2
+
+## comments
+- 2026-08-21T19:52Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Landed as one tracker in parse.rs (Fence, fence_run, fenced_lines) threaded through parse_body, append_section_entry, relocate_stray, status_from_log, and the batch splitter. Deliberate deviation from CommonMark: fences recognized only at indent 0-1, because 2-space indent is entry-continuation space — a comment quoting code can never mask the real headings below it.
