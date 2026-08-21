@@ -79,7 +79,7 @@ Addressed tasks (mw-hfvtx0s, owner lane 2026-08-17): `to: <repo|repo#id>` marks 
 
 | table | columns (abridged) |
 |---|---|
-| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status`, `category`, `verify`, `waived` (reason or NULL — makes MW-E2's "queryable" true), `seq`, `created`, `blocked_reason`, `claimed_by` (advisory claimant or NULL, mw-tb6gdr9), `github`, `addressed_to` (the `to:` key or NULL, mw-hfvtx0s), `path`, `body` (the description section, trimmed; `''` when parsed-and-empty, NULL on invalid rows — mw-getx732) |
+| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status`, `category`, `verify`, `waived` (reason or NULL — makes MW-E2's "queryable" true), `seq`, `created`, `blocked_reason`, `claimed_by` (advisory claimant or NULL, mw-tb6gdr9), `github`, `addressed_to` (the `to:` key or NULL, mw-hfvtx0s), `path`, `body` (the description section, trimmed; `''` when parsed-and-empty, NULL on invalid rows — mw-getx732), `handoff` (the block text or NULL, mw-5xdyxep) |
 | `edges` | `src_gid`, `dst_gid`, `kind` (`needs`\|`parent`\|`discovered-from`\|`relates`\|`answers`), `resolved` (bool) |
 | `labels` | `gid`, `label` (exploded) |
 | `comments` | `gid`, `ord` (file position), `date`, `author` (self-professed), `text`, `hash` (the FORMAT.md identity hash, mw-xvtf5jx) (MW-C1/K1) |
@@ -126,6 +126,7 @@ LIMIT 20;
 | `dep add / dep rm <a> --needs <b>` | edge edits without opening the file |
 | `ready / blocked / tree / why` | §5 |
 | `q "SELECT …" [--json]` | raw SQL (MW-C1) |
+| `search <term> [--all]` | full-text search (mw-5xdyxep, owner ask 2026-08-21 — the one post-freeze verb addition, ruling recorded in REQUIREMENTS §3): a literal substring matched case-insensitively over title, body, handoff, comment text, and log notes, archives included; canned `strpos` SQL over the §4 projection — never a pattern language, the §3 query-DSL fence holds; hits list live tasks before terminal ones, per-field first-matching-line snippets byte-capped, MW-D2 cap + `--all`; single-repo (`portfolio q` remains the cross-repo route) |
 | `prime` | §7 |
 | `lint [--fix]` | schema, cycles, anchors, attachment size, post-merge damage (MW-I2/K3); verify hygiene on live tasks (§12b): `verify-trivial` (mw-221f3jt), `verify-shell` (legacy shell — migration pressure, mw-4aqmf0t), `verify-malformed` (will refuse at close), `verify-changed-since-approval` (approved-vs-current diff, mw-yyf1bab; prime carries the ids as a nudge); tail hygiene: `stray-tail-content` on live tasks, relocated by `--fix` (mw-t01ek6s/mw-n3xgfs0, FORMAT.md Stray content); doing-rot (mw-06j1wqe): `doing-stale` past the activity window, `doing-unclaimed` — warnings all |
 | `mirror push / mirror status` | §8 |

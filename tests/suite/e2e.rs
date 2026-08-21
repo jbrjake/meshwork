@@ -109,6 +109,7 @@ include!("e2e_prime.rs");
 include!("e2e_prime_provenance.rs");
 include!("e2e_query.rs");
 include!("e2e_registry.rs");
+include!("e2e_search.rs");
 include!("e2e_set.rs");
 include!("e2e_show_docs.rs");
 include!("e2e_sigpipe.rs");

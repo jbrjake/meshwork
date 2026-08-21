@@ -14,7 +14,7 @@ order per table:
 
 | key | columns (in order) | sort |
 |---|---|---|
-| `tasks` | gid, repo, id, title, status, category, verify, waived, seq, created, blocked_reason, claimed_by, github, addressed_to, path, has_error, body | gid |
+| `tasks` | gid, repo, id, title, status, category, verify, waived, seq, created, blocked_reason, claimed_by, github, addressed_to, path, has_error, body, handoff | gid |
 | `edges` | src_gid, dst_gid, kind, resolved | src_gid, kind, dst_gid |
 | `labels` | gid, label | gid, label |
 | `comments` | gid, ord, date, author, text, hash | gid, ord |

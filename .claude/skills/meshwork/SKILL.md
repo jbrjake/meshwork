@@ -22,7 +22,10 @@ the repo's committed shim — `docs/meshwork/meshwork` (pre-v0.3.1 adopters:
   `handoff:` commentary, also-ready, recent dones). Do not re-read TODO/HANDOFF
   files — the store is the worklist.
 - `meshwork ready` → next actionable. `show <id>` full task. `why <id>` blocker
-  frontier. `blocked`, `tree <id>` as needed. Raw SQL: `q "SELECT …" [--json]`.
+  frontier. `blocked`, `tree <id>` as needed. Find prior art before filing:
+  `search <term>` — literal substring, case-insensitive, over titles, bodies,
+  handoffs, comments, and log notes, archives included (never `grep -r` the
+  store: search joins hits to live status). Raw SQL: `q "SELECT …" [--json]`.
 - New work discovered mid-session: `meshwork add "title" --verify 'run cargo
   test <filter>'` — file it immediately, never carry it in your head, never
   append to a TODO.md.

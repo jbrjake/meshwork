@@ -14,6 +14,7 @@ mod notes;
 mod portfolio;
 mod prime;
 mod query;
+mod search;
 mod set;
 mod show;
 mod stubs;
@@ -72,6 +73,8 @@ enum Cmd {
     Why(transition::IdArg),
     /// Raw SQL over tasks/edges/labels/comments/log/repos.
     Q(query::QArgs),
+    /// Case-insensitive text search over titles, bodies, handoffs, comments, and logs.
+    Search(search::SearchArgs),
     /// The ≤6KB session-start digest.
     Prime,
     /// Structural checks; --fix repairs merge damage.
@@ -213,6 +216,7 @@ pub fn run() -> i32 {
         Cmd::Close(args) => close::run(args, cli.json),
         Cmd::Ready(args) => query::ready(args, cli.json),
         Cmd::Q(args) => query::q(args, cli.json),
+        Cmd::Search(args) => search::run(args, cli.json),
         Cmd::Lint(args) => lint::run(args, cli.json),
         Cmd::Dep(args) => dep::run(args, cli.json),
         Cmd::Blocked(args) => graph::blocked(args, cli.json),

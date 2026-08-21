@@ -6,8 +6,8 @@ category: engine
 verify: run cargo test conformance
 claimed-by: spec
 handoff: |
-  Multi-line handoff prose. It is frontmatter only and never projects
-  into a table; readers surface it from the file.
+  Multi-line handoff prose. It projects as `tasks.handoff`, newlines
+  intact; a task without the key projects NULL there.
 created: 2026-08-02
 ---
 A doing task carrying the advisory claim and an authored handoff.

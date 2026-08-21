@@ -23,7 +23,7 @@ pub(crate) struct QArgs {
 }
 
 /// Rows a listing shows by default (MW-D2).
-const LISTING_CAP: usize = 20;
+pub(crate) const LISTING_CAP: usize = 20;
 /// Incoming asks stay a footnote, never a second worklist (MW-D2 spirit).
 const ADDRESSED_CAP: usize = 5;
 
@@ -50,7 +50,7 @@ ORDER BY coalesce(t.seq, 999999), t.created";
 /// inject (a done/dropped dep is satisfied — the one delta the frozen
 /// predicate needs; anything else already blocks conservatively as NULL,
 /// and an injected open task would leak into listings).
-fn local_session() -> Result<(SessionContext, String), String> {
+pub(crate) fn local_session() -> Result<(SessionContext, String), String> {
     let root = crate::cli::require_store_root()?;
     let store = crate::store::load_repo(&root).map_err(|e| e.to_string())?;
     let repo = store.repo.clone();

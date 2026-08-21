@@ -113,122 +113,139 @@ fn tasks_schema() -> Arc<Schema> {
         utf8(true, "addressed_to"),
         utf8(false, "path"),
         utf8(true, "error"),
-        // Appended last (mw-getx732) so readers indexing the format-1
-        // column order are undisturbed.
+        // Appended last (mw-getx732, then mw-5xdyxep) so readers indexing
+        // the format-1 column order are undisturbed.
         utf8(true, "body"),
+        utf8(true, "handoff"),
     ]))
+}
+
+/// Column builders for `tasks`, one Vec per column, in schema order.
+#[derive(Default)]
+struct TaskCols {
+    gid: Vec<String>,
+    repo: Vec<String>,
+    id: Vec<String>,
+    title: Vec<Option<String>>,
+    status: Vec<String>,
+    category: Vec<Option<String>>,
+    verify: Vec<Option<String>>,
+    waived: Vec<Option<String>>,
+    seq: Vec<Option<i64>>,
+    created: Vec<Option<String>>,
+    blocked_reason: Vec<Option<String>>,
+    claimed_by: Vec<Option<String>>,
+    github: Vec<Option<i64>>,
+    addressed_to: Vec<Option<String>>,
+    path: Vec<String>,
+    error: Vec<Option<String>>,
+    body: Vec<Option<String>>,
+    handoff: Vec<Option<String>>,
+}
+
+impl TaskCols {
+    fn push_valid(&mut self, store: &RepoStore, t: &crate::parse::Task) {
+        self.gid.push(store.gid(&t.id));
+        self.id.push(t.id.clone());
+        self.title.push(Some(t.title.clone()));
+        self.status.push(t.status.as_str().to_string());
+        self.category.push(t.category.clone());
+        self.verify.push(t.verify.clone());
+        self.waived.push(t.waived.clone());
+        self.seq.push(t.seq);
+        self.created.push(t.created.clone());
+        self.blocked_reason.push(t.blocked_reason.clone());
+        self.claimed_by.push(t.claimed_by.clone());
+        self.github
+            .push(t.github.and_then(|n| i64::try_from(n).ok()));
+        self.addressed_to.push(t.to.clone());
+        self.error.push(None);
+        // Parsed-and-empty is `''`; only unparsed rows are NULL.
+        self.body.push(Some(t.description.clone()));
+        self.handoff.push(t.handoff.clone());
+    }
+
+    /// All-NULL optional columns; `error`/`status` mark the row invalid.
+    fn push_invalid(&mut self, store: &RepoStore, inv: &crate::parse::Invalid) {
+        self.gid.push(store.gid(&inv.id));
+        self.id.push(inv.id.clone());
+        self.title.push(None);
+        self.status.push("invalid".to_string());
+        self.error.push(Some(inv.error.clone()));
+        self.push_absent_optionals();
+    }
+
+    /// Registry-resolved cross-repo target (mw-k7r5): a thin row — gid,
+    /// repo, id, status, title, and the resolved file's absolute path.
+    fn push_foreign(&mut self, f: &crate::registry::ForeignTask) {
+        self.gid.push(f.gid.clone());
+        self.repo.push(f.repo.clone());
+        self.id.push(f.id.clone());
+        self.title.push(f.title.clone());
+        self.status.push(f.status.clone());
+        self.path.push(f.path.clone());
+        self.error.push(None);
+        self.push_absent_optionals();
+    }
+
+    /// The columns thin/invalid rows always leave NULL.
+    fn push_absent_optionals(&mut self) {
+        self.category.push(None);
+        self.verify.push(None);
+        self.waived.push(None);
+        self.seq.push(None);
+        self.created.push(None);
+        self.blocked_reason.push(None);
+        self.claimed_by.push(None);
+        self.github.push(None);
+        self.addressed_to.push(None);
+        self.body.push(None);
+        self.handoff.push(None);
+    }
+
+    fn into_columns(self) -> Vec<ArrayRef> {
+        vec![
+            Arc::new(StringArray::from(self.gid)),
+            Arc::new(StringArray::from(self.repo)),
+            Arc::new(StringArray::from(self.id)),
+            Arc::new(StringArray::from(self.title)),
+            Arc::new(StringArray::from(self.status)),
+            Arc::new(StringArray::from(self.category)),
+            Arc::new(StringArray::from(self.verify)),
+            Arc::new(StringArray::from(self.waived)),
+            Arc::new(Int64Array::from(self.seq)),
+            Arc::new(StringArray::from(self.created)),
+            Arc::new(StringArray::from(self.blocked_reason)),
+            Arc::new(StringArray::from(self.claimed_by)),
+            Arc::new(Int64Array::from(self.github)),
+            Arc::new(StringArray::from(self.addressed_to)),
+            Arc::new(StringArray::from(self.path)),
+            Arc::new(StringArray::from(self.error)),
+            Arc::new(StringArray::from(self.body)),
+            Arc::new(StringArray::from(self.handoff)),
+        ]
+    }
 }
 
 fn tasks_batch(
     stores: &[RepoStore],
     foreign: &[crate::registry::ForeignTask],
 ) -> DfResult<RecordBatch> {
-    let schema = tasks_schema();
-
-    let mut gid = Vec::new();
-    let mut repo = Vec::new();
-    let mut id = Vec::new();
-    let mut title: Vec<Option<String>> = Vec::new();
-    let mut status = Vec::new();
-    let mut category: Vec<Option<String>> = Vec::new();
-    let mut verify: Vec<Option<String>> = Vec::new();
-    let mut waived: Vec<Option<String>> = Vec::new();
-    let mut seq: Vec<Option<i64>> = Vec::new();
-    let mut created: Vec<Option<String>> = Vec::new();
-    let mut blocked_reason: Vec<Option<String>> = Vec::new();
-    let mut claimed_by: Vec<Option<String>> = Vec::new();
-    let mut github: Vec<Option<i64>> = Vec::new();
-    let mut addressed_to: Vec<Option<String>> = Vec::new();
-    let mut path = Vec::new();
-    let mut error: Vec<Option<String>> = Vec::new();
-    let mut body: Vec<Option<String>> = Vec::new();
-
+    let mut cols = TaskCols::default();
     for store in stores {
         for entry in &store.entries {
-            repo.push(store.repo.clone());
-            path.push(format!("docs/meshwork/{}", entry.file_name));
+            cols.repo.push(store.repo.clone());
+            cols.path.push(format!("docs/meshwork/{}", entry.file_name));
             match &entry.parsed {
-                ParsedTask::Valid(t) => {
-                    gid.push(store.gid(&t.id));
-                    id.push(t.id.clone());
-                    title.push(Some(t.title.clone()));
-                    status.push(t.status.as_str().to_string());
-                    category.push(t.category.clone());
-                    verify.push(t.verify.clone());
-                    waived.push(t.waived.clone());
-                    seq.push(t.seq);
-                    created.push(t.created.clone());
-                    blocked_reason.push(t.blocked_reason.clone());
-                    claimed_by.push(t.claimed_by.clone());
-                    github.push(t.github.and_then(|n| i64::try_from(n).ok()));
-                    addressed_to.push(t.to.clone());
-                    error.push(None);
-                    // Parsed-and-empty is `''`; only unparsed rows are NULL.
-                    body.push(Some(t.description.clone()));
-                }
-                ParsedTask::Invalid(inv) => {
-                    gid.push(store.gid(&inv.id));
-                    id.push(inv.id.clone());
-                    title.push(None);
-                    status.push("invalid".to_string());
-                    category.push(None);
-                    verify.push(None);
-                    waived.push(None);
-                    seq.push(None);
-                    created.push(None);
-                    blocked_reason.push(None);
-                    claimed_by.push(None);
-                    github.push(None);
-                    addressed_to.push(None);
-                    error.push(Some(inv.error.clone()));
-                    body.push(None);
-                }
+                ParsedTask::Valid(t) => cols.push_valid(store, t),
+                ParsedTask::Invalid(inv) => cols.push_invalid(store, inv),
             }
         }
     }
-
-    // Registry-resolved cross-repo targets (mw-k7r5): thin rows — gid,
-    // repo, id, status, title, and the resolved file's absolute path.
     for f in foreign {
-        gid.push(f.gid.clone());
-        repo.push(f.repo.clone());
-        id.push(f.id.clone());
-        title.push(f.title.clone());
-        status.push(f.status.clone());
-        category.push(None);
-        verify.push(None);
-        waived.push(None);
-        seq.push(None);
-        created.push(None);
-        blocked_reason.push(None);
-        claimed_by.push(None);
-        github.push(None);
-        addressed_to.push(None);
-        path.push(f.path.clone());
-        error.push(None);
-        body.push(None);
+        cols.push_foreign(f);
     }
-
-    let columns: Vec<ArrayRef> = vec![
-        Arc::new(StringArray::from(gid)),
-        Arc::new(StringArray::from(repo)),
-        Arc::new(StringArray::from(id)),
-        Arc::new(StringArray::from(title)),
-        Arc::new(StringArray::from(status)),
-        Arc::new(StringArray::from(category)),
-        Arc::new(StringArray::from(verify)),
-        Arc::new(StringArray::from(waived)),
-        Arc::new(Int64Array::from(seq)),
-        Arc::new(StringArray::from(created)),
-        Arc::new(StringArray::from(blocked_reason)),
-        Arc::new(StringArray::from(claimed_by)),
-        Arc::new(Int64Array::from(github)),
-        Arc::new(StringArray::from(addressed_to)),
-        Arc::new(StringArray::from(path)),
-        Arc::new(StringArray::from(error)),
-        Arc::new(StringArray::from(body)),
-    ];
-    Ok(RecordBatch::try_new(schema, columns)?)
+    Ok(RecordBatch::try_new(tasks_schema(), cols.into_columns())?)
 }
 
 /// Qualify an edge target: `repo#id` refs pass through, bare ids get the

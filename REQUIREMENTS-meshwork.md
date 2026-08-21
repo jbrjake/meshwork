@@ -117,6 +117,8 @@ Scope ruling (2026-08-07, mw-mjwfvxn): a constrained **verify predicate grammar*
 
 Ruled out of the reject list (owner 2026-08-06, mw-tb6gdr9): **advisory work claiming.** `start` records a self-professed `claimed-by:` via the MW-K1 chain; close/drop/reopen release it. The accounts/auth fence above holds unchanged — a claim is a string, not a lock: no locking, no enforcement, concurrency stays git's problem; post-merge double-claims are lint findings, reported and never auto-resolved.
 
+Scope ruling (owner ask 2026-08-21, mw-5xdyxep): **full-text search** (`search <term>`, DESIGN §6) is NOT the rejected "bespoke query language". That fence bans query *languages* — SQL stays the only one — and a canned-SQL verb over the §4 projection is the `ready`/`blocked` pattern, not a language: the term is a literal substring, no pattern syntax, no operators. The verb exists because the projection alone failed discoverability in the field: sessions fell back to `grep -r` over the store, losing every join against status and edges.
+
 Scope ruling (owner lane commit 2026-08-17, mw-hfvtx0s): **addressed tasks** (`to:`/`answers:` frontmatter, DESIGN §15.12) are NOT the rejected notifications/daemon/sync. Those fences ban things that *run* or *push*; an addressed task is data in its author's store, surfaced by the addressee's own read-time query over the portfolio union — nothing executes, nothing is delivered, nothing crosses a repo boundary in git. The fence text above holds verbatim.
 
 ## 4. Acceptance gate for v1
