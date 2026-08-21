@@ -8,6 +8,16 @@ docs:
   - FORMAT.md#task-file
 created: 2026-08-12T20:48Z
 seq: 40
+handoff: |
+  Fresh context from this session's batch work: split_documents and
+  render_task live in src/cli/add_batch.rs; parse_entry already rewrites
+  from→discovered-from (mw-16pyc5g) for TOP-LEVEL keys, so check what
+  normalization is still missing vs add's write path (src/write.rs
+  yaml_scalar, scalar docs handling in add.rs --docs). The splitter is now
+  fence-aware via crate::parse::Fence — do not reintroduce a local scan.
+  Red-first: the verify's test name must fail before code. Note parse.rs
+  is at 629 lines (750 ceiling, split task mw-0y66mhb pending) — put
+  nothing new there.
 ---
 Two authoring-parity gaps in `add --batch`, both observed in the wild:
 
