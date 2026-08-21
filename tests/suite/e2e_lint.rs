@@ -158,3 +158,76 @@ fn lint_fix_relocates_stray_tail() {
         "repair is logged:\n{repaired}"
     );
 }
+
+/// mw-csdzc20: repair the damage pre-fix `dep add` left behind — a
+/// flow-style `needs:` line with the old block items stranded beneath it,
+/// invalid YAML. The flow line carries the union, so the stray items drop
+/// iff every one is already in the flow list; anything else stays for a
+/// human.
+#[test]
+fn lint_fix_needs_collision() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let ta = add_task(&repo, "A the old dep");
+    let tb = add_task(&repo, "B the new dep");
+    let tx = add_task(&repo, "X the damaged one");
+
+    meshwork(&repo)
+        .args(["dep", "add", &tx, "--needs", &ta])
+        .assert()
+        .success();
+    // Re-create an old binary's damage: flow line already unioned, the
+    // old block item stranded beneath it.
+    let path = task_file(&repo, &tx);
+    let text = std::fs::read_to_string(&path).unwrap();
+    let damaged = text.replace(
+        &format!("needs: [{ta}]"),
+        &format!("needs: [{ta}, {tb}]\n  - {ta}"),
+    );
+    std::fs::write(&path, damaged).unwrap();
+
+    // The file is invalid YAML — lint errors on it.
+    meshwork(&repo).arg("lint").assert().failure();
+
+    let out = stdout_of(&meshwork(&repo).args(["lint", "--fix"]).assert().success());
+    assert!(out.contains("fixed 1 file(s)"), "{out}");
+
+    let repaired = std::fs::read_to_string(&path).unwrap();
+    assert!(
+        repaired.contains(&format!("needs: [{ta}, {tb}]")),
+        "{repaired}"
+    );
+    assert!(!repaired.contains(&format!("  - {ta}")), "{repaired}");
+    assert!(
+        repaired.contains("lint --fix: dropped 1 stranded needs item"),
+        "repair is logged:\n{repaired}"
+    );
+
+    // The repaired graph is real: both edges land in the tables.
+    let q = stdout_of(
+        &meshwork(&repo)
+            .args([
+                "q",
+                &format!("SELECT count(*) FROM edges WHERE src_gid='work#{tx}' AND kind='needs'"),
+            ])
+            .assert()
+            .success(),
+    );
+    assert!(q.contains('2'), "{q}");
+
+    // A stray item NOT in the flow list is no mechanical repair — the
+    // file stays invalid (and lint keeps failing) rather than losing an
+    // edge silently.
+    let text = std::fs::read_to_string(&path).unwrap();
+    let damaged = text.replace(
+        &format!("needs: [{ta}, {tb}]"),
+        &format!("needs: [{ta}]\n  - {tb}"),
+    );
+    std::fs::write(&path, damaged).unwrap();
+    meshwork(&repo).args(["lint", "--fix"]).assert().failure();
+    let after = std::fs::read_to_string(&path).unwrap();
+    assert!(
+        after.contains(&format!("  - {tb}")),
+        "unmatched stray kept for a human: {after}"
+    );
+}

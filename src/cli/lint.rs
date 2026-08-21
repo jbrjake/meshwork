@@ -25,6 +25,7 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
 
     if args.fix {
         let repairs = fix_duplicate_keys(&store)?
+            + fix_needs_collision(&store)?
             + fix_duplicate_ids(&store)?
             + fix_misplaced(&store)?
             + fix_gitattributes(&store)?
@@ -264,6 +265,82 @@ fn drop_duplicate_keys(text: &str) -> Option<(String, Vec<String>)> {
         return None;
     }
     Some((format!("---\n{}{tail}", kept.join("\n")), dropped))
+}
+
+/// Pre-fix `dep add` damage (mw-csdzc20): a flow-style `needs: [...]`
+/// line with the old block items stranded beneath it — invalid YAML the
+/// verb reported as success. The flow line carries the union, so the
+/// stray items drop only when every one already appears in the flow list;
+/// any other shape is not mechanical and stays for a human.
+fn fix_needs_collision(store: &RepoStore) -> Result<usize, String> {
+    let today = crate::clock::stamp();
+    let mut fixed = 0;
+    for entry in &store.entries {
+        let ParsedTask::Invalid(_) = &entry.parsed else {
+            continue;
+        };
+        let path = crate::store::tasks_dir(&store.root).join(&entry.file_name);
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Some((repaired, dropped)) = drop_needs_collision(&text) else {
+            continue;
+        };
+        let s = if dropped == 1 { "" } else { "s" };
+        let repaired = append_section_entry(
+            &repaired,
+            "log",
+            &format!(
+                "{today} lint --fix: dropped {dropped} stranded needs item{s} \
+                 already carried by the flow list"
+            ),
+        );
+        std::fs::write(&path, repaired).map_err(|e| e.to_string())?;
+        fixed += 1;
+    }
+    Ok(fixed)
+}
+
+/// The collision signature, or None: a flow `needs: [...]` frontmatter
+/// line directly followed by indented `- item` lines whose items are all
+/// members of the flow list. Returns the text without the stray lines and
+/// how many were dropped.
+fn drop_needs_collision(text: &str) -> Option<(String, usize)> {
+    let rest = text.strip_prefix("---\n")?;
+    let end = rest.find("\n---")?;
+    let (fm, tail) = (&rest[..end], &rest[end..]);
+
+    let fm_lines: Vec<&str> = fm.lines().collect();
+    let at = fm_lines
+        .iter()
+        .position(|l| l.starts_with("needs: [") && l.trim_end().ends_with(']'))?;
+    let flow = fm_lines[at]
+        .trim_end()
+        .strip_prefix("needs: [")?
+        .strip_suffix(']')?;
+    let unquote = |s: &str| s.trim().trim_matches('"').to_string();
+    let members: Vec<String> = flow.split(',').map(unquote).collect();
+
+    let mut strays = 0;
+    for line in &fm_lines[at + 1..] {
+        let Some(item) = line
+            .strip_prefix(' ')
+            .map(str::trim_start)
+            .and_then(|l| l.strip_prefix("- "))
+        else {
+            break;
+        };
+        if !members.contains(&unquote(item)) {
+            return None; // an item the flow list never absorbed — not ours
+        }
+        strays += 1;
+    }
+    if strays == 0 {
+        return None;
+    }
+    let mut kept: Vec<&str> = fm_lines[..=at].to_vec();
+    kept.extend(&fm_lines[at + 1 + strays..]);
+    Some((format!("---\n{}{tail}", kept.join("\n")), strays))
 }
 
 /// The true status after union damage (mw-efmgn6b): replay the `## log`,
