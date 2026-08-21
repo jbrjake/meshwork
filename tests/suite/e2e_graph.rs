@@ -179,3 +179,83 @@ fn dep_edit() {
         .failure()
         .stderr(predicates::str::contains("not"));
 }
+
+/// mw-nzeezr8: `dep add`/`dep rm` on a task whose `needs:` is block style
+/// (the shape `add --batch` preserves) must replace the whole block —
+/// stranding the old `  - item` lines under a new flow-style line makes
+/// the file invalid YAML while the verb reports success.
+#[test]
+fn dep_add_block_style_needs() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let tx = add_task(&repo, "X depends on things");
+    let ty = add_task(&repo, "Y the dependency");
+    let tz = add_task(&repo, "Z another dependency");
+
+    // Seed a flow-style dep, then hand-convert it to block style — a legal
+    // hand-edit and exactly what a batch-imported store looks like.
+    meshwork(&repo)
+        .args(["dep", "add", &tx, "--needs", &ty])
+        .assert()
+        .success();
+    let path = task_file(&repo, &tx);
+    let to_block = |repo: &Path, needs: &[&str]| {
+        let text = std::fs::read_to_string(task_file(repo, &tx)).unwrap();
+        let flow = format!("needs: [{}]", needs.join(", "));
+        let block = format!(
+            "needs:\n{}",
+            needs
+                .iter()
+                .map(|n| format!("  - {n}"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+        assert!(text.contains(&flow), "precondition: {text}");
+        std::fs::write(task_file(repo, &tx), text.replace(&flow, &block)).unwrap();
+    };
+    to_block(&repo, &[&ty]);
+
+    // add: the block collapses into one valid flow line, nothing stranded.
+    meshwork(&repo)
+        .args(["dep", "add", &tx, "--needs", &tz])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains(&format!("needs: [{ty}, {tz}]")), "{text}");
+    assert!(
+        !text.contains(&format!("  - {ty}")),
+        "old block item stranded: {text}"
+    );
+
+    // The file still parses: both edges land in the tables.
+    let q = stdout_of(
+        &meshwork(&repo)
+            .args([
+                "q",
+                &format!("SELECT count(*) FROM edges WHERE src_gid='work#{tx}' AND kind='needs'"),
+            ])
+            .assert()
+            .success(),
+    );
+    assert!(q.contains('2'), "{q}");
+
+    // rm from block style down to one, then to none: the key and every
+    // block item disappear — no orphaned `  - id` lines below.
+    to_block(&repo, &[&ty, &tz]);
+    meshwork(&repo)
+        .args(["dep", "rm", &tx, "--needs", &tz])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains(&format!("needs: [{ty}]")), "{text}");
+    assert!(!text.contains(&format!("  - {tz}")), "{text}");
+
+    to_block(&repo, &[&ty]);
+    meshwork(&repo)
+        .args(["dep", "rm", &tx, "--needs", &ty])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(!text.contains("needs:"), "empty list drops the key: {text}");
+    assert!(!text.contains(&format!("- {ty}")), "orphaned item: {text}");
+}

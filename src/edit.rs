@@ -42,8 +42,10 @@ pub fn set_scalar(text: &str, key: &str, value: Option<&str>) -> Result<String, 
     Ok(format!("---\n{}{tail}", lines.join("\n")))
 }
 
-/// Remove the first `key:` line from the frontmatter (used when a list
-/// empties — a bare `needs: []` is noise in a hand-editable file).
+/// Remove the first `key:` line — and any indented block under it, which
+/// in frontmatter YAML can only be that key's value — from the frontmatter
+/// (used when a list empties — a bare `needs: []` is noise in a
+/// hand-editable file).
 ///
 /// # Errors
 /// When fences are missing, like [`set_scalar`].
@@ -57,18 +59,23 @@ pub fn remove_scalar(text: &str, key: &str) -> Result<String, String> {
     let fm = &rest[..end];
     let tail = &rest[end..];
     let prefix = format!("{key}:");
+    let mut lines: Vec<&str> = Vec::new();
     let mut removed = false;
-    let lines: Vec<&str> = fm
-        .lines()
-        .filter(|line| {
-            if !removed && line.starts_with(&prefix) {
-                removed = true;
-                false
-            } else {
-                true
+    let mut skipping_block = false;
+    for line in fm.lines() {
+        if skipping_block {
+            if line.starts_with(' ') {
+                continue;
             }
-        })
-        .collect();
+            skipping_block = false;
+        }
+        if !removed && line.starts_with(&prefix) {
+            removed = true;
+            skipping_block = true;
+        } else {
+            lines.push(line);
+        }
+    }
     Ok(format!("---\n{}{tail}", lines.join("\n")))
 }
 

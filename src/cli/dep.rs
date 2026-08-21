@@ -3,10 +3,9 @@
 //! refuse self-deps, duplicates, and dangling same-repo targets (cycles
 //! stay lint's job, MW-B2).
 
-use crate::edit::set_scalar;
+use crate::edit::set_list;
 use crate::parse::{parse_task_file, ParsedTask};
 use crate::store::find_task_file;
-use crate::write::yaml_scalar;
 
 #[derive(clap::Args)]
 pub(crate) struct DepArgs {
@@ -75,15 +74,13 @@ pub(crate) fn run(args: &DepArgs, json: bool) -> Result<(), String> {
     }
 
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    // set_list/remove_scalar are block-aware: a hand-written or batch-
+    // imported block-style `needs:` collapses cleanly instead of leaving
+    // its old `  - item` lines stranded under the new flow line.
     let text = if needs.is_empty() {
         crate::edit::remove_scalar(&text, "needs")?
     } else {
-        let list = needs
-            .iter()
-            .map(|n| yaml_scalar(n))
-            .collect::<Vec<_>>()
-            .join(", ");
-        set_scalar(&text, "needs", Some(&format!("[{list}]")))?
+        set_list(&text, "needs", &needs)?
     };
     std::fs::write(&path, text).map_err(|e| e.to_string())?;
 
