@@ -7,7 +7,7 @@ verify: run cargo test full_text_search
 relates:
   - mw-getx732
 seq: 50
-status: open
+status: done
 created: 2026-08-21T19:32Z
 needs: [mw-getx732]
 ---
@@ -37,6 +37,9 @@ Design questions to settle before code:
 
 ## log
 - 2026-08-21T19:32Z created
+- 2026-08-21T20:40Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-21T20:59Z doing→done — verify exit 0 @ 3acd421+2
 
 ## comments
 - 2026-08-21T20:33Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Design decision (this session): search NEEDS body projection (mw-getx732), not subsumes — the projection is a self-contained format-contract change with its own conformance/doc surface, and search's verb-vs-sugar question stays open after it lands. Corpus/semantics/output decided when the search surface is.
+- 2026-08-21T20:40Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Design settled (implementation follows in this session): (1) SURFACE: a search <term> [--all] [--json] verb, single-repo, listed after q — a canned-SQL verb like ready/blocked, NOT a query DSL, so the REQUIREMENTS bespoke-query-language fence holds; the §6 addition rides the owner ask recorded on this task, recorded in REQUIREMENTS §3 + DESIGN §6. (2) CORPUS: tasks.title, tasks.body, a new tasks.handoff projection column (additive, appended after body; NULL when the key is absent, matching the optional-key convention), comments.text, log.note; archive rows are loaded and therefore in; portfolio q stays the cross-repo route. (3) SEMANTICS: term is a literal substring matched case-insensitively via strpos(lower(col), lower(term)) — no pattern metacharacters, quote-doubling the only escaping. (4) OUTPUT: one row per hit task, live statuses before terminal ones then id order, per-field first-matching-line snippets byte-capped; 20-cap with the more-marker, --all opt-out, --json rows/total envelope.
