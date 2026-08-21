@@ -195,6 +195,53 @@ fn portfolio_next_ordering() {
     assert!(text.starts_with("alpha#az-n33d"), "{text}");
 }
 
+/// mw-0vw7nj0: `portfolio ready` presents the SAME total ordering `next`
+/// picks from — sequence.md entries first in file order, then repos.toml
+/// order, then per-repo seq/created/id. Its top row IS `next`; the two
+/// verbs can never disagree.
+#[test]
+fn portfolio_ready_total_order() {
+    let (dir, portfolio) = portfolio_fixture();
+
+    let next = stdout_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "next"])
+            .assert()
+            .success(),
+    );
+    let next_gid = next.split_whitespace().next().unwrap().to_string();
+
+    let ready = stdout_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "ready"])
+            .assert()
+            .success(),
+    );
+    let gids: Vec<&str> = ready
+        .lines()
+        .filter(|l| l.contains('#'))
+        .filter_map(|l| l.split_whitespace().next())
+        .collect();
+
+    // Row 0 is what next picks — agreement by construction.
+    assert_eq!(gids.first(), Some(&next_gid.as_str()), "{ready}");
+    assert_eq!(gids[0], "beta#bz-r34d", "sequenced head: {ready}");
+
+    // The remaining sequence.md-ready entry follows in file order, ahead
+    // of every unsequenced row.
+    assert_eq!(gids[1], "alpha#az-n33d", "{ready}");
+
+    // Unsequenced tail: repos.toml order — every alpha row precedes the
+    // unsequenced beta row, which lands last.
+    assert_eq!(gids.last(), Some(&"beta#bz-s3q1"), "{ready}");
+    assert!(
+        gids[2..gids.len() - 1].iter().all(|g| g.starts_with("alpha#")),
+        "unsequenced alpha block between the sequenced head and beta tail: {ready}"
+    );
+}
+
 /// mw-2nmsys2: sequence.md is hand-maintained cross-repo state, so a
 /// typo'd or deleted id is the dangling-edge class — surfaced by the
 /// registry-aware lint pass (env-opt-in, §9), never silently skipped.

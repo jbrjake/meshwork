@@ -70,56 +70,64 @@ fn load_portfolio() -> Result<Portfolio, String> {
     })
 }
 
-/// `portfolio next` (MW-G4, mw-jpbv): the first READY task in the total
-/// ordering — sequence.md entries in file order (non-ready and
-/// unresolvable entries skipped, MW-G5), then unsequenced ready tasks by
-/// repos.toml order, then per-repo seq/created/id. Total, deterministic.
-fn next(json: bool) -> Result<(), String> {
-    let p = load_portfolio()?;
-    // Post-prune read: the overlay `next` walks is the surviving one.
-    let sequence = registry::load_sequence(&p.dir)?;
-    let (reg, skipped) = (&p.reg, &p.skipped);
-    let ctx = crate::tables::session_for(&p.stores, &[]).map_err(|e| e.to_string())?;
-    let sql = READY_SQL.replacen("SELECT t.id", "SELECT t.repo, t.id, t.seq, t.created", 1);
-    let (_, batches) = run_query(&ctx, &sql)?;
-    // Columns: repo, id, seq, created, title, claimed_by.
-    let rows = string_rows(&batches);
+/// The expanded ready SELECT both ordering-aware verbs run.
+/// Columns: repo, id, seq, created, title, `claimed_by`, verify.
+fn ordered_ready_sql() -> String {
+    READY_SQL.replacen("SELECT t.id", "SELECT t.repo, t.id, t.seq, t.created", 1)
+}
 
-    // Sequenced pass — canonicalize each ref (rename aliases resolve) and
-    // take the first that is actually ready.
-    let ready_by_gid: std::collections::BTreeMap<String, &Vec<String>> = rows
-        .iter()
-        .map(|r| (format!("{}#{}", r[0], r[1]), r))
-        .collect();
-    let sequenced_pick = sequence.iter().find_map(|target| {
-        let (repo_part, id_part) = target.split_once('#')?;
-        let canonical = reg
-            .resolve(repo_part)
-            .map_or(repo_part, |(e, _)| e.name.as_str());
-        ready_by_gid.get(&format!("{canonical}#{id_part}")).copied()
-    });
-
-    // Fallback — repos.toml order, then per-repo seq, created, id.
+/// Sort expanded ready rows into the MW-G4 total ordering — sequence.md
+/// entries in file order (non-ready and unresolvable entries skipped,
+/// MW-G5), then unsequenced rows by repos.toml order, then per-repo
+/// seq/created/id. `next` is row 0; `ready` presents the whole ordering —
+/// sharing this sort is what keeps the two verbs from ever disagreeing
+/// (mw-0vw7nj0). Returns whether row 0 came from sequence.md.
+fn sort_total(rows: &mut [Vec<String>], sequence: &[String], reg: &Registry) -> bool {
+    // Canonicalize each sequence ref (rename aliases resolve); first
+    // occurrence wins.
+    let mut seq_idx: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for (i, target) in sequence.iter().enumerate() {
+        if let Some((repo_part, id_part)) = target.split_once('#') {
+            let canonical = reg
+                .resolve(repo_part)
+                .map_or(repo_part, |(e, _)| e.name.as_str());
+            seq_idx.entry(format!("{canonical}#{id_part}")).or_insert(i);
+        }
+    }
     let repo_rank: std::collections::BTreeMap<&str, usize> = reg
         .entries
         .iter()
         .enumerate()
         .map(|(i, e)| (e.name.as_str(), i))
         .collect();
-    let fallback_pick = || {
-        rows.iter().min_by_key(|r| {
-            (
-                repo_rank.get(r[0].as_str()).copied().unwrap_or(usize::MAX),
-                r[2].parse::<i64>().unwrap_or(i64::MAX),
-                r[3].clone(),
-                r[1].clone(),
-            )
-        })
-    };
-    let (row, sequenced) = match sequenced_pick {
-        Some(row) => (Some(row), true),
-        None => (fallback_pick(), false),
-    };
+    rows.sort_by_key(|r| {
+        (
+            seq_idx
+                .get(&format!("{}#{}", r[0], r[1]))
+                .copied()
+                .unwrap_or(usize::MAX),
+            repo_rank.get(r[0].as_str()).copied().unwrap_or(usize::MAX),
+            r[2].parse::<i64>().unwrap_or(i64::MAX),
+            r[3].clone(),
+            r[1].clone(),
+        )
+    });
+    rows.first()
+        .is_some_and(|r| seq_idx.contains_key(&format!("{}#{}", r[0], r[1])))
+}
+
+/// `portfolio next` (MW-G4, mw-jpbv): the first READY task in the total
+/// ordering. Total, deterministic — row 0 of the shared sort.
+fn next(json: bool) -> Result<(), String> {
+    let p = load_portfolio()?;
+    // Post-prune read: the overlay `next` walks is the surviving one.
+    let sequence = registry::load_sequence(&p.dir)?;
+    let skipped = &p.skipped;
+    let ctx = crate::tables::session_for(&p.stores, &[]).map_err(|e| e.to_string())?;
+    let (_, batches) = run_query(&ctx, &ordered_ready_sql())?;
+    let mut rows = string_rows(&batches);
+    let sequenced = sort_total(&mut rows, &sequence, &p.reg);
+    let row = rows.first();
 
     if json {
         let data = row.map_or_else(
@@ -288,10 +296,12 @@ const LISTING_CAP: usize = 20;
 fn ready(json: bool) -> Result<(), String> {
     let (ctx, p) = union_session()?;
     // The normative §5 ready SQL with the repo column joined in — the
-    // predicate is untouched (one semantics, MW-G3).
-    let sql = READY_SQL.replacen("SELECT t.id", "SELECT t.repo, t.id", 1);
-    let (_, batches) = run_query(&ctx, &sql)?;
-    let rows = string_rows(&batches);
+    // predicate is untouched (one semantics, MW-G3); presentation is the
+    // MW-G4 total ordering `next` picks row 0 from.
+    let sequence = registry::load_sequence(&p.dir)?;
+    let (_, batches) = run_query(&ctx, &ordered_ready_sql())?;
+    let mut rows = string_rows(&batches);
+    sort_total(&mut rows, &sequence, &p.reg);
     let total = rows.len();
     let cap = LISTING_CAP.min(total);
 
@@ -299,8 +309,8 @@ fn ready(json: bool) -> Result<(), String> {
         let shown: Vec<_> = rows[..cap]
             .iter()
             .map(|r| {
-                serde_json::json!({ "repo": r[0], "id": r[1], "title": r[2],
-                    "claimed_by": (!r[3].is_empty()).then(|| r[3].clone()) })
+                serde_json::json!({ "repo": r[0], "id": r[1], "title": r[4],
+                    "claimed_by": (!r[5].is_empty()).then(|| r[5].clone()) })
             })
             .collect();
         crate::cli::emit_json(
@@ -312,12 +322,12 @@ fn ready(json: bool) -> Result<(), String> {
         report_skips(&p.skipped);
         report_pruned(&p.pruned);
         for row in &rows[..cap] {
-            let claim = if row[3].is_empty() {
+            let claim = if row[5].is_empty() {
                 String::new()
             } else {
-                format!("  [claimed: {}]", row[3])
+                format!("  [claimed: {}]", row[5])
             };
-            println!("{}#{}  {}{claim}", row[0], row[1], row[2]);
+            println!("{}#{}  {}{claim}", row[0], row[1], row[4]);
         }
         if total > cap {
             println!(
