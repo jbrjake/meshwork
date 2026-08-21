@@ -6,9 +6,9 @@ relates: [mw-hz1ezcg, mw-9rc4vs6, mw-f1x71yg, mw-2kgkn0j]
 verify: run cargo test e2e::add_authored_verify_preapproved
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
-status: blocked
+status: open
 created: 2026-08-09T23:35Z
-blocked-reason: same owner ruling as mw-2kgkn0j (approve-at-mint carve-out) — one decision unblocks both
+blocked-reason:
 ---
 Field evidence (sazed, 2026-08-09). The session wrote a verify, ran
 `close`, was refused ("task files arrive via merge and are untrusted"),
@@ -28,3 +28,7 @@ clone's own CLI is approval."
 ## log
 - 2026-08-09T23:35Z created
 - 2026-08-20T11:42Z open→blocked — same owner ruling as mw-2kgkn0j (approve-at-mint carve-out) — one decision unblocks both
+- 2026-08-21T21:12Z blocked→open
+
+## comments
+- 2026-08-21T21:12Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Unblocked by the same 2026-08-21 owner ruling recorded on mw-2kgkn0j — approve-at-mint is a go; this task carries the write-time ledger recording, its sibling the close-path behavior.
