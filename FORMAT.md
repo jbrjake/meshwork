@@ -115,11 +115,13 @@ The projection is six tables. `repo` is the registry name from the portfolio's `
 
 | table | columns |
 |---|---|
-| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status` (the five values, or `invalid`), `category`, `verify`, `waived`, `seq`, `created`, `blocked_reason`, `claimed_by`, `github`, `addressed_to` (the `to:` key), `path`, `error` (invalid rows only) |
+| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status` (the five values, or `invalid`), `category`, `verify`, `waived`, `seq`, `created`, `blocked_reason`, `claimed_by`, `github`, `addressed_to` (the `to:` key), `path`, `error` (invalid rows only), `body` (see below) |
 | `edges` | `src_gid`, `dst_gid`, `kind` (`needs`\|`parent`\|`discovered-from`\|`relates`\|`answers`), `resolved` (dst present in the loaded/registered set); `parent` edges stored child→parent; bare targets qualify with the declaring repo |
 | `labels` | `gid`, `label` (exploded) |
 | `comments` | `gid`, `ord` (1-based file position), `date`, `author`, `text`, `hash` (the identity hash above) |
 | `log` | `gid`, `ord` (1-based file position), `date` (as written; NULL if the entry has none), `from_status`, `to_status` (NULL for free text), `note` — the `## log` grammar above, exactly |
 | `repos` | `repo`, `path`, `remote`, `present` |
+
+**`tasks.body`** is the description section as text: every line between the frontmatter's closing fence and the first tail-section heading (`## log` / `## comments` at top level — a heading inside a fenced code block is content, per the tail-section grammar above), with leading and trailing whitespace trimmed. No other normalization: fenced blocks, inner headings, and blank interior lines survive byte-for-byte. A parsed task with no description projects `''`; only rows without a parse (`status='invalid'`, and thin cross-repo rows in registry-backed loads) project NULL — "parsed and empty" and "unknown" stay distinguishable in SQL. The column is appended after `error` so readers built against the original column order are undisturbed; adding it is an additive projection change under the minting-rule idiom, not a format bump — the on-disk bytes are untouched.
 
 Invalid files project as `tasks` rows with `status='invalid'` and `error` set — they are data, not errors. The normative queue semantics over this projection is the `ready` SQL in DESIGN §5: `open`, no unmet `needs` (unresolved counts as unmet), no live children.

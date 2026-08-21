@@ -432,3 +432,76 @@ fn caps_and_more_marker() {
     assert_eq!(v["data"]["total"], 25);
     assert_eq!(v["data"]["rows"].as_array().unwrap().len(), 20);
 }
+
+/// mw-getx732: the free-markdown description joins the projection as
+/// `tasks.body` — the description section only (tail sections and fenced
+/// tail-heading lookalikes excluded), trimmed. Parsed-and-empty is `''`;
+/// invalid rows are NULL — the distinction survives into SQL. Observed
+/// demand: `coalesce(body,'') LIKE` fell back to grep because the column
+/// didn't exist.
+#[test]
+fn body_projection() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let with_body = add_id(&repo, &["add", "Task with body", "--verify", "true"]);
+    let empty = add_id(&repo, &["add", "Bodyless", "--verify", "true"]);
+
+    // Give the first task a body whose fenced block quotes a tail heading —
+    // the quoted `## log` must stay body content, and the real tail must not
+    // leak into the projection.
+    let path = task_file(&repo, &with_body);
+    let text = std::fs::read_to_string(&path).unwrap();
+    let text = text.replace(
+        "\n## log\n",
+        "The spillway design narrative.\n\n```md\n## log\n- quoted, not real\n```\n\nTail prose.\n\n## log\n",
+    );
+    std::fs::write(&path, text).unwrap();
+
+    std::fs::write(
+        repo.join("docs/meshwork/zz-inv1-broken.md"),
+        "---\nid: zz-inv1\ntitle: [unclosed\n---\nbody of an invalid file\n",
+    )
+    .unwrap();
+
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args([
+                "q",
+                "SELECT id, body FROM tasks ORDER BY id",
+                "--json",
+            ])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    let rows = v["data"]["rows"].as_array().unwrap();
+    let body_of = |id: &str| {
+        rows.iter()
+            .find(|r| r[0] == id)
+            .unwrap_or_else(|| panic!("no row for {id}: {rows:?}"))[1]
+            .clone()
+    };
+
+    let body = body_of(&with_body);
+    let body = body.as_str().unwrap();
+    assert!(body.contains("spillway design narrative"), "{body}");
+    assert!(body.contains("- quoted, not real"), "fenced content stays: {body}");
+    assert!(body.contains("Tail prose."), "{body}");
+    assert!(!body.contains("created"), "real tail leaked: {body}");
+    assert_eq!(body, body.trim(), "body is trimmed");
+
+    assert_eq!(body_of(&empty), serde_json::json!(""), "parsed-and-empty is ''");
+    assert_eq!(body_of("zz-inv1"), serde_json::Value::Null, "invalid is NULL");
+
+    // The driving use case: body search joined against structured fields.
+    let hits = stdout_of(
+        &meshwork(&repo)
+            .args([
+                "q",
+                "SELECT id FROM tasks WHERE body LIKE '%spillway%' AND status = 'open'",
+            ])
+            .assert()
+            .success(),
+    );
+    assert!(hits.contains(&with_body), "{hits}");
+}

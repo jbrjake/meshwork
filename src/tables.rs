@@ -113,6 +113,9 @@ fn tasks_schema() -> Arc<Schema> {
         utf8(true, "addressed_to"),
         utf8(false, "path"),
         utf8(true, "error"),
+        // Appended last (mw-getx732) so readers indexing the format-1
+        // column order are undisturbed.
+        utf8(true, "body"),
     ]))
 }
 
@@ -138,6 +141,7 @@ fn tasks_batch(
     let mut addressed_to: Vec<Option<String>> = Vec::new();
     let mut path = Vec::new();
     let mut error: Vec<Option<String>> = Vec::new();
+    let mut body: Vec<Option<String>> = Vec::new();
 
     for store in stores {
         for entry in &store.entries {
@@ -159,6 +163,8 @@ fn tasks_batch(
                     github.push(t.github.and_then(|n| i64::try_from(n).ok()));
                     addressed_to.push(t.to.clone());
                     error.push(None);
+                    // Parsed-and-empty is `''`; only unparsed rows are NULL.
+                    body.push(Some(t.description.clone()));
                 }
                 ParsedTask::Invalid(inv) => {
                     gid.push(store.gid(&inv.id));
@@ -175,6 +181,7 @@ fn tasks_batch(
                     github.push(None);
                     addressed_to.push(None);
                     error.push(Some(inv.error.clone()));
+                    body.push(None);
                 }
             }
         }
@@ -199,6 +206,7 @@ fn tasks_batch(
         addressed_to.push(None);
         path.push(f.path.clone());
         error.push(None);
+        body.push(None);
     }
 
     let columns: Vec<ArrayRef> = vec![
@@ -218,6 +226,7 @@ fn tasks_batch(
         Arc::new(StringArray::from(addressed_to)),
         Arc::new(StringArray::from(path)),
         Arc::new(StringArray::from(error)),
+        Arc::new(StringArray::from(body)),
     ];
     Ok(RecordBatch::try_new(schema, columns)?)
 }

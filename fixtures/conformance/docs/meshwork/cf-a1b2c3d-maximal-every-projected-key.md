@@ -18,8 +18,14 @@ github: 7
 created: 2026-08-01T09:30Z
 ---
 The kitchen-sink row: exercises every frontmatter key that projects into
-the `tasks`, `edges`, and `labels` tables. The description is arbitrary
-markdown and projects nowhere.
+the `tasks`, `edges`, and `labels` tables. This description projects as
+`tasks.body` — trimmed, tail sections excluded, a quoted heading staying
+body content:
+
+```md
+## log
+- fenced, so still description
+```
 
 ## log
 - 2026-08-01T09:30Z created

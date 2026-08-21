@@ -39,7 +39,7 @@ const CONFORMANCE_QUERIES: [(&str, &str); 5] = [
         "tasks",
         "SELECT gid, repo, id, title, status, category, verify, waived, seq, \
          created, blocked_reason, claimed_by, github, addressed_to, path, \
-         (error IS NOT NULL) AS has_error FROM tasks ORDER BY gid",
+         (error IS NOT NULL) AS has_error, body FROM tasks ORDER BY gid",
     ),
     (
         "edges",
