@@ -1,7 +1,7 @@
 ---
 id: mw-getx732
 title: Project task bodies into SQL (queryable body text)
-status: open
+status: done
 category: core/format
 verify: run cargo test e2e::body_projection
 docs:
@@ -36,6 +36,9 @@ Origin: session question "what's the syntax to query the task body in SQL?"
 
 ## log
 - 2026-08-09T23:11Z created
+- 2026-08-21T20:33Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-21T20:37Z doing→done — verify exit 0 @ 603851b+3
 
 ## comments
 - 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Observed demand: sazed 4dc8792e tried coalesce(body,'') LIKE '%utf8%', got the Schema error, and fell back to grep -rlni over docs/meshwork/*.md. Title-only LIKE searches — the lossy substitute — appear in 8+ sazed sessions. Body projection is the missing half of the daily q driver.
+- 2026-08-21T20:33Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Design settled before code: (1) a tasks.body COLUMN, not a seventh table — bodies already ride in memory on every load (Task.description); a table buys joins, no memory. (2) body = the description section (text before the first unfenced tail heading), trimmed; valid-but-empty projects '' while invalid rows project NULL — parsed-and-empty vs unknown stay distinguishable in SQL. (3) NO format bump: on-disk bytes are untouched and the projection widens additively — a bump would make every pinned binary in the portfolio refuse stores it still reads correctly. Column appended LAST so existing readers' column order is undisturbed. FORMAT.md projection + conformance corpus + DESIGN tables updated together.

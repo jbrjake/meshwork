@@ -9,6 +9,7 @@ relates:
 seq: 50
 status: open
 created: 2026-08-21T19:32Z
+needs: [mw-getx732]
 ---
 Owner ask (2026-08-21): far too much store content is unsearchable. The
 surface delta this implies (DESIGN §6 is frozen) is owner-initiated, not
@@ -36,3 +37,6 @@ Design questions to settle before code:
 
 ## log
 - 2026-08-21T19:32Z created
+
+## comments
+- 2026-08-21T20:33Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Design decision (this session): search NEEDS body projection (mw-getx732), not subsumes — the projection is a self-contained format-contract change with its own conformance/doc surface, and search's verb-vs-sugar question stays open after it lands. Corpus/semantics/output decided when the search surface is.
