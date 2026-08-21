@@ -7,6 +7,7 @@ docs:
   - FORMAT.md#task-file
 status: open
 created: 2026-08-09T23:17Z
+seq: 60
 ---
 Review finding (2026-08-09). The schema says `blocked-reason` is
 "required non-empty iff `status: blocked`". The only-if half means a

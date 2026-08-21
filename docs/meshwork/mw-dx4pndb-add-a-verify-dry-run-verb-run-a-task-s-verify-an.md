@@ -10,6 +10,7 @@ relates:
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-12T20:48Z
+seq: 200
 ---
 Red-checking verifies is now a proven ritual with no supported path:
 leras sessions hand-rolled the same extraction loop six times

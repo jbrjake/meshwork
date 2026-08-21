@@ -7,6 +7,7 @@ verify: contains .claude/skills/meshwork/SKILL.md /Sibling stores/
 relates:
   - mw-jqj9qa9
 created: 2026-08-12T20:48Z
+seq: 270
 ---
 "What do we owe leras?" had no taught path and produced the worst
 session of sazed's week: a guessed path (`../leras/docs/meshwork/

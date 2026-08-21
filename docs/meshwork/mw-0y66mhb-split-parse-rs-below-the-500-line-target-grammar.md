@@ -5,6 +5,7 @@ status: open
 category: core/arch
 verify: out=$(./scripts/smoke.sh 2>&1) && ! echo "$out" | grep -q "src/parse.rs"
 created: 2026-08-07T03:06Z
+seq: 350
 ---
 
 ## log

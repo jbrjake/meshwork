@@ -5,6 +5,7 @@ status: open
 category: product/prime
 verify: run cargo test prime_names_invalid
 created: 2026-08-12T20:48Z
+seq: 230
 ---
 prime's header said "1 invalid" for two full sazed sessions
 (4b5a9264, f6e7cfbc) and nobody acted: the count names no id, no path,

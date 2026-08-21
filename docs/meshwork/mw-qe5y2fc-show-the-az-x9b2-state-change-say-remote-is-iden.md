@@ -7,6 +7,7 @@ docs:
   - README.md
 status: open
 created: 2026-08-10T16:31Z
+seq: 240
 ---
 Two portfolio-section fixes. (1) `meshwork why az-x9b2` appears twice
 with opposite outputs and no visible state change between the blocks —

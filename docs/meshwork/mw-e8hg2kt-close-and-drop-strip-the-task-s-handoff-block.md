@@ -7,6 +7,7 @@ verify: run cargo test strips_handoff
 relates:
   - mw-4jgrjar
 created: 2026-08-12T20:48Z
+seq: 70
 ---
 A task that closes while carrying `handoff:` leaves a lint warning
 (handoff-stale) that `--fix` does not repair, on a file that has just

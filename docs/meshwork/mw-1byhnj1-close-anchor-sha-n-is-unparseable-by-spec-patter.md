@@ -8,6 +8,7 @@ docs:
   - FORMAT.md#tail-section-grammars
 status: open
 created: 2026-08-09T23:17Z
+seq: 90
 ---
 Review finding (2026-08-09). `→done` notes may end with an
 ` @ <short-sha>[+N]` anchor, and the spec calls it "a convention, not a

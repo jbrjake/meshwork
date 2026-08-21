@@ -9,6 +9,7 @@ docs:
   - FORMAT.md#projection
 status: open
 created: 2026-08-09T23:17Z
+seq: 110
 ---
 Review finding (2026-08-09). The `## log` grammar says `date = first
 whitespace-delimited token, as written` — unconditionally. A hand-written

@@ -7,6 +7,7 @@ verify: ./meshwork drop --help | grep -q -- --reason
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-12T20:48Z
+seq: 190
 ---
 `block` demands a reason; `drop` refuses one. Agents guess the symmetry
 exists and lose the reason from the structured record when it doesn't:

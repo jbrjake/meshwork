@@ -7,6 +7,7 @@ docs:
   - FORMAT.md#task-file
 status: open
 created: 2026-08-09T23:17Z
+seq: 100
 ---
 Review finding (2026-08-09). Minted stamps are `YYYY-MM-DDTHH:MMZ`,
 date-only is legal forever, and hand-editing is expected — so someone

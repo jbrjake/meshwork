@@ -8,6 +8,7 @@ docs:
   - DESIGN-meshwork.md#§-14-gate
 status: open
 created: 2026-08-10T16:31Z
+seq: 250
 ---
 The token numbers name their script, state their sample, and disclose the
 rule of thumb; the portfolio ~30ms is one tilde, and a skeptic doing the

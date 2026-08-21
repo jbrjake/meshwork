@@ -7,6 +7,7 @@ docs:
   - FORMAT.md#§-config-toml
 status: open
 created: 2026-08-09T23:17Z
+seq: 120
 ---
 Review finding (2026-08-09). `format = 1` lives in config.toml, so a
 single task file pasted into an issue or emailed carries no version —

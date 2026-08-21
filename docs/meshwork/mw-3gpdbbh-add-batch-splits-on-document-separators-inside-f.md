@@ -6,6 +6,7 @@ labels: [bug]
 verify: run cargo test batch_ignores_separators_in_fenced_code
 status: open
 created: 2026-08-19T19:18Z
+seq: 20
 ---
 The `--batch` parser splits input on a line containing only three hyphens, without tracking fenced-code state. A task body that documents YAML frontmatter — a bug report with a repro, a doc task showing a task-file example, anything quoting meshwork's own format — gets silently split into extra phantom tasks.
 

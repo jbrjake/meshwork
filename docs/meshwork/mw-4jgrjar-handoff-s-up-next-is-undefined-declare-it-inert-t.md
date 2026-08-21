@@ -7,6 +7,7 @@ docs:
   - FORMAT.md#task-file
 status: open
 created: 2026-08-09T23:17Z
+seq: 130
 ---
 Review finding (2026-08-09). `handoff` is "meaningful only while the
 task is up next" without defining up-next. Per seq? Per ready ordering?

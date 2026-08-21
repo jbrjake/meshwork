@@ -8,6 +8,7 @@ docs:
 discovered-from: mw-bds8yq5
 status: open
 created: 2026-08-10T18:34Z
+seq: 260
 ---
 Found during the mw-bds8yq5 upgrade (2026-08-10): install.md prescribes a
 committed ./meshwork shim as "what sessions actually run", but sazed — a

@@ -8,6 +8,7 @@ docs:
   - FORMAT.md#projection
   - DESIGN-meshwork.md#§-4-tables-the-sql-contract
 created: 2026-08-09T23:11Z
+seq: 220
 ---
 
 The free-markdown description is the only task text absent from the SQL

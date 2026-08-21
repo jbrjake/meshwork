@@ -7,6 +7,7 @@ verify: run cargo test batch_scalar_docs
 docs:
   - FORMAT.md#task-file
 created: 2026-08-12T20:48Z
+seq: 40
 ---
 Two authoring-parity gaps in `add --batch`, both observed in the wild:
 

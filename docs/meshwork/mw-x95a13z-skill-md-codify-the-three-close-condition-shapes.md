@@ -8,6 +8,7 @@ relates:
   - mw-8kfqz2z
   - mw-cp11qh0
 created: 2026-08-12T20:48Z
+seq: 280
 ---
 The leras verify-hygiene sweeps converged on three reusable shapes for
 tasks with no code anchor, now proven across 19 tasks (4e5b1f04):

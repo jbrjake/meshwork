@@ -9,6 +9,7 @@ docs:
   - FORMAT.md#tail-section-grammars
 status: open
 created: 2026-08-09T23:35Z
+seq: 140
 ---
 Field evidence (sazed, 2026-08-09). `show` prints schema warnings to
 stderr; across two sessions they scrolled past as tool noise while the

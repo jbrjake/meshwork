@@ -8,7 +8,7 @@ verify: run cargo test e2e::render_sanitized
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
 created: 2026-08-07T01:55Z
-seq: 340
+seq: 170
 ---
 Named as an adjacent surface in DESIGN §12b (not covered by the MW-E5
 ruling — different class): task titles, log lines, comments, and

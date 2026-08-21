@@ -9,6 +9,7 @@ docs:
   - DESIGN-meshwork.md#§-14-gate
 status: open
 created: 2026-08-10T16:24Z
+seq: 290
 ---
 README line 79 promises every transcript is pasted from a real run of the
 binary. Hand-pasting proves a block true only on the day it lands: when

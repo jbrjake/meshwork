@@ -8,6 +8,7 @@ relates:
   - mw-getx732
   - mw-jqj9qa9
 created: 2026-08-12T20:48Z
+seq: 210
 ---
 `WHERE parent = …` is the first thing an agent guesses for
 parent/child queries; today it dies with a Schema error that lists only

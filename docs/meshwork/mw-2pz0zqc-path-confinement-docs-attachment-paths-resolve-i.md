@@ -8,7 +8,7 @@ verify: run cargo test e2e::path_confinement
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
 created: 2026-08-07T01:55Z
-seq: 330
+seq: 160
 handoff: |
   Next after the 2026-08-20 session (verify-security umbrella closed;
   changed-verify surfacing, cache-key pin, schema pin, stray-tail repair,

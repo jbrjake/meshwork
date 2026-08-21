@@ -8,6 +8,7 @@ relates:
   - mw-1byhnj1
   - mw-efmgn6b
 created: 2026-08-12T20:48Z
+seq: 50
 ---
 A sazed session bypassed the CLI entirely: flipped `status: open` →
 `done` with a raw Edit (no verify ran, no close anchor written) and
