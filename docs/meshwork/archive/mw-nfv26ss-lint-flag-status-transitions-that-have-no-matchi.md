@@ -1,7 +1,7 @@
 ---
 id: mw-nfv26ss
 title: "lint: flag status transitions that have no matching log entry"
-status: open
+status: done
 category: core/hygiene
 verify: run cargo test status_flip_without_log
 relates:
@@ -18,3 +18,6 @@ the signature: a terminal status whose `## log` has no corresponding
 transition entry. That distinguishes "hand-flipped, verify never ran"
 from a real close, and gives the skill's close-only rule a
 deterministic backstop.
+
+## log
+- 2026-08-21T20:29Z open→done — verify exit 0 @ ccf6169+1
