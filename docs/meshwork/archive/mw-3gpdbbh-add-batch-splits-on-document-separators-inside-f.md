@@ -4,7 +4,7 @@ title: "`add --batch` splits on document separators inside fenced code blocks, c
 category: core/import
 labels: [bug]
 verify: run cargo test batch_ignores_separators_in_fenced_code
-status: open
+status: done
 created: 2026-08-19T19:18Z
 seq: 20
 ---
@@ -26,3 +26,8 @@ This is self-referential in a way that will keep biting: meshwork's own repo is 
 
 ## log
 - 2026-08-19T19:18Z created
+- 2026-08-21T19:09Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-21T19:23Z doing→done — verify exit 0 @ 87ecaba+3
+
+## comments
+- 2026-08-21T19:24Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Fixed in the splitter with a CommonMark fence scan (backtick/tilde, longer runs, info strings). The same class lives in the body/section scanners — parse_body, append_section_entry, lint tail — filed as mw-svbdkvd. The missing-title guard proposed in the body already exists: title is a required parse field, so a title-less fragment refuses the whole batch.
