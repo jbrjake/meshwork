@@ -6,7 +6,7 @@ labels: [bug]
 verify: run cargo test lint_fix_needs_collision
 discovered-from: mw-nzeezr8
 seq: 30
-status: open
+status: done
 created: 2026-08-21T19:08Z
 ---
 Binaries before the mw-nzeezr8 fix rewrote a block-style `needs:` in flow
@@ -30,3 +30,5 @@ and reports the repair like the other mechanical-damage classes.
 
 ## log
 - 2026-08-21T19:08Z created
+- 2026-08-21T19:36Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-21T19:40Z doing→done — verify exit 0 @ e419a7f+2
