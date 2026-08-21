@@ -4,8 +4,9 @@ title: "`dep add` corrupts block-style `needs:` frontmatter, reports success, an
 category: core/format
 labels: [bug]
 verify: run cargo test dep_add_block_style_needs
-status: open
+status: done
 created: 2026-08-19T19:15Z
+seq: 10
 ---
 `meshwork dep add` rewrites `needs:` in **flow style** without removing the existing **block-style** entries, producing invalid YAML. It then prints a success line. `lint --fix` does not repair it.
 
@@ -23,3 +24,8 @@ cat > /tmp/b.md <<'EOF'
 
 ## log
 - 2026-08-19T19:15Z created
+- 2026-08-21T19:00Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-21T19:08Z doing→done — verify exit 0 @ c3c042f+3
+
+## comments
+- 2026-08-21T19:08Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Fixed at the source: dep add/rm now edit through the block-aware set_list, and remove_scalar drops the indented block under a removed key. Repairing stores already damaged by older pinned binaries is filed separately as mw-csdzc20.
