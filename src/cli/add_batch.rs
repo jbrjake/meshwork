@@ -226,6 +226,18 @@ fn parse_entry(fm: &str, body: &str) -> Result<Entry, String> {
                     kept.push('\n');
                     continue;
                 }
+                // `add --docs` takes scalar links and writes the sequence
+                // form; the batch slot accepts the same shape (mw-z578j81).
+                // A flow sequence or a block (empty rest) passes through.
+                if key == "docs" {
+                    let rest = line["docs:".len()..].trim();
+                    if !rest.is_empty() && !rest.starts_with('[') {
+                        kept.push_str("docs:\n  - ");
+                        kept.push_str(rest);
+                        kept.push('\n');
+                        continue;
+                    }
+                }
                 if !crate::parse::KNOWN_KEYS.contains(&key) {
                     return Err(format!(
                         "unknown frontmatter key `{key}` — schema keys only; \

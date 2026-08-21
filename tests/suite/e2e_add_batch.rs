@@ -290,6 +290,55 @@ Done.
     assert!(!phantom, "a phantom task was minted for the quoted example");
 }
 
+/// mw-z578j81: batch ingest normalizes like `add` does. `add --docs` takes
+/// scalar links and writes the sequence form; a batch document carrying the
+/// same scalar `docs:` was refused wholesale ("invalid type: string …
+/// expected a sequence" — leras). Accept the scalar as a one-element
+/// sequence at ingest; together with `from:` → `discovered-from:` the
+/// written file must lint clean.
+#[test]
+fn batch_scalar_docs_normalized_like_add() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    std::fs::write(repo.join("FORMAT.md"), "# format\n\n## task-file\n").unwrap();
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "--batch", "-"])
+            .write_stdin(
+                "---\nhandle: origin\ntitle: Origin\nverify: contains FORMAT.md shipped\n---\n\
+                 ---\ntitle: Child\nfrom: @origin\ndocs: FORMAT.md#task-file\nverify: contains FORMAT.md shipped\n---\n",
+            )
+            .assert()
+            .success(),
+    );
+    let ids: Vec<&str> = out.lines().filter(|l| !l.starts_with(' ')).collect();
+    let child = std::fs::read_to_string(task_file(&repo, ids[1])).unwrap();
+    assert!(child.contains("docs:\n  - FORMAT.md#task-file"), "{child}");
+    assert!(
+        child.contains(&format!("discovered-from: {}", ids[0])),
+        "{child}"
+    );
+
+    // Round-trip: the store lints clean — no errors, no warnings.
+    let lint = stdout_of(&meshwork(&repo).arg("lint").assert().success());
+    assert!(lint.contains("0 error(s), 0 warning(s)"), "{lint}");
+
+    // A flow sequence stays a sequence — only bare scalars are wrapped.
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "--batch", "-"])
+            .write_stdin(
+                "---\ntitle: Flow\ndocs: [FORMAT.md]\nverify: contains FORMAT.md shipped\n---\n",
+            )
+            .assert()
+            .success(),
+    );
+    let id = out.lines().next().unwrap();
+    let flow = std::fs::read_to_string(task_file(&repo, id)).unwrap();
+    assert!(flow.contains("docs: [FORMAT.md]"), "{flow}");
+}
+
 #[test]
 fn add_batch_reads_from_file_too() {
     let (_g, repo) = git_repo("work");
