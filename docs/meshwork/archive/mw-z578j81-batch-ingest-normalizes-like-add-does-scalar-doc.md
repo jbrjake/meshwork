@@ -1,7 +1,7 @@
 ---
 id: mw-z578j81
 title: "Batch ingest normalizes like add does: scalar docs, from → discovered-from"
-status: open
+status: done
 category: core/authoring
 verify: run cargo test batch_scalar_docs
 docs:
@@ -36,3 +36,4 @@ file carrying `discovered-from:`.
 
 ## log
 - 2026-08-12T20:48Z created
+- 2026-08-21T20:18Z open→done — verify exit 0 @ 0dfe1fe+1
