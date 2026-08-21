@@ -71,13 +71,18 @@ pub fn relocate_stray(text: &str) -> Option<(String, usize)> {
     let mut stray: Vec<&str> = Vec::new();
     let mut in_tail = false;
     let mut in_ignored_block = false;
+    let mut fence = crate::parse::Fence::default();
     for line in body.lines() {
-        if is_tail_heading(line) {
+        // A quoted heading inside a fence is content, not a boundary;
+        // fenced content stranded in the tail moves whole, like an
+        // ignored heading block.
+        let fenced = fence.observe(line);
+        if !fenced && is_tail_heading(line) {
             (in_tail, in_ignored_block) = (true, false);
             tail.push(line);
         } else if !in_tail {
             description.push(line);
-        } else if in_ignored_block {
+        } else if in_ignored_block || fenced {
             stray.push(line);
         } else if line.trim_end().starts_with("## ") {
             in_ignored_block = true;

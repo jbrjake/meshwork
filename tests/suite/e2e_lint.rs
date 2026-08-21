@@ -231,3 +231,64 @@ fn lint_fix_needs_collision() {
         "unmatched stray kept for a human: {after}"
     );
 }
+
+/// mw-svbdkvd: a `## log` (or any heading) quoted inside a fenced code
+/// block is body prose, not a section boundary — for the parser, for
+/// section appends, and for the stray-tail scan. This store documents its
+/// own format, so quoted tail grammar in bodies is the common case.
+#[test]
+fn fenced_heading_stays_body() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Documents the tail grammar");
+
+    let path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&path).unwrap();
+    let quoted = "Quoting the format:\n\n```markdown\n## log\n\
+                  - 2020-01-01T00:00Z pretend entry\n\n## comments\n\
+                  - pretend comment\n```\n\nAfter the fence.\n\n";
+    let text = text.replacen("## log\n", &format!("{quoted}## log\n"), 1);
+    std::fs::write(&path, &text).unwrap();
+
+    // The parser keeps the whole fence (and what follows) in the body:
+    // exactly one real log entry, zero comments.
+    let count = |table: &str| -> i64 {
+        let q = stdout_of(
+            &meshwork(&repo)
+                .args([
+                    "q",
+                    &format!("SELECT count(*) FROM {table} WHERE gid='work#{id}'"),
+                    "--json",
+                ])
+                .assert()
+                .success(),
+        );
+        let v: serde_json::Value = serde_json::from_str(&q).unwrap();
+        v["data"]["rows"][0][0].as_i64().unwrap()
+    };
+    assert_eq!(count("log"), 1, "only the real created entry");
+    assert_eq!(count("comments"), 0, "the fenced comment is prose");
+
+    // Appends land in the real tail sections, below the fence — a status
+    // transition (log) and a comment (comments).
+    meshwork(&repo)
+        .args(["start", &id, "--as", "tester"])
+        .assert()
+        .success();
+    meshwork(&repo)
+        .args(["comment", &id, "a real comment", "--as", "tester"])
+        .assert()
+        .success();
+    let after = std::fs::read_to_string(&path).unwrap();
+    let fence_close = after.rfind("```").unwrap();
+    let log_entry = after.find("open→doing").expect("transition logged");
+    let comment_at = after.find("a real comment").expect("comment appended");
+    assert!(
+        log_entry > fence_close && comment_at > fence_close,
+        "appends landed inside the fence:\n{after}"
+    );
+
+    // The stray-tail scan sees nothing to relocate and lint stays clean.
+    let out = stdout_of(&meshwork(&repo).arg("lint").assert().success());
+    assert!(!out.contains("stray-tail-content"), "{out}");
+}

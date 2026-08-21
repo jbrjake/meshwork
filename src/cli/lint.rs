@@ -350,7 +350,12 @@ fn drop_needs_collision(text: &str) -> Option<(String, usize)> {
 fn status_from_log(text: &str) -> Option<Status> {
     let mut in_log = false;
     let mut best: Option<(String, Status)> = None;
-    for line in text.lines() {
+    let lines: Vec<&str> = text.lines().collect();
+    let fenced = crate::parse::fenced_lines(&lines);
+    for (i, line) in lines.iter().enumerate() {
+        if fenced[i] {
+            continue; // quoted grammar is prose, not a heading or entry
+        }
         let trimmed = line.trim_end();
         if trimmed == "## log" {
             in_log = true;

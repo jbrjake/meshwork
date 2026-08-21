@@ -223,16 +223,19 @@ pub fn append_block_item(text: &str, key: &str, item: &str) -> Result<String, St
 
 /// Append `- entry` at the end of `## section`, creating the section when
 /// missing (`## log` goes before `## comments`; anything else at EOF).
+/// Headings quoted inside fenced code blocks are body content, never the
+/// append target.
 #[must_use]
 pub fn append_section_entry(text: &str, section: &str, entry: &str) -> String {
     let heading = format!("## {section}");
     let lines: Vec<&str> = text.lines().collect();
+    let fenced = crate::parse::fenced_lines(&lines);
+    let real_heading = |i: &usize, want: &str| !fenced[*i] && lines[*i].trim_end() == want;
 
-    if let Some(h) = lines.iter().position(|l| l.trim_end() == heading.as_str()) {
-        let section_end = lines[h + 1..]
-            .iter()
-            .position(|l| l.starts_with("## "))
-            .map_or(lines.len(), |off| h + 1 + off);
+    if let Some(h) = (0..lines.len()).find(|i| real_heading(i, heading.as_str())) {
+        let section_end = (h + 1..lines.len())
+            .find(|i| !fenced[*i] && lines[*i].starts_with("## "))
+            .unwrap_or(lines.len());
         let mut insert_at = h + 1;
         for (i, line) in lines.iter().enumerate().take(section_end).skip(h + 1) {
             if !line.trim().is_empty() {
@@ -246,7 +249,7 @@ pub fn append_section_entry(text: &str, section: &str, entry: &str) -> String {
 
     // Create the section. `## log` belongs before `## comments` (DESIGN §2).
     if section == "log" {
-        if let Some(c) = lines.iter().position(|l| l.trim_end() == "## comments") {
+        if let Some(c) = (0..lines.len()).find(|i| real_heading(i, "## comments")) {
             let mut out: Vec<String> = lines.iter().map(ToString::to_string).collect();
             out.splice(c..c, [heading, format!("- {entry}"), String::new()]);
             return out.join("\n") + "\n";

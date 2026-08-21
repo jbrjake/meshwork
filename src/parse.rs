@@ -464,17 +464,98 @@ enum Section {
     UnknownHeading,
 }
 
+/// A code-fence line: a run of 3+ backticks or tildes at up to 1 leading
+/// space. Returns the fence char, run length, and the remainder (info
+/// string on an opener; must be blank on a closer). Tighter than
+/// `CommonMark`'s 3-space allowance on purpose: two-space indent is this
+/// format's tail-continuation namespace, so fences there belong to an
+/// entry, never to the body-level scan.
+#[must_use]
+pub fn fence_run(line: &str) -> Option<(char, usize, &str)> {
+    let indent = line.len() - line.trim_start_matches(' ').len();
+    if indent > 1 {
+        return None; // entry-continuation or indented code, not a body fence
+    }
+    let s = &line[indent..];
+    let ch = s.chars().next().filter(|c| *c == '`' || *c == '~')?;
+    let run = s.chars().take_while(|c| *c == ch).count();
+    if run < 3 {
+        return None;
+    }
+    Some((ch, run, &s[run..]))
+}
+
+/// Fenced-code state across a line walk. Anything inside a fence —
+/// delimiters included — is content: never a heading, a bullet, or a
+/// document boundary (mw-svbdkvd; this store quotes its own format).
+#[derive(Default)]
+pub struct Fence(Option<(char, usize)>);
+
+impl Fence {
+    /// Feed the next line; true when it is a fence delimiter or fenced
+    /// content. A closer must match the opening char, be at least as
+    /// long, and carry no info string.
+    pub fn observe(&mut self, line: &str) -> bool {
+        match (self.0, fence_run(line)) {
+            (Some((ch, len)), Some((c, n, rest)))
+                if c == ch && n >= len && rest.trim().is_empty() =>
+            {
+                self.0 = None;
+                true
+            }
+            (Some(_), _) => true,
+            (None, Some((c, n, _info))) => {
+                self.0 = Some((c, n));
+                true
+            }
+            (None, None) => false,
+        }
+    }
+
+    /// Whether the walk currently sits inside an open fence.
+    #[must_use]
+    pub fn in_fence(&self) -> bool {
+        self.0.is_some()
+    }
+}
+
+/// Per-line fenced flags for a whole task file: frontmatter lines are
+/// never fenced (block scalars there are YAML, not markdown); tracking
+/// starts after the closing fence.
+#[must_use]
+pub fn fenced_lines(lines: &[&str]) -> Vec<bool> {
+    let body_at = if lines.first().map(|l| l.trim_end()) == Some("---") {
+        lines
+            .iter()
+            .skip(1)
+            .position(|l| l.trim_end() == "---")
+            .map_or(lines.len(), |i| i + 2)
+    } else {
+        0
+    };
+    let mut fence = Fence::default();
+    lines
+        .iter()
+        .enumerate()
+        .map(|(i, line)| i >= body_at && fence.observe(line))
+        .collect()
+}
+
 /// Split the body into description / log / comments. The description may
-/// contain arbitrary markdown; the first `## log` or `## comments` line
-/// switches to tail mode, where entries are `- ` bullets with two-space
-/// continuations (DESIGN §2).
+/// contain arbitrary markdown — fenced code blocks keep their content,
+/// quoted headings included; the first unfenced `## log` or `## comments`
+/// line switches to tail mode, where entries are `- ` bullets with
+/// two-space continuations (DESIGN §2).
 fn parse_body(body: &str, warnings: &mut Vec<String>) -> (String, Vec<String>, Vec<Comment>) {
     let mut description = String::new();
     let mut entries: Vec<(Section, String)> = Vec::new();
     let mut section = Section::Description;
+    let mut fence = Fence::default();
 
     for line in body.lines() {
+        let fenced = fence.observe(line);
         match line.trim_end() {
+            _ if fenced => {}
             "## log" => {
                 section = Section::Log;
                 continue;
