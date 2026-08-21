@@ -97,6 +97,56 @@ fn parent_rollup_warn() {
     );
 }
 
+/// mw-nfv26ss: a session flipped `status:` with a raw edit — no verify
+/// ran, no transition logged. Hand edits are legal; the catchable
+/// signature is a terminal status whose log has no matching `→status`
+/// entry. A real close/drop always writes one, and import provenance is
+/// a legitimate birth certificate for tasks born terminal.
+#[test]
+fn status_flip_without_log() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    std::fs::write(
+        mw.join("zz-flp1-handflipped.md"),
+        "---\nid: zz-flp1\ntitle: Hand-flipped\nstatus: done\nverify: \"true\"\n---\n\n## log\n- 2026-08-12 created\n",
+    )
+    .unwrap();
+    std::fs::write(
+        mw.join("zz-flp2-handdropped.md"),
+        "---\nid: zz-flp2\ntitle: Hand-dropped\nstatus: dropped\nverify: \"true\"\n---\n\n## log\n- 2026-08-12 created\n",
+    )
+    .unwrap();
+    std::fs::write(
+        mw.join("zz-cls1-closed.md"),
+        "---\nid: zz-cls1\ntitle: Really closed\nstatus: done\nverify: \"true\"\n---\n\n## log\n- 2026-08-12 created\n- 2026-08-13 open→done — verify exit 0\n",
+    )
+    .unwrap();
+    std::fs::write(
+        mw.join("zz-imp1-imported.md"),
+        "---\nid: zz-imp1\ntitle: Imported done\nstatus: done\nverify: \"true\"\n---\n\n## log\n- 2026-08-12 imported from TODO.md\n",
+    )
+    .unwrap();
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "status-unlogged", "zz-flp1"),
+        "{f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "status-unlogged", "zz-flp2"),
+        "{f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "status-unlogged", "zz-cls1"),
+        "{f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "status-unlogged", "zz-imp1"),
+        "{f:?}"
+    );
+}
+
 /// The kitchen-sink corpus is error-free: its only findings are the two
 /// planted warnings (no-verify spike, >1MB attachment).
 #[test]

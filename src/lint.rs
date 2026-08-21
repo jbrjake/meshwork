@@ -369,6 +369,7 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
             ));
         }
         check_doing_rot(t, &today, out);
+        check_unlogged_terminal(t, out);
         if matches!(t.status, Status::Open | Status::Doing) && t.verify.is_none() {
             out.push(finding(
                 Severity::Warning,
@@ -428,6 +429,37 @@ fn check_lifecycle(valid: &[&Task], out: &mut Vec<Finding>) {
             ));
         }
     }
+}
+
+/// mw-nfv26ss: a hand edit CAN flip `status:` — hand edits are legal —
+/// but every CLI transition logs itself, so a terminal status with no
+/// matching `→status` log entry is the signature of a flip that bypassed
+/// close/drop. Unrepairable by --fix: the history is what's missing.
+/// Import provenance is a legitimate birth certificate for terminal tasks.
+fn check_unlogged_terminal(t: &Task, out: &mut Vec<Finding>) {
+    let (verb, detail) = match t.status {
+        Status::Done => ("close", ", so no verify ran"),
+        Status::Dropped => ("drop", ""),
+        _ => return,
+    };
+    let marker = format!("\u{2192}{}", t.status.as_str());
+    if t.log
+        .iter()
+        .any(|e| e.contains(&marker) || e.contains("imported from TODO.md"))
+    {
+        return;
+    }
+    let status = t.status.as_str();
+    out.push(finding(
+        Severity::Warning,
+        "status-unlogged",
+        &t.id,
+        format!(
+            "{status} with no {marker} log entry — the status was flipped \
+             without `{verb}`{detail}; reopen and {verb} it, or record the \
+             transition in the log"
+        ),
+    ));
 }
 
 /// mw-06j1wqe: doing-rot. In the field the doing list only ever grew —
