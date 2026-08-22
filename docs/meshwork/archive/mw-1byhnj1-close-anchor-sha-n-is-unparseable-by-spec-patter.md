@@ -6,7 +6,7 @@ relates: [mw-ntn0t32]
 verify: run cargo test format::close_anchor_pattern
 docs:
   - FORMAT.md#tail-section-grammars
-status: open
+status: done
 created: 2026-08-09T23:17Z
 seq: 90
 ---
@@ -21,3 +21,5 @@ section — grammar-adjacent, even if extraction stays optional.
 
 ## log
 - 2026-08-09T23:17Z created
+- 2026-08-22T00:31Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-22T00:34Z doing→done — verify exit 0 @ e2473b3+2
