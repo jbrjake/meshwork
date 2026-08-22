@@ -190,3 +190,103 @@ fn version_matches_envelope() {
         "FORMAT.md never states the envelope `schema` ≡ format mapping"
     );
 }
+
+/// mw-1byhnj1: the close anchor gets a normative extraction pattern —
+/// one agreed regex instead of one per consumer. FORMAT.md quotes it
+/// verbatim, the pattern extracts what a real close mints (real git,
+/// real short sha), and near-miss shapes carry no anchor.
+#[test]
+fn close_anchor_pattern() {
+    const PATTERN: &str = " @ ([0-9a-f]{4,40})(?:\\+([1-9][0-9]*))?$";
+
+    // Spec side: FORMAT.md states exactly this pattern.
+    let spec =
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("FORMAT.md"))
+            .unwrap();
+    assert!(
+        spec.contains(PATTERN),
+        "FORMAT.md must quote the normative anchor pattern `{PATTERN}`"
+    );
+
+    // Binary side: a real close in a repo with history mints a →done note
+    // this pattern extracts. The store edit itself is uncommitted at close
+    // time, so the dirty `+N` arm is the one exercised.
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path().join("work");
+    std::fs::create_dir_all(&repo).unwrap();
+    crate::common::git(&repo, &["init", "-q"]);
+    crate::common::git(&repo, &["config", "user.name", "Fixture User"]);
+    crate::common::git(&repo, &["config", "user.email", "fixture@example.invalid"]);
+    let run = |args: &[&str]| {
+        let mut cmd = assert_cmd::Command::cargo_bin("meshwork").unwrap();
+        cmd.current_dir(&repo)
+            .env("MESHWORK_TRUST", "1")
+            .env("HOME", dir.path())
+            .env_remove("MESHWORK_PORTFOLIO");
+        cmd.args(args).assert().success()
+    };
+    run(&["init"]);
+    crate::common::git(&repo, &["add", "-A"]);
+    crate::common::git(&repo, &["commit", "-qm", "seed"]);
+    let out = run(&["add", "Anchored", "--verify", "true"]);
+    let id = String::from_utf8(out.get_output().stdout.clone())
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap()
+        .to_string();
+    run(&["close", &id]);
+
+    let archive = repo.join("docs/meshwork/archive");
+    let file = std::fs::read_dir(&archive)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .find(|p| {
+            p.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with(&format!("{id}-"))
+        })
+        .unwrap();
+    let text = std::fs::read_to_string(&file).unwrap();
+    let done = text.lines().find(|l| l.contains("→done")).unwrap();
+
+    let re = regex::Regex::new(PATTERN).unwrap();
+    let caps = re
+        .captures(done)
+        .unwrap_or_else(|| panic!("minted →done note carries no extractable anchor: {done}"));
+    let head = {
+        let out = std::process::Command::new("git")
+            .args(["rev-parse", "--short", "HEAD"])
+            .current_dir(&repo)
+            .output()
+            .unwrap();
+        String::from_utf8(out.stdout).unwrap().trim().to_string()
+    };
+    assert_eq!(&caps[1], head, "group 1 is the short sha as git minted it");
+    let dirty: u64 = caps
+        .get(2)
+        .expect("dirty tree mints +N")
+        .as_str()
+        .parse()
+        .unwrap();
+    assert!(dirty >= 1, "+N counts paths, minted only when > 0");
+
+    // Clean-tree form: no +N, still an anchor.
+    let clean = re.captures("2026-08-09 doing→done — verify exit 0 @ ab12cd3");
+    assert_eq!(&clean.unwrap()[1], "ab12cd3");
+
+    // Near-misses carry no anchor — not an error, just absence.
+    for miss in [
+        "verify exit 0 @ 3F5FF64",     // uppercase is never minted
+        "verify exit 0 @ abc",         // below git's 4-char floor
+        "verify exit 0 @ 3f5ff64+0",   // +0 is never minted (clean omits)
+        "verify exit 0 @ 3f5ff64 now", // not note-terminal
+        "verify exit 0",               // no anchor at all
+    ] {
+        assert!(
+            re.captures(miss).is_none(),
+            "`{miss}` must not read as anchored"
+        );
+    }
+}
