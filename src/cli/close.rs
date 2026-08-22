@@ -82,6 +82,23 @@ fn head_anchor(root: &std::path::Path) -> String {
     }
 }
 
+/// Actually closing releases the claim and strips the handoff — the
+/// voice belongs to whatever is up next (mw-e8hg2kt). A failed verify
+/// keeps both: the task is still someone's claimed work (mw-tb6gdr9),
+/// still handing itself off.
+fn scrub_on_close(task: &crate::parse::Task, text: &str) -> Result<String, String> {
+    let text = if task.claimed_by.is_some() {
+        remove_scalar(text, "claimed-by")?
+    } else {
+        text.to_string()
+    };
+    if task.handoff.is_some() {
+        remove_scalar(&text, "handoff")
+    } else {
+        Ok(text)
+    }
+}
+
 /// The `--waive` path: no verify runs (so no trust gate), the reason is
 /// recorded loud and queryable (MW-E2), the anchor still lands.
 #[allow(clippy::too_many_arguments)]
@@ -145,18 +162,8 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
     let from = task.status.as_str();
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
 
-    // Actually closing releases the claim; a failed verify keeps it —
-    // the task is still someone's claimed work (mw-tb6gdr9).
-    let release_claim = |t: &str| -> Result<String, String> {
-        if task.claimed_by.is_some() {
-            remove_scalar(t, "claimed-by")
-        } else {
-            Ok(t.to_string())
-        }
-    };
-
     if let Some(reason) = &args.waive {
-        let out = release_claim(&text)?;
+        let out = scrub_on_close(&task, &text)?;
         return close_waived(&path, &root, &args.id, reason, &out, &today, from, json);
     }
 
@@ -205,7 +212,7 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
 
     match verdict {
         Ok(()) => {
-            let out = release_claim(&text)?;
+            let out = scrub_on_close(&task, &text)?;
             let out = set_scalar(&out, "status", Some("done"))?;
             let out = append_section_entry(
                 &out,

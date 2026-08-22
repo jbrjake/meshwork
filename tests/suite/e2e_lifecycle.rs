@@ -510,6 +510,72 @@ fn close_waive_recorded() {
 }
 
 
+/// mw-e8hg2kt: terminal transitions strip `handoff:` — the voice belongs
+/// to whatever is up next, and a handoff surviving into archive/ is the
+/// handoff-stale warning `--fix` can't repair, on a file nobody should
+/// hand-edit. Non-terminal moves carry the block untouched; both close
+/// paths (verified, waived) strip it.
+#[test]
+fn close_strips_handoff() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Verified close");
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", "resume at the spill cliff"])
+        .assert()
+        .success();
+
+    // Non-terminal transitions carry the handoff along untouched.
+    meshwork(&repo).args(["start", &id]).assert().success();
+    meshwork(&repo)
+        .args(["block", &id, "--reason", "waiting"])
+        .assert()
+        .success();
+    meshwork(&repo).args(["reopen", &id]).assert().success();
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("handoff: |"), "non-terminal keeps it: {text}");
+    assert!(text.contains("resume at the spill cliff"));
+
+    meshwork(&repo).args(["close", &id]).assert().success();
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("status: done"));
+    assert!(!text.contains("handoff:"), "close strips the key: {text}");
+    assert!(
+        !text.contains("resume at the spill cliff"),
+        "…and the whole block under it: {text}"
+    );
+
+    // The waived path writes its own file — same strip.
+    let waived = add_id(&repo, &["add", "Waived close"]);
+    meshwork(&repo)
+        .args(["set", &waived, "--handoff", "half-done; see the branch"])
+        .assert()
+        .success();
+    meshwork(&repo)
+        .args(["close", &waived, "--waive", "spike"])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(task_file(&repo, &waived)).unwrap();
+    assert!(!text.contains("handoff:"), "waive strips too: {text}");
+}
+
+/// mw-e8hg2kt: drop is the other terminal transition — same strip.
+#[test]
+fn drop_strips_handoff() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Dropped with a note");
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", "was chasing the wrong symptom"])
+        .assert()
+        .success();
+    meshwork(&repo).args(["drop", &id]).assert().success();
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("status: dropped"));
+    assert!(!text.contains("handoff:"), "drop strips the block: {text}");
+    assert!(!text.contains("wrong symptom"), "{text}");
+}
+
 /// Unknown ids fail loudly.
 #[test]
 fn show_unknown_id_fails() {

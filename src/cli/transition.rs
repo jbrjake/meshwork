@@ -267,6 +267,13 @@ fn transition(
         // Leaving the claimed states releases the claim (mw-tb6gdr9).
         text = remove_scalar(&text, "claimed-by")?;
     }
+    // Terminal states silence the handoff (mw-e8hg2kt): the voice belongs
+    // to whatever is up next, and left behind it becomes a handoff-stale
+    // warning on an archived file — unfixable except by hand-edit.
+    let terminal = matches!(to, Status::Done | Status::Dropped);
+    if terminal && task.handoff.is_some() {
+        text = remove_scalar(&text, "handoff")?;
+    }
 
     let today = crate::clock::stamp();
     let mut entry = format!("{today} {}→{}", task.status.as_str(), to.as_str());
@@ -282,7 +289,6 @@ fn transition(
     std::fs::write(&path, text).map_err(|e| e.to_string())?;
     // Terminal tasks live in archive/; reopen brings the file back
     // (mw-45e2qf4 — the graph never notices, only the directory does).
-    let terminal = matches!(to, Status::Done | Status::Dropped);
     crate::store::relocate_for_status(&path, terminal).map_err(|e| e.to_string())?;
 
     if json {
