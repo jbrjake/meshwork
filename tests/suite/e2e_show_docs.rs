@@ -76,3 +76,48 @@ fn show_docs_excerpts() {
     let plain = stdout_of(&meshwork(&repo).args(["show", &id]).assert().success());
     assert!(!plain.contains("layout body line."), "{plain}");
 }
+
+/// mw-7tseswy: ignored tail content surfaces IN the body area, where the
+/// content would have rendered — stderr warnings scroll past as tool
+/// noise while the reader stares at a missing body. The marker counts
+/// the stranded lines and names the remedy.
+#[test]
+fn show_flags_ignored_tail_content() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Damaged by append");
+    let path = task_file(&repo, &id);
+    let mut text = std::fs::read_to_string(&path).unwrap();
+    text.push_str("\nThis paragraph landed below the log by accident.\nAnd a second line.\n");
+    std::fs::write(&path, text).unwrap();
+
+    let out = stdout_of(&meshwork(&repo).args(["show", &id]).assert().success());
+    assert!(out.contains("⚠ 2 line"), "counted marker: {out}");
+    assert!(out.contains("lint --fix"), "names the remedy: {out}");
+    let marker = out.find('⚠').unwrap();
+    let log = out.find("\nlog:").unwrap();
+    assert!(marker < log, "marker sits in the body area: {out}");
+
+    // JSON parity (MW-C3).
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["show", &id, "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["data"]["ignored_tail_lines"], 2);
+
+    // A clean file renders no marker, and the JSON field is null.
+    let clean = add_task(&repo, "Clean");
+    let s = stdout_of(&meshwork(&repo).args(["show", &clean]).assert().success());
+    assert!(!s.contains('⚠'), "{s}");
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["show", &clean, "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert!(v["data"]["ignored_tail_lines"].is_null(), "{v}");
+}

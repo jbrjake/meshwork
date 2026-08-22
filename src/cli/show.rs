@@ -64,6 +64,13 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
             } else {
                 task.comments.len().saturating_sub(COMMENT_CAP)
             };
+            // Stranded tail content surfaces in the body area, where it
+            // would have rendered — stderr warnings scroll past unread
+            // (mw-7tseswy). Same counter as lint's stray-tail-content.
+            let stray = std::fs::read_to_string(&path)
+                .ok()
+                .and_then(|text| crate::lint_tail::relocate_stray(&text))
+                .map(|(_, moved)| moved);
             let commits = commits_for(&root, &args.id);
             let excerpts = if args.docs {
                 task.docs
@@ -74,9 +81,11 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
                 Vec::new()
             };
             if json {
-                emit_json(&task, &rel, shown_from, &commits, args.docs, &excerpts);
+                emit_json(
+                    &task, &rel, shown_from, &commits, args.docs, &excerpts, stray,
+                );
             } else {
-                render_text(&task, &rel, shown_from, &commits);
+                render_text(&task, &rel, shown_from, &commits, stray);
                 render_excerpts(&task, args.docs, &excerpts);
             }
             Ok(())
@@ -99,7 +108,13 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
     }
 }
 
-fn render_text(t: &Task, rel: &str, shown_from: usize, commits: &[(String, String)]) {
+fn render_text(
+    t: &Task,
+    rel: &str,
+    shown_from: usize,
+    commits: &[(String, String)],
+    stray: Option<usize>,
+) {
     println!("{} — {} [{}]", t.id, t.title, t.status.as_str());
     let kv = |k: &str, v: Option<String>| {
         if let Some(v) = v {
@@ -136,6 +151,12 @@ fn render_text(t: &Task, rel: &str, shown_from: usize, commits: &[(String, Strin
     }
     if !t.description.is_empty() {
         println!("\n{}", t.description);
+    }
+    if let Some(moved) = stray {
+        println!(
+            "\n\u{26a0} {moved} line(s) ignored in the tail sections — body \
+             belongs above ## log / ## comments; lint --fix relocates them"
+        );
     }
     if !t.log.is_empty() {
         println!("\nlog:");
@@ -206,6 +227,7 @@ fn render_excerpts(t: &Task, docs: bool, excerpts: &[crate::docs::Excerpt]) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn emit_json(
     t: &Task,
     rel: &str,
@@ -213,6 +235,7 @@ fn emit_json(
     commits: &[(String, String)],
     docs: bool,
     excerpts: &[crate::docs::Excerpt],
+    stray: Option<usize>,
 ) {
     let shown: Vec<_> = t.comments[shown_from..]
         .iter()
@@ -233,6 +256,7 @@ fn emit_json(
                 .map(|(sha, subject)| serde_json::json!({ "sha": sha, "subject": subject }))
                 .collect::<Vec<_>>(),
             "commits_total": commits.len(),
+            "ignored_tail_lines": stray,
             "path": rel, "warnings": t.warnings,
     });
     if docs {
