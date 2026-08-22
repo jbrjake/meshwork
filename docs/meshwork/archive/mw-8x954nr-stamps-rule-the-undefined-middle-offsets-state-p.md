@@ -5,7 +5,7 @@ category: core/format
 verify: run cargo test format::stamp_ordering
 docs:
   - FORMAT.md#task-file
-status: open
+status: done
 created: 2026-08-09T23:17Z
 seq: 100
 ---
@@ -23,3 +23,5 @@ implied.
 
 ## log
 - 2026-08-09T23:17Z created
+- 2026-08-22T00:38Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-22T00:40Z doing→done — verify exit 0 @ bee4b6d+2
