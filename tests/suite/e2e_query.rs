@@ -505,3 +505,47 @@ fn body_projection() {
     );
     assert!(hits.contains(&with_body), "{hits}");
 }
+
+/// mw-0ssk8dg: `WHERE parent = …` is the first thing an agent guesses
+/// for hierarchy queries — `parent` projects as a tasks column (one edge
+/// kind, child-points-up, so the column is well-defined; the edges row
+/// stays normative), and a failing q names every queryable table so the
+/// graph is discoverable from the error, not archaeology.
+#[test]
+fn parent_column_and_q_error_tables() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let parent = add_task(&repo, "Parent task");
+    let child = add_id(
+        &repo,
+        &["add", "Child task", "--parent", &parent, "--verify", "true"],
+    );
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args([
+                "q",
+                &format!("SELECT id FROM tasks WHERE parent = '{parent}'"),
+            ])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains(&child), "child by parent column: {out}");
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["q", "SELECT id FROM tasks WHERE parent IS NULL"])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains(&parent), "parentless row is NULL: {out}");
+
+    let out = meshwork(&repo)
+        .args(["q", "SELECT no_such_column FROM tasks"])
+        .assert()
+        .failure();
+    let err = stderr_of(&out);
+    for table in ["tasks", "edges", "labels", "comments", "log", "repos"] {
+        assert!(err.contains(table), "q error must name `{table}`: {err}");
+    }
+}

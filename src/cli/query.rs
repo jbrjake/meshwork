@@ -90,7 +90,14 @@ pub(crate) fn run_query(
         let batches = df.collect().await?;
         Ok((columns, batches))
     })
-    .map_err(|e: datafusion::error::DataFusionError| e.to_string())
+    // A failing query names every queryable table — the graph must be
+    // discoverable from the error, not archaeology (mw-0ssk8dg).
+    .map_err(|e: datafusion::error::DataFusionError| {
+        format!(
+            "{e}\n  queryable tables: {}",
+            crate::tables::TABLES.join(", ")
+        )
+    })
 }
 
 /// Run SQL over the local store, rows as strings — for sibling verbs

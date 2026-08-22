@@ -12,6 +12,10 @@ use datafusion::prelude::SessionContext;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
+/// The queryable table names, registration order — the single list the
+/// `q` error path enumerates (mw-0ssk8dg).
+pub const TABLES: [&str; 6] = ["tasks", "edges", "labels", "comments", "log", "repos"];
+
 /// Build a `SessionContext` with the six-table contract registered:
 /// `tasks`, `edges`, `labels`, `comments`, `log`, `repos` (DESIGN §4) —
 /// plus the `category_matches` UDF (MW-B4), so filtering stays plain SQL.
@@ -29,12 +33,12 @@ pub fn session_for(
     foreign: &[crate::registry::ForeignTask],
 ) -> DfResult<SessionContext> {
     let ctx = SessionContext::new();
-    ctx.register_batch("tasks", tasks_batch(stores, foreign)?)?;
-    ctx.register_batch("edges", edges_batch(stores, foreign)?)?;
-    ctx.register_batch("labels", labels_batch(stores)?)?;
-    ctx.register_batch("comments", comments_batch(stores)?)?;
-    ctx.register_batch("log", log_batch(stores)?)?;
-    ctx.register_batch("repos", repos_batch(stores)?)?;
+    ctx.register_batch(TABLES[0], tasks_batch(stores, foreign)?)?;
+    ctx.register_batch(TABLES[1], edges_batch(stores, foreign)?)?;
+    ctx.register_batch(TABLES[2], labels_batch(stores)?)?;
+    ctx.register_batch(TABLES[3], comments_batch(stores)?)?;
+    ctx.register_batch(TABLES[4], log_batch(stores)?)?;
+    ctx.register_batch(TABLES[5], repos_batch(stores)?)?;
     ctx.register_udf(category_matches_udf());
     Ok(ctx)
 }
@@ -113,10 +117,11 @@ fn tasks_schema() -> Arc<Schema> {
         utf8(true, "addressed_to"),
         utf8(false, "path"),
         utf8(true, "error"),
-        // Appended last (mw-getx732, then mw-5xdyxep) so readers indexing
-        // the format-1 column order are undisturbed.
+        // Appended last (mw-getx732, mw-5xdyxep, then mw-0ssk8dg) so
+        // readers indexing the format-1 column order are undisturbed.
         utf8(true, "body"),
         utf8(true, "handoff"),
+        utf8(true, "parent"),
     ]))
 }
 
@@ -141,6 +146,7 @@ struct TaskCols {
     error: Vec<Option<String>>,
     body: Vec<Option<String>>,
     handoff: Vec<Option<String>>,
+    parent: Vec<Option<String>>,
 }
 
 impl TaskCols {
@@ -163,6 +169,9 @@ impl TaskCols {
         // Parsed-and-empty is `''`; only unparsed rows are NULL.
         self.body.push(Some(t.description.clone()));
         self.handoff.push(t.handoff.clone());
+        // One edge kind, child-points-up, so the column is well-defined
+        // (mw-0ssk8dg); the edges row remains the normative projection.
+        self.parent.push(t.parent.clone());
     }
 
     /// All-NULL optional columns; `error`/`status` mark the row invalid.
@@ -201,6 +210,7 @@ impl TaskCols {
         self.addressed_to.push(None);
         self.body.push(None);
         self.handoff.push(None);
+        self.parent.push(None);
     }
 
     fn into_columns(self) -> Vec<ArrayRef> {
@@ -223,6 +233,7 @@ impl TaskCols {
             Arc::new(StringArray::from(self.error)),
             Arc::new(StringArray::from(self.body)),
             Arc::new(StringArray::from(self.handoff)),
+            Arc::new(StringArray::from(self.parent)),
         ]
     }
 }

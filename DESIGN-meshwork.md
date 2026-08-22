@@ -79,7 +79,7 @@ Addressed tasks (mw-hfvtx0s, owner lane 2026-08-17): `to: <repo|repo#id>` marks 
 
 | table | columns (abridged) |
 |---|---|
-| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status`, `category`, `verify`, `waived` (reason or NULL — makes MW-E2's "queryable" true), `seq`, `created`, `blocked_reason`, `claimed_by` (advisory claimant or NULL, mw-tb6gdr9), `github`, `addressed_to` (the `to:` key or NULL, mw-hfvtx0s), `path`, `body` (the description section, trimmed; `''` when parsed-and-empty, NULL on invalid rows — mw-getx732), `handoff` (the block text or NULL, mw-5xdyxep) |
+| `tasks` | `gid` (`repo#id`), `repo`, `id`, `title`, `status`, `category`, `verify`, `waived` (reason or NULL — makes MW-E2's "queryable" true), `seq`, `created`, `blocked_reason`, `claimed_by` (advisory claimant or NULL, mw-tb6gdr9), `github`, `addressed_to` (the `to:` key or NULL, mw-hfvtx0s), `path`, `body` (the description section, trimmed; `''` when parsed-and-empty, NULL on invalid rows — mw-getx732), `handoff` (the block text or NULL, mw-5xdyxep), `parent` (the key as written or NULL — convenience projection of the one child-points-up edge kind, `edges` stays normative; mw-0ssk8dg — same task made the `q` error path enumerate the queryable tables) |
 | `edges` | `src_gid`, `dst_gid`, `kind` (`needs`\|`parent`\|`discovered-from`\|`relates`\|`answers`), `resolved` (bool) |
 | `labels` | `gid`, `label` (exploded) |
 | `comments` | `gid`, `ord` (file position), `date`, `author` (self-professed), `text`, `hash` (the FORMAT.md identity hash, mw-xvtf5jx) (MW-C1/K1) |

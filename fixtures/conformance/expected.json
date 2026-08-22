@@ -238,6 +238,7 @@
       "docs/meshwork/archive/cf-42-terminal-done-short-suffix.md",
       "false",
       "Archive placement carries no semantics; readers load it identically.\nSuffix length and alphabet are minting rules — `42` parses fine. The\ndone transition's trailing `@ <short-sha>[+N]` is a note convention,\nnot a parse rule.",
+      "",
       ""
     ],
     [
@@ -258,7 +259,8 @@
       "docs/meshwork/cf-a1b2c3d-maximal-every-projected-key.md",
       "false",
       "The kitchen-sink row: exercises every frontmatter key that projects into\nthe `tasks`, `edges`, and `labels` tables. This description projects as\n`tasks.body` — trimmed, tail sections excluded, a quoted heading staying\nbody content:\n\n```md\n## log\n- fenced, so still description\n```",
-      ""
+      "",
+      "cf-42"
     ],
     [
       "conformance#cf-a5k0001",
@@ -278,6 +280,7 @@
       "docs/meshwork/cf-a5k0001-ask-addressed-to-another-repo.md",
       "false",
       "An ask lives in its author's store; `to:` projects as `addressed_to`.\nDelivery is the reader's join, never a write into the addressee.",
+      "",
       ""
     ],
     [
@@ -298,6 +301,7 @@
       "docs/meshwork/cf-an5wer1-answers-a-local-ask.md",
       "false",
       "`answers` projects as an `answers` edge and never gates readiness.",
+      "",
       ""
     ],
     [
@@ -318,6 +322,7 @@
       "docs/meshwork/cf-bl0cked-blocked-with-reason.md",
       "false",
       "`blocked-reason` is required non-empty iff status is blocked.",
+      "",
       ""
     ],
     [
@@ -338,6 +343,7 @@
       "docs/meshwork/archive/cf-dr0pped-terminal-dropped.md",
       "false",
       "The fifth status value, archived like done.",
+      "",
       ""
     ],
     [
@@ -358,7 +364,8 @@
       "docs/meshwork/cf-h4nd0ff-doing-claimed-with-handoff.md",
       "false",
       "A doing task carrying the advisory claim and an authored handoff.",
-      "Multi-line handoff prose. It projects as `tasks.handoff`, newlines\nintact; a task without the key projects NULL there.\n"
+      "Multi-line handoff prose. It projects as `tasks.handoff`, newlines\nintact; a task without the key projects NULL there.\n",
+      ""
     ],
     [
       "conformance#cf-l0gedge",
@@ -378,6 +385,7 @@
       "docs/meshwork/cf-l0gedge-log-and-comment-grammar-edges.md",
       "false",
       "Log: date-only free text, an empty entry (NULL date), a token that looks\ntransition-shaped but names no status (free text), a dateless entry whose\nfirst token projects as the date anyway (mw-e60thg2). Comments: a\nnonconforming line is skipped with a warning, never fatal.",
+      "",
       ""
     ],
     [
@@ -398,6 +406,7 @@
       "docs/meshwork/cf-m1n1mal-only-required-keys.md",
       "false",
       "Everything except id, title, and status is optional; every other\nprojected column on this row is NULL or empty.",
+      "",
       ""
     ],
     [
@@ -417,6 +426,7 @@
       "",
       "docs/meshwork/cf-p01s0n-union-damage-invalid-row.md",
       "true",
+      "",
       "",
       ""
     ],
@@ -438,6 +448,7 @@
       "docs/meshwork/cf-unkn0wn-unknown-key-still-valid.md",
       "false",
       "`flavor` is not in the schema: readers warn and keep the row valid.\nThis file MUST project as a normal open task, not an invalid row.",
+      "",
       ""
     ]
   ]
