@@ -7,7 +7,7 @@
 //! Edits are surgical (edit.rs), so union merges stay clean and
 //! hand-written `# …` comments survive.
 
-use crate::edit::{append_block_item, set_block, set_scalar};
+use crate::edit::{append_block_item, remove_scalar, set_block, set_scalar};
 use crate::store::find_task_file;
 use crate::write::yaml_scalar;
 
@@ -75,7 +75,14 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
     }
     if let Some(handoff) = &args.handoff {
         let payload = crate::cli::prose_payload(handoff)?;
-        text = set_block(&text, "handoff", &wrap(&payload, HANDOFF_WRAP))?;
+        // Empty clears the key outright (mw-gbep3j8): a dangling
+        // `handoff: |` with nothing under it reads as absent everywhere
+        // else — writing it just leaves a vestige to hand-clean.
+        if payload.trim().is_empty() {
+            text = remove_scalar(&text, "handoff")?;
+        } else {
+            text = set_block(&text, "handoff", &wrap(&payload, HANDOFF_WRAP))?;
+        }
         set_fields.push("handoff");
     }
     if let Some(cat) = &args.cat {

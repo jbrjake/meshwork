@@ -116,6 +116,56 @@ fn field_setters() {
         .stderr(predicates::str::contains("wo-zzzzzzz"));
 }
 
+/// mw-gbep3j8: `set --handoff ''` clears the key entirely — an empty
+/// block scalar (`handoff: |` with nothing under it) is a dangling
+/// vestige lint reads as absent; nine of them were once hand-cleaned.
+#[test]
+fn set_handoff_clear() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_id(&repo, &["add", "Clearable", "--verify", "true"]);
+    let path = task_file(&repo, &id);
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", "voice to drop later"])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("handoff: |"), "precondition: {text}");
+
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", ""])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(
+        !text.contains("handoff"),
+        "key gone, no dangling block: {text}"
+    );
+
+    // Clearing an absent key is a quiet no-op — never mints the key.
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", ""])
+        .assert()
+        .success();
+    assert_eq!(
+        text,
+        std::fs::read_to_string(&path).unwrap(),
+        "clear of an absent key touches nothing"
+    );
+
+    // Whitespace-only payload is the same clear.
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", "Back."])
+        .assert()
+        .success();
+    meshwork(&repo)
+        .args(["set", &id, "--handoff", "  "])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(!text.contains("handoff"), "whitespace clears too: {text}");
+}
+
 /// mw-rz4ey2h (§6 ruling 2026-08-10): prose fields get a path that never
 /// transits shell quoting — the pilot's inline --handoff had a backticked
 /// chunk EXECUTED as command substitution and the stored body mangled.
