@@ -15,6 +15,7 @@ pub mod lint;
 pub mod lint_tail;
 pub mod lint_verify;
 pub mod parse;
+pub mod paths;
 pub mod provenance;
 pub mod registry;
 pub mod registry_hygiene;

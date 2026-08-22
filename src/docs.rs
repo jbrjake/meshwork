@@ -36,6 +36,12 @@ pub enum LinkError {
         /// The fragment as written after `#`.
         anchor: String,
     },
+    /// The path resolves outside the repo — absolute, traversing, or a
+    /// symlink escape; never read (mw-2pz0zqc).
+    Escapes {
+        /// The path as written in the link.
+        path: String,
+    },
 }
 
 impl std::fmt::Display for LinkError {
@@ -43,6 +49,7 @@ impl std::fmt::Display for LinkError {
         match self {
             LinkError::Unreadable { path } => write!(f, "{path} not readable"),
             LinkError::AnchorMissing { anchor } => write!(f, "anchor not found: #{anchor}"),
+            LinkError::Escapes { path } => write!(f, "{path} escapes the repo — refusing to read"),
         }
     }
 }
@@ -60,7 +67,15 @@ pub fn resolve(root: &Path, link: &str) -> Excerpt {
         truncated,
         error,
     };
-    let Ok(content) = std::fs::read_to_string(root.join(path)) else {
+    // Confinement before any read: the link is a string from a merged
+    // task file (mw-2pz0zqc).
+    let Ok(on_disk) = crate::paths::confine(root, path) else {
+        let err = LinkError::Escapes {
+            path: path.to_string(),
+        };
+        return make(String::new(), false, Some(err));
+    };
+    let Ok(content) = std::fs::read_to_string(on_disk) else {
         let err = LinkError::Unreadable {
             path: path.to_string(),
         };

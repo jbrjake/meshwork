@@ -17,6 +17,7 @@ const MODEL_MODULES: &[&str] = &[
     "lint_tail.rs",
     "lint_verify.rs",
     "parse.rs",
+    "paths.rs",
     "provenance.rs",
     "registry.rs",
     "registry_hygiene.rs",

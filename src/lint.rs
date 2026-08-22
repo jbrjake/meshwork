@@ -109,6 +109,7 @@ fn check_docs(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
             let code = match err {
                 crate::docs::LinkError::Unreadable { .. } => "doc-missing",
                 crate::docs::LinkError::AnchorMissing { .. } => "anchor-missing",
+                crate::docs::LinkError::Escapes { .. } => "path-escape",
             };
             out.push(finding(
                 Severity::Warning,
@@ -593,7 +594,18 @@ fn check_budgets(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
             ));
         }
         for rel in &t.attachments {
-            let path = store.root.join("docs").join("meshwork").join(rel);
+            // Confined to the store dir before any stat — the path is a
+            // string from a merged task file (mw-2pz0zqc).
+            let store_dir = store.root.join("docs").join("meshwork");
+            let Ok(path) = crate::paths::confine(&store_dir, rel) else {
+                out.push(finding(
+                    Severity::Warning,
+                    "path-escape",
+                    &t.id,
+                    format!("attachment `{rel}` escapes the repo — never read"),
+                ));
+                continue;
+            };
             match std::fs::metadata(&path) {
                 Err(_) => out.push(finding(
                     Severity::Warning,

@@ -86,13 +86,11 @@ fn require_non_vacuous(argv: &[String], out: &str) -> Result<(), String> {
     ))
 }
 
-/// Belt over the parser's braces: re-refuse absolute and traversing
-/// paths even on programmatically built predicates.
+/// Belt over the parser's braces: re-refuse absolute, traversing, and
+/// symlink-escaping paths even on programmatically built predicates —
+/// the shared confinement (mw-2pz0zqc).
 fn safe_join(root: &Path, rel: &str) -> Result<std::path::PathBuf, String> {
-    if rel.starts_with('/') || rel.split('/').any(|seg| seg == "..") {
-        return Err(format!("unsafe path: {rel}"));
-    }
-    Ok(root.join(rel))
+    crate::paths::confine(root, rel)
 }
 
 fn matches(text: &str, pattern: &Pattern) -> Result<bool, String> {
