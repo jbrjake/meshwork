@@ -5,7 +5,7 @@ category: core/format
 verify: contains FORMAT.md /(?i)versioning unit/
 docs:
   - FORMAT.md#§-config-toml
-status: open
+status: done
 created: 2026-08-09T23:17Z
 seq: 120
 ---
@@ -18,3 +18,5 @@ current format version.
 
 ## log
 - 2026-08-09T23:17Z created
+- 2026-08-22T00:43Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-22T00:49Z doing→done — verify exit 0 @ 783f678+2
