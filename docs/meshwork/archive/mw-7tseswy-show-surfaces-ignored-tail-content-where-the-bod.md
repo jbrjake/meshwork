@@ -7,7 +7,7 @@ verify: run cargo test e2e::show_flags_ignored_tail_content
 docs:
   - DESIGN-meshwork.md#§-6-cli-surface
   - FORMAT.md#tail-section-grammars
-status: open
+status: done
 created: 2026-08-09T23:35Z
 seq: 140
 ---
@@ -22,3 +22,7 @@ ignored content would have rendered:
 
 Name the remedy, not just the fact. Needs the --fix relocation to
 exist first so the message can point at it.
+
+## log
+- 2026-08-22T01:02Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-22T01:08Z doing→done — verify exit 0 @ 313c056+2
