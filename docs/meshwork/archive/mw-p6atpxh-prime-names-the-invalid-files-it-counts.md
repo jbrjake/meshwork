@@ -1,7 +1,7 @@
 ---
 id: mw-p6atpxh
 title: prime names the invalid files it counts
-status: open
+status: done
 category: product/prime
 verify: run cargo test prime_names_invalid
 created: 2026-08-12T20:48Z
@@ -18,3 +18,5 @@ already mandates for listings.
 
 ## log
 - 2026-08-12T20:48Z created
+- 2026-08-22T01:30Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-22T01:38Z doing→done — verify exit 0 @ b9df800+2
