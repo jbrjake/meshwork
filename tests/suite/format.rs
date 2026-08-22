@@ -290,3 +290,47 @@ fn close_anchor_pattern() {
         );
     }
 }
+
+/// mw-8x954nr: the spec rules the stamp middle ground. Conforming forms
+/// are exactly date-only and UTC-Z minute; anything else with a date
+/// prefix (an offset stamp, seconds) is nonconforming — never minted,
+/// compared as opaque text as written. Prefix-ordering is stated, not
+/// implied: date-only is a strict prefix of its day's minute stamps, so
+/// it sorts before them and max-stamp prefers the more precise entry.
+#[test]
+fn stamp_ordering() {
+    // Spec side: FORMAT.md states the offset ruling and the ordering.
+    let spec =
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("FORMAT.md"))
+            .unwrap();
+    assert!(
+        spec.contains("nonconforming") && spec.contains("opaque text"),
+        "FORMAT.md must rule offset stamps nonconforming, compared as opaque text"
+    );
+    assert!(
+        spec.contains("date-only sorts before"),
+        "FORMAT.md must state the prefix-ordering property explicitly"
+    );
+
+    // The property itself, in executable form: a strict prefix sorts first.
+    assert!("2026-08-06" < "2026-08-06T21:47Z");
+
+    // Behavior side: last-activity is the as-written lexicographic max.
+    // The offset stamp is civil 2026-08-07T01:47Z — LATER than the Z
+    // entry — but compares as opaque text (`-` < `Z`), so the conforming
+    // stamp stays the max. That is the documented cost of minting one.
+    let text = "---\nid: az-stmp1\ntitle: Stamps\nstatus: doing\n---\nbody\n\n\
+                ## log\n\
+                - 2026-08-06 created\n\
+                - 2026-08-06T21:47Z open→doing\n\
+                - 2026-08-06T21:47-04:00 hand-edited with a local offset\n";
+    let t = match meshwork::parse::parse_task_str("az-stmp1-stamps.md", text) {
+        meshwork::parse::ParsedTask::Valid(t) => *t,
+        meshwork::parse::ParsedTask::Invalid(inv) => panic!("valid file: {}", inv.error),
+    };
+    assert_eq!(
+        t.last_activity_date().as_deref(),
+        Some("2026-08-06T21:47Z"),
+        "conforming max wins; the offset form participates as opaque text"
+    );
+}

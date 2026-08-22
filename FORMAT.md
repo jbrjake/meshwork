@@ -63,7 +63,7 @@ Filename: `<id>-<slug>.md`. The slug is cosmetic and never load-bearing; the ID 
 | `waived` | string | reason recorded by `close --waive` |
 | `handoff` | string | authored note to the next session; meaningful only while the task is up next |
 
-**Stamps.** Minted stamps are UTC minute resolution: `YYYY-MM-DDTHH:MMZ` (17 chars). Date-only `YYYY-MM-DD` is legal forever. Stamps sort lexicographically; last-activity of a file is the max stamp in it, always derived, never stored.
+**Stamps.** Minted stamps are UTC minute resolution: `YYYY-MM-DDTHH:MMZ` (17 chars). Date-only `YYYY-MM-DD` is legal forever. These two are the only conforming forms; anything else carrying a date prefix — an offset stamp like `2026-08-06T21:47-04:00`, a seconds field, a space separator — is nonconforming (mw-8x954nr): never minted, compared as opaque text exactly as written, and a reader MAY warn. Stamps sort lexicographically, and the ordering guarantees hold only among conforming forms — in particular, date-only is a strict prefix of every minute stamp of its own day, so date-only sorts before them and max-stamp prefers the more precise entry. A nonconforming stamp still participates as written: a same-minute offset form sorts before its `Z` twin and its civil time is never computed — the cost of minting one. Last-activity of a file is the max stamp in it, always derived, never stored.
 
 **Identity strings** (comment authors, `claimed-by`) are self-professed free strings — no accounts, no verification; an identity is a claim, recorded as claimed.
 
