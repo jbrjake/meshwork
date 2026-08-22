@@ -1,7 +1,7 @@
 ---
 id: mw-8fmsws3
 title: Terminal escape sanitization in rendered task content
-status: open
+status: done
 category: core/render
 discovered-from: mw-mjwfvxn
 verify: run cargo test e2e::render_sanitized
@@ -22,3 +22,5 @@ bytes as written. e2e proves a hostile fixture renders inert.
 
 ## log
 - 2026-08-07T01:55Z created
+- 2026-08-22T01:16Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-22T01:22Z doing→done — verify exit 0 @ b9133b9+3
