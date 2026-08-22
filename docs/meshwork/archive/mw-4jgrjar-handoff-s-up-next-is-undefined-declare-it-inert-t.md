@@ -5,7 +5,7 @@ category: core/format
 verify: contains FORMAT.md inert
 docs:
   - FORMAT.md#task-file
-status: open
+status: done
 created: 2026-08-09T23:17Z
 seq: 130
 ---
@@ -19,3 +19,5 @@ no third-party reader can make.
 
 ## log
 - 2026-08-09T23:17Z created
+- 2026-08-22T00:49Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-22T01:01Z doing→done — verify exit 0 @ 0e6ba67+2
