@@ -9,16 +9,15 @@ seq: 180
 created: 2026-08-21T18:21Z
 handoff: |
   Both hardening prereqs landed 2026-08-22: path confinement (mw-2pz0zqc,
-  src/paths.rs — lexical + canonicalize-when-exists, shared by
-  docs/attachments/DSL reads) and terminal-escape sanitization
-  (mw-8fmsws3, cli::sanitize at every text seam incl. prime's
-  hook-injected context). The reveal itself is the owner's word —
-  nothing technical remains in front of it. Note for the reveal review:
-  mw-3tzfqmq (add/set accept control chars that mint an invalid file) is
-  filed but open; mint-side, not a read-path hole. Two §6 surface asks
-  await rulings and sit blocked with reasons: drop --reason (mw-bd390q6),
-  verify dry-run verb (mw-dx4pndb).
+  src/paths.rs) and terminal-escape sanitization (mw-8fmsws3,
+  cli::sanitize at every text seam incl. prime's hook-injected context).
+  Owner ruling 2026-08-22: the owner flips the reveal himself — task
+  stays open as his marker, no agent action pending. mw-3tzfqmq (mint-side
+  control chars) is filed but open; not a read-path hole.
 ---
 
 ## log
 - 2026-08-21T18:21Z created
+
+## comments
+- 2026-08-22T01:43Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Owner ruling 2026-08-22: the owner flips the reveal himself, outside agent sessions. Task stays open as his marker; no agent action pending on it.
