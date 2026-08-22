@@ -209,6 +209,14 @@
       "",
       "",
       "open→nowhere is free text because nowhere is not a status"
+    ],
+    [
+      "conformance#cf-l0gedge",
+      "5",
+      "fixed",
+      "",
+      "",
+      "the thing"
     ]
   ],
   "tasks": [
@@ -369,7 +377,7 @@
       "",
       "docs/meshwork/cf-l0gedge-log-and-comment-grammar-edges.md",
       "false",
-      "Log: date-only free text, an empty entry (NULL date), a token that looks\ntransition-shaped but names no status (free text). Comments: a\nnonconforming line is skipped with a warning, never fatal.",
+      "Log: date-only free text, an empty entry (NULL date), a token that looks\ntransition-shaped but names no status (free text), a dateless entry whose\nfirst token projects as the date anyway (mw-e60thg2). Comments: a\nnonconforming line is skipped with a warning, never fatal.",
       ""
     ],
     [

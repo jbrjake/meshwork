@@ -334,3 +334,54 @@ fn stamp_ordering() {
         "conforming max wins; the offset form participates as opaque text"
     );
 }
+
+/// mw-e60thg2: the log grammar says token one is the date, as written —
+/// unconditionally — while the projection promised `date` NULL "if the
+/// entry has none", unreachable under that grammar. Ruled for the
+/// grammar: token one is always the date, even when it isn't
+/// date-shaped; NULL only for an entry with no text at all. The
+/// conformance corpus carries the deciding fixture.
+#[test]
+fn log_date_nullability() {
+    use meshwork::parse::parse_log_line;
+
+    // Spec side: the unreachable NULL clause is gone, the ruling stated.
+    let spec =
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("FORMAT.md"))
+            .unwrap();
+    assert!(
+        !spec.contains("NULL if the entry has none"),
+        "FORMAT.md still carries the unreachable NULL clause"
+    );
+    assert!(
+        spec.contains("even when it isn't date-shaped"),
+        "FORMAT.md must state that token one is the date unconditionally"
+    );
+
+    // Behavior side: a dateless hand-written entry projects its first
+    // token as the date — garbage in, garbage visible in SQL.
+    let e = parse_log_line("fixed the thing");
+    assert_eq!(e.date.as_deref(), Some("fixed"));
+    assert_eq!(e.note.as_deref(), Some("the thing"));
+
+    // NULL date exists exactly once: the entry with no text at all.
+    let empty = parse_log_line("");
+    assert_eq!(empty.date, None);
+    assert_eq!(empty.note, None);
+
+    // Corpus side: the deciding fixture exists and projects as ruled.
+    let corpus = crate::common::fixtures_root().join("conformance");
+    let fixture = std::fs::read_to_string(
+        corpus.join("docs/meshwork/cf-l0gedge-log-and-comment-grammar-edges.md"),
+    )
+    .unwrap();
+    assert!(
+        fixture.contains("\n- fixed the thing\n"),
+        "cf-l0gedge must carry the dateless free-text entry"
+    );
+    let expected = std::fs::read_to_string(corpus.join("expected.json")).unwrap();
+    assert!(
+        expected.contains(r#""fixed""#),
+        "expected.json must project the first token as the date"
+    );
+}
