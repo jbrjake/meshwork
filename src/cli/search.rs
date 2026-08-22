@@ -110,9 +110,9 @@ pub(crate) fn run(args: &SearchArgs, json: bool) -> Result<(), String> {
         );
     } else {
         for (id, h) in &ordered[..cap] {
-            println!("{id}  {} [{}]", h.title, h.status);
+            println!("{id}  {} [{}]", crate::cli::sanitize(&h.title), h.status);
             for (field, snippet) in &h.matches {
-                println!("    {field}: {snippet}");
+                println!("    {field}: {}", crate::cli::sanitize(snippet));
             }
         }
         if total > cap {

@@ -119,7 +119,11 @@ fn render_tree_text(
     let pad = "  ".repeat(indent);
     let label = level_label(levels, depth).map_or(String::new(), |l| format!("[{l}] "));
     match tasks.get(id) {
-        Some(t) => println!("{pad}{id} {label}{} ({})", t.title, t.status.as_str()),
+        Some(t) => println!(
+            "{pad}{id} {label}{} ({})",
+            crate::cli::sanitize(&t.title),
+            t.status.as_str()
+        ),
         None => println!("{pad}{id} {label}(missing)"),
     }
     if let Some(kids) = children.get(id) {
@@ -184,10 +188,10 @@ pub(crate) fn why(args: &super::transition::IdArg, json: bool) -> Result<(), Str
             } else {
                 let reason = f["blocked_reason"]
                     .as_str()
-                    .map_or(String::new(), |r| format!(" — {r}"));
-                let verify = f["verify"]
-                    .as_str()
-                    .map_or(String::new(), |v| format!(" — verify: {v}"));
+                    .map_or(String::new(), |r| format!(" — {}", crate::cli::sanitize(r)));
+                let verify = f["verify"].as_str().map_or(String::new(), |v| {
+                    format!(" — verify: {}", crate::cli::sanitize(v))
+                });
                 println!(
                     "- {} ({}){reason}{verify}",
                     // Local entries carry `id`; registry-resolved foreign
@@ -267,7 +271,12 @@ pub(crate) fn blocked(args: &BlockedArgs, json: bool) -> Result<(), String> {
         );
     } else {
         for r in &rows[..cap] {
-            println!("{}  {} — {}", r[0], r[1], r[2]);
+            println!(
+                "{}  {} — {}",
+                r[0],
+                crate::cli::sanitize(&r[1]),
+                crate::cli::sanitize(&r[2])
+            );
         }
         if total > cap {
             println!("… and {} more (use --all)", total - cap);

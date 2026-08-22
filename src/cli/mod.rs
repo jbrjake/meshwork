@@ -187,6 +187,18 @@ pub(crate) fn emit_json(verb: &str, data: &serde_json::Value) {
     println!("{envelope}");
 }
 
+/// Terminal-safe task content (mw-8fmsws3, DESIGN §12b adjacent): strip
+/// C0 and C1 controls — keeping `\n` and `\t` — at render time only;
+/// files keep their bytes as written. Task text renders to the
+/// operator's terminal and into hook-injected agent context, where raw
+/// ESC/CSI/OSC is spoofing (or prompt) surface. JSON mode needs none of
+/// this: serde escapes controls by construction.
+pub(crate) fn sanitize(text: &str) -> String {
+    text.chars()
+        .filter(|c| !c.is_control() || *c == '\n' || *c == '\t')
+        .collect()
+}
+
 /// Parse argv and run; returns the process exit code.
 #[must_use]
 pub fn run() -> i32 {

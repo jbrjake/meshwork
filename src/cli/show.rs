@@ -115,10 +115,13 @@ fn render_text(
     commits: &[(String, String)],
     stray: Option<usize>,
 ) {
-    println!("{} — {} [{}]", t.id, t.title, t.status.as_str());
+    // Every task-derived string passes through sanitize (mw-8fmsws3) —
+    // render-time only, the file keeps its bytes.
+    let clean = crate::cli::sanitize;
+    println!("{} — {} [{}]", t.id, clean(&t.title), t.status.as_str());
     let kv = |k: &str, v: Option<String>| {
         if let Some(v) = v {
-            println!("{k}: {v}");
+            println!("{k}: {}", clean(&v));
         }
     };
     kv("category", t.category.clone());
@@ -137,20 +140,20 @@ fn render_text(
     kv("claimed-by", t.claimed_by.clone());
     kv("waived", t.waived.clone());
     for d in &t.docs {
-        println!("doc: {d}");
+        println!("doc: {}", clean(d));
     }
     for a in &t.attachments {
-        println!("attachment: {a}");
+        println!("attachment: {}", clean(a));
     }
     println!("file: {rel}");
     if let Some(voice) = t.handoff.as_deref().filter(|h| !h.trim().is_empty()) {
         println!();
         for line in voice.lines() {
-            println!("\u{bb} {line}");
+            println!("\u{bb} {}", clean(line));
         }
     }
     if !t.description.is_empty() {
-        println!("\n{}", t.description);
+        println!("\n{}", clean(&t.description));
     }
     if let Some(moved) = stray {
         println!(
@@ -161,7 +164,7 @@ fn render_text(
     if !t.log.is_empty() {
         println!("\nlog:");
         for entry in &t.log {
-            println!("- {}", entry.replace('\n', "\n  "));
+            println!("- {}", clean(entry).replace('\n', "\n  "));
         }
     }
     if !t.comments.is_empty() {
@@ -177,16 +180,16 @@ fn render_text(
         for c in shown {
             println!(
                 "- {} [{}] {}",
-                c.date,
-                c.author,
-                c.text.replace('\n', "\n  ")
+                clean(&c.date),
+                clean(&c.author),
+                clean(&c.text).replace('\n', "\n  ")
             );
         }
     }
     if !commits.is_empty() {
         println!("\ncommits ({}):", commits.len());
         for (sha, subject) in commits.iter().take(COMMIT_CAP) {
-            println!("- {sha} {subject}");
+            println!("- {sha} {}", clean(subject));
         }
         if commits.len() > COMMIT_CAP {
             println!(
@@ -197,7 +200,7 @@ fn render_text(
         }
     }
     for w in &t.warnings {
-        eprintln!("warning: {w}");
+        eprintln!("warning: {}", clean(w));
     }
 }
 
@@ -211,12 +214,13 @@ fn render_excerpts(t: &Task, docs: bool, excerpts: &[crate::docs::Excerpt]) {
         println!("\nno docs: links on {}", t.id);
         return;
     }
+    let clean = crate::cli::sanitize;
     for e in excerpts {
         if let Some(err) = &e.error {
-            println!("\n── {} — {err}", e.link);
+            println!("\n── {} — {}", clean(&e.link), clean(&err.to_string()));
             continue;
         }
-        println!("\n── {}\n{}", e.link, e.text);
+        println!("\n── {}\n{}", clean(&e.link), clean(&e.text));
         if e.truncated {
             println!(
                 "… truncated at {}B — read {} for the rest",

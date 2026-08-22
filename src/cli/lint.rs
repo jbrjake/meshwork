@@ -80,8 +80,8 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
                 "{}[{}] {}: {}",
                 f.severity.as_str(),
                 f.code,
-                f.subject,
-                f.message
+                crate::cli::sanitize(&f.subject),
+                crate::cli::sanitize(&f.message)
             );
         }
         println!("{errors} error(s), {warnings} warning(s)");

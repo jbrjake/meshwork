@@ -470,7 +470,9 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         }
         let _ = writeln!(out, "{line}");
     }
-    print!("{out}");
+    // One choke point for the whole digest — this text also lands in
+    // hook-injected agent context (mw-8fmsws3).
+    print!("{}", crate::cli::sanitize(&out));
     Ok(())
 }
 

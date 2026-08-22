@@ -146,7 +146,12 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
             } else {
                 ""
             };
-            println!("{}  {}{claim}{gap}", row[0], row[1]);
+            println!(
+                "{}  {}{}{gap}",
+                row[0],
+                crate::cli::sanitize(&row[1]),
+                crate::cli::sanitize(&claim)
+            );
         }
         if total > cap {
             println!("… and {} more (use --all)", total - cap);
@@ -159,7 +164,7 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
         if !inbox.is_empty() {
             println!("addressed to this repo ({}):", inbox.len());
             for a in inbox.iter().take(ADDRESSED_CAP) {
-                println!("{}  {}", a.gid, a.title);
+                println!("{}  {}", a.gid, crate::cli::sanitize(&a.title));
             }
             if inbox.len() > ADDRESSED_CAP {
                 println!("… and {} more addressed", inbox.len() - ADDRESSED_CAP);
@@ -202,7 +207,9 @@ pub(crate) fn print_q_text(columns: &[String], batches: &[RecordBatch]) {
     let rows = string_rows(batches);
     let n = rows.len();
     for row in rows {
-        println!("{}", row.join(" | "));
+        // Cells carry task text (title, body, handoff…) — render-safe
+        // only (mw-8fmsws3).
+        println!("{}", crate::cli::sanitize(&row.join(" | ")));
     }
     println!("({n} rows)");
 }
