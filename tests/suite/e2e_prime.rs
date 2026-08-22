@@ -194,3 +194,26 @@ fn prime_flags_verify_changed_since_approval() {
         "the edited verify is named:\n{out}"
     );
 }
+
+/// mw-p6atpxh: a bare "1 invalid" count sat unactioned for two full
+/// sessions while the broken task silently vanished from ready — when
+/// the count is nonzero, prime spends the bytes to name each file and
+/// say `run lint`.
+#[test]
+fn prime_names_invalid() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    add_task(&repo, "Healthy");
+    std::fs::write(
+        repo.join("docs/meshwork/wo-br0ken1-damaged.md"),
+        "---\nid: wo-br0ken1\ntitle: [unclosed\nstatus: open\n---\nbody\n",
+    )
+    .unwrap();
+
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(
+        out.contains("wo-br0ken1"),
+        "the invalid file is named, not just counted:\n{out}"
+    );
+    assert!(out.contains("run lint"), "names the next step:\n{out}");
+}

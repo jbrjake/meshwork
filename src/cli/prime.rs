@@ -344,13 +344,22 @@ fn counts_line(counts: &BTreeMap<&str, usize>, invalid: usize, repo: &str) -> St
     format!("{repo} — {}", parts.join(", "))
 }
 
-/// The `!` advisory tail: invalid-file count, plus verifies edited after
-/// this clone approved them (mw-yyf1bab) — surfaced before the session
-/// commits to a task; lint carries the full approved-vs-current diff.
-fn advisory_lines(root: &std::path::Path, tasks: &[&Task], invalid: usize) -> Vec<String> {
+/// The `!` advisory tail: invalid files BY NAME (mw-p6atpxh — a bare
+/// count sat unactioned for two sessions while the broken task vanished
+/// from ready), plus verifies edited after this clone approved them
+/// (mw-yyf1bab) — surfaced before the session commits to a task; lint
+/// carries the detail.
+fn advisory_lines(root: &std::path::Path, tasks: &[&Task], invalid: &[&str]) -> Vec<String> {
     let mut out = Vec::new();
-    if invalid > 0 {
-        out.push(format!("! {invalid} invalid file(s) \u{2014} run lint"));
+    if !invalid.is_empty() {
+        out.push(clamp_bytes(
+            &format!(
+                "! {} invalid: {} \u{2014} run lint",
+                invalid.len(),
+                invalid.join(", ")
+            ),
+            LINE_CLAMP,
+        ));
     }
     let changed = crate::lint_verify::changed_since_approval(root, tasks);
     if !changed.is_empty() {
@@ -364,6 +373,19 @@ fn advisory_lines(root: &std::path::Path, tasks: &[&Task], invalid: usize) -> Ve
         ));
     }
     out
+}
+
+/// Recovered ids of unparseable files, so the advisory names what it
+/// counts (mw-p6atpxh).
+fn invalid_ids(store: &crate::store::RepoStore) -> Vec<&str> {
+    store
+        .entries
+        .iter()
+        .filter_map(|e| match &e.parsed {
+            ParsedTask::Invalid(inv) => Some(inv.id.as_str()),
+            ParsedTask::Valid(_) => None,
+        })
+        .collect()
 }
 
 pub(crate) fn run(json: bool) -> Result<(), String> {
@@ -382,7 +404,8 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
             ParsedTask::Invalid(_) => None,
         })
         .collect();
-    let invalid = store.entries.len() - tasks.len();
+    let invalid_ids = invalid_ids(&store);
+    let invalid = invalid_ids.len();
 
     let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
     for t in &tasks {
@@ -460,7 +483,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
             lines.push(clamp_bytes(&format!("- {date} {id} {title}"), LINE_CLAMP));
         }
     }
-    lines.append(&mut advisory_lines(&root, &tasks, invalid));
+    lines.append(&mut advisory_lines(&root, &tasks, &invalid_ids));
 
     let mut out = String::new();
     for line in &lines {
