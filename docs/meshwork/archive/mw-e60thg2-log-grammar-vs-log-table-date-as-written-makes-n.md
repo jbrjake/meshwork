@@ -7,7 +7,7 @@ verify: run cargo test format::log_date_nullability
 docs:
   - FORMAT.md#tail-section-grammars
   - FORMAT.md#projection
-status: open
+status: done
 created: 2026-08-09T23:17Z
 seq: 110
 ---
@@ -24,3 +24,7 @@ this grammar can never happen. An implementer has to guess. Pick one:
 Either way the ruling lands in both sections and the conformance corpus
 (mw-7c6svyn) carries the deciding fixture — this contradiction is
 precisely what that corpus exists to surface.
+
+## log
+- 2026-08-22T00:41Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-22T00:43Z doing→done — verify exit 0 @ 785ee40+2
