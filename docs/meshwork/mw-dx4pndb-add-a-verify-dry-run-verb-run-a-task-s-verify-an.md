@@ -1,7 +1,7 @@
 ---
 id: mw-dx4pndb
 title: "Add a verify dry-run verb: run a task's verify and report, close nothing"
-status: open
+status: blocked
 category: core/verify
 verify: ./meshwork --help | grep -q '^  verify '
 relates:
@@ -11,6 +11,7 @@ docs:
   - DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-12T20:48Z
 seq: 200
+blocked-reason: awaiting DESIGN §6 owner ruling — a new verify verb is a frozen-surface change; evidence for it is in the task body
 ---
 Red-checking verifies is now a proven ritual with no supported path:
 leras sessions hand-rolled the same extraction loop six times
@@ -27,3 +28,4 @@ every moment after.
 
 ## log
 - 2026-08-12T20:48Z created
+- 2026-08-22T01:22Z open→blocked — awaiting DESIGN §6 owner ruling — a new verify verb is a frozen-surface change; evidence for it is in the task body

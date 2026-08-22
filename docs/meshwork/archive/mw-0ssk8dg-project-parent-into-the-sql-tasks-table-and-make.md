@@ -1,7 +1,7 @@
 ---
 id: mw-0ssk8dg
 title: Project parent into the SQL tasks table, and make q errors name every table
-status: open
+status: done
 category: core/query
 verify: ./meshwork q "SELECT parent FROM tasks LIMIT 1"
 relates:
@@ -23,3 +23,5 @@ queryable tables so the graph is discoverable without archaeology.
 
 ## log
 - 2026-08-12T20:48Z created
+- 2026-08-22T01:22Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-22T01:30Z doing→done — verify exit 0 @ 8d794e1+4
