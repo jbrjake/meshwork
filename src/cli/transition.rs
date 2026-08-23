@@ -69,6 +69,11 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
         }
     }
     let claimant = super::notes::resolve_author(&root, args.author.as_deref())?;
+    // The claimant lands in `claimed-by:` frontmatter — same door
+    // (mw-3tzfqmq), whichever link of the identity chain supplied it.
+    if let Some(claimant) = claimant.as_deref() {
+        crate::cli::reject_controls("author", claimant, false)?;
+    }
     transition(
         "start",
         &args.id,
@@ -157,6 +162,7 @@ fn store_only(root: &std::path::Path, task_path: &std::path::Path) -> bool {
 }
 
 pub(crate) fn block(args: &BlockArgs, json: bool) -> Result<(), String> {
+    crate::cli::reject_controls("reason", &args.reason, false)?;
     transition(
         "block",
         &args.id,
@@ -169,6 +175,9 @@ pub(crate) fn block(args: &BlockArgs, json: bool) -> Result<(), String> {
 }
 
 pub(crate) fn drop(args: &DropArgs, json: bool) -> Result<(), String> {
+    if let Some(reason) = &args.reason {
+        crate::cli::reject_controls("reason", reason, false)?;
+    }
     // Scan BEFORE the write (mw-kkvs8zq): a found-but-broken registry is
     // the mw-k7r5 loud error, and it must fire with nothing yet changed.
     // No registry anywhere = no cross-repo namespace = no scan (quiet).

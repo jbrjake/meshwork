@@ -61,6 +61,19 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
         return Err(format!("{} not found in {}", args.id, tasks_dir.display()));
     };
 
+    // Refuse controls before touching the file (mw-3tzfqmq).
+    for (field, value) in [("category", &args.cat), ("verify", &args.verify)] {
+        if let Some(value) = value {
+            crate::cli::reject_controls(field, value, false)?;
+        }
+    }
+    if let Some(title) = &args.title {
+        crate::cli::reject_controls("title", &title.replace(['\n', '\r'], " "), false)?;
+    }
+    for link in &args.docs {
+        crate::cli::reject_controls("docs link", link, false)?;
+    }
+
     let mut text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
     let mut set_fields: Vec<&str> = Vec::new();
     if let Some(seq) = args.seq {
@@ -75,6 +88,7 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
     }
     if let Some(handoff) = &args.handoff {
         let payload = crate::cli::prose_payload(handoff)?;
+        crate::cli::reject_controls("handoff", &payload, true)?;
         // Empty clears the key outright (mw-gbep3j8): a dangling
         // `handoff: |` with nothing under it reads as absent everywhere
         // else — writing it just leaves a vestige to hand-clean.

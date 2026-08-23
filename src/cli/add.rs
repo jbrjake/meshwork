@@ -72,6 +72,7 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
         .as_deref()
         .unwrap_or_default()
         .replace(['\n', '\r'], " ");
+    reject_control_fields(args, &title)?;
     let mut fm = String::new();
     let _ = writeln!(fm, "id: {id}");
     let _ = writeln!(fm, "title: {}", yaml_scalar(&title));
@@ -112,6 +113,7 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     let body = match &args.body {
         Some(raw) => {
             let payload = crate::cli::prose_payload(raw)?;
+            crate::cli::reject_controls("body", &payload, true)?;
             if payload.trim().is_empty() {
                 String::new()
             } else {
@@ -160,6 +162,32 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
         println!("  {rel}");
         if args.verify.is_none() {
             eprintln!("note: no --verify set — lint will warn until it is");
+        }
+    }
+    Ok(())
+}
+
+/// Refuse controls before anything is minted (mw-3tzfqmq) — every
+/// frontmatter-bound field takes the same door.
+fn reject_control_fields(args: &AddArgs, title: &str) -> Result<(), String> {
+    crate::cli::reject_controls("title", title, false)?;
+    for (field, value) in [
+        ("category", &args.cat),
+        ("parent", &args.parent),
+        ("discovered-from", &args.from),
+        ("verify", &args.verify),
+    ] {
+        if let Some(value) = value {
+            crate::cli::reject_controls(field, value, false)?;
+        }
+    }
+    for (field, values) in [
+        ("label", &args.label),
+        ("needs", &args.needs),
+        ("docs link", &args.docs),
+    ] {
+        for value in values {
+            crate::cli::reject_controls(field, value, false)?;
         }
     }
     Ok(())

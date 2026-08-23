@@ -203,6 +203,26 @@ pub(crate) fn sanitize(text: &str) -> String {
         .collect()
 }
 
+/// Mint-side twin of `sanitize` (mw-3tzfqmq): YAML forbids raw control
+/// characters, so text the CLI is about to bind into frontmatter refuses
+/// them at the verb — writing them would mint a file the strict parser
+/// rejects, a success report over an invalid row. `multiline` keeps
+/// `\n`/`\t` legal for prose blocks (handoff, body); single-line fields
+/// normalize newlines before calling.
+pub(crate) fn reject_controls(field: &str, text: &str, multiline: bool) -> Result<(), String> {
+    match text
+        .chars()
+        .find(|c| c.is_control() && !(multiline && (*c == '\n' || *c == '\t')))
+    {
+        Some(c) => Err(format!(
+            "{field} contains a control character (U+{:04X}) — a raw \
+             escape would make the task file unparseable; remove it and retry",
+            c as u32
+        )),
+        None => Ok(()),
+    }
+}
+
 /// Parse argv and run; returns the process exit code.
 #[must_use]
 pub fn run() -> i32 {

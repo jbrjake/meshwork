@@ -100,6 +100,7 @@ include!("e2e_lifecycle.rs");
 include!("e2e_lint.rs");
 include!("e2e_log_table.rs");
 include!("e2e_merge.rs");
+include!("e2e_mint_controls.rs");
 include!("e2e_minute_stamps.rs");
 include!("e2e_mirror_guard.rs");
 include!("e2e_needs_verify.rs");
