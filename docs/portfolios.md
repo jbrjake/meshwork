@@ -93,3 +93,5 @@ Per-machine checkout paths live in a gitignored `repos.local.toml` (default: `~/
 ## portfolio performance
 
 Cold, `ready` over a 1K-task store, and the union across 20 repos, both answer in ~30ms.
+
+*Methodology: `tests/suite/perf.rs` measures cold-process invocations of the release binary — median of 7 runs — against fixture stores written moments earlier: one repo holding 1K tasks (`ready_1k_cold`), and 20 repos of 50 tasks each (`portfolio_20_repos`). Cold means a fresh process each run, not a cold page cache. `scripts/check-perf.sh` holds every run within 1.5× of the medians pinned in `bench-baseline.json`.*

@@ -2,11 +2,11 @@
 id: mw-h2qdr6q
 title: Disclose the ~30ms methodology under the README perf claim
 category: meta/readme
-verify: contains README.md check-perf
+verify: contains docs/portfolios.md check-perf
 docs:
   - README.md
   - DESIGN-meshwork.md#§-14-gate
-status: open
+status: done
 created: 2026-08-10T16:31Z
 seq: 250
 ---
@@ -26,3 +26,8 @@ ones down with it.
 
 ## log
 - 2026-08-10T16:31Z created
+- 2026-08-23T19:17Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-23T19:17Z doing→done — verify exit 0 @ c0fc956+3
+
+## comments
+- 2026-08-23T19:17Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Verify retargeted README.md → docs/portfolios.md: the ~30ms claim moved there (portfolio section split out of README after this task was filed 2026-08-10). The footnote lands under the claim, not in a file that no longer makes it.
