@@ -83,8 +83,17 @@ fn verify_red_check() {
     let err = stderr_of(&assert);
     assert!(err.contains("127"), "{err}");
 
-    // Untrusted text never executes — the skip is loud, the start proceeds.
-    let cold = add_id(&repo, &["add", "Cold clone", "--verify", "true"]);
+    // Untrusted text never executes — the skip is loud, the start
+    // proceeds. Hand-edited verify stands in for merge arrival:
+    // CLI-authored text is pre-approved (mw-2kgkn0j) and would run.
+    let cold = add_id(&repo, &["add", "Cold clone"]);
+    let cold_path = task_file(&repo, &cold);
+    let text = std::fs::read_to_string(&cold_path).unwrap();
+    std::fs::write(
+        &cold_path,
+        text.replace("status: open", "status: open\nverify: \"true\""),
+    )
+    .unwrap();
     let assert = meshwork(&repo)
         .env_remove("MESHWORK_TRUST")
         .args(["start", &cold])

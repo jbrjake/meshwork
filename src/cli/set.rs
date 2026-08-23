@@ -33,8 +33,8 @@ pub(crate) struct SetArgs {
     /// Category slash-path.
     #[arg(long = "cat", alias = "category", value_name = "PATH")]
     cat: Option<String>,
-    /// Verify command `close` runs; replacing it re-arms this clone's
-    /// approval prompt automatically.
+    /// Verify command `close` runs; text you author here is approved for
+    /// this clone at write — other clones still prompt on it.
     #[arg(long, value_name = "CMD")]
     verify: Option<String>,
     /// One-line title. The filename slug is cosmetic and never renamed.
@@ -99,6 +99,14 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
         set_fields.push("title");
     }
     std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    // Approve-at-mint (§12b as amended 2026-08-21, mw-51x0wty): replacing
+    // the text is authoring it — record this clone's approval; every
+    // other clone re-gates on the new text by construction. Best-effort.
+    if let Some(verify) = &args.verify {
+        if let Err(e) = crate::trust::record_approval(&root, &args.id, verify) {
+            eprintln!("warning: could not record verify approval: {e}");
+        }
+    }
 
     if json {
         crate::cli::emit_json(

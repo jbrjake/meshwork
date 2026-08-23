@@ -13,20 +13,24 @@ fn untrusted(repo: &Path) -> Command {
 
 /// The drive-by path is closed: an unapproved shell verify refuses loudly,
 /// names the approval step, runs nothing, and leaves the task untouched.
+/// The hand-edit after mint is the merge stand-in — CLI-authored text is
+/// pre-approved since mw-2kgkn0j, arrived text never is.
 #[test]
 fn verify_trust_gate_refuses_unapproved() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
     let marker = repo.join("pwned");
-    let id = add_id(
-        &repo,
-        &[
-            "add",
-            "malicious import",
-            "--verify",
-            &format!("touch {}", marker.display()),
-        ],
-    );
+    let id = add_id(&repo, &["add", "malicious import", "--verify", "true"]);
+    let path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(
+        &path,
+        text.replace(
+            "verify: \"true\"",
+            &format!("verify: \"touch {}\"", marker.display()),
+        ),
+    )
+    .unwrap();
 
     let assert = untrusted(&repo).args(["close", &id]).assert().failure();
     let err = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
@@ -44,7 +48,8 @@ fn verify_trust_gate_refuses_unapproved() {
 
 /// `--approve` shows the text, records the approval for this clone, runs —
 /// and the approval is remembered: a later close needs no flag. The state
-/// lives under gitignored .cache/, invisible to git.
+/// lives under gitignored .cache/, invisible to git. Arrival is the
+/// hand-edit stand-in — minted text would be pre-approved (mw-2kgkn0j).
 #[test]
 fn verify_trust_approve_records_then_remembers() {
     let (_g, repo) = git_repo("work");
@@ -52,13 +57,16 @@ fn verify_trust_approve_records_then_remembers() {
     git(&repo, &["add", "-A"]);
     git(&repo, &["commit", "-qm", "seed"]);
     let id = add_id(&repo, &["add", "trusted work", "--verify", "true"]);
+    let path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, text.replace("verify: \"true\"", "verify: \"exit 0\"")).unwrap();
 
     let assert = untrusted(&repo)
         .args(["close", &id, "--approve"])
         .assert()
         .success();
     let out = stdout_of(&assert);
-    assert!(out.contains("true"), "approved text on screen: {out}");
+    assert!(out.contains("exit 0"), "approved text on screen: {out}");
 
     // Approval state is clone-local: inside .cache/, gitignored.
     let status = std::process::Command::new("git")
@@ -77,17 +85,15 @@ fn verify_trust_approve_records_then_remembers() {
     untrusted(&repo).args(["close", &id]).assert().success();
 }
 
-/// A changed verify text revokes trust — the hash covers the exact text,
-/// so a merged edit to an approved task re-enters the gate.
+/// A changed verify text revokes trust — approval covers the exact text,
+/// so a merged edit to an approved task re-enters the gate. The first
+/// close needs no flag at all: minted text is approved at authorship.
 #[test]
 fn verify_trust_changed_text_revokes() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
     let id = add_id(&repo, &["add", "mutating verify", "--verify", "true"]);
-    untrusted(&repo)
-        .args(["close", &id, "--approve"])
-        .assert()
-        .success();
+    untrusted(&repo).args(["close", &id]).assert().success();
     untrusted(&repo).args(["reopen", &id]).assert().success();
 
     let path = task_file(&repo, &id);
@@ -103,17 +109,64 @@ fn verify_trust_changed_text_revokes() {
 }
 
 /// `MESHWORK_TRUST=1` is the reviewed-checkout grant (CI, the gate): no
-/// approval state, verify still runs.
+/// approval state, verify still runs. Hand-edited text keeps the mint
+/// approval out of the picture — the env grant alone is what passes.
 #[test]
 fn verify_trust_env_grant_for_ci() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
     let id = add_id(&repo, &["add", "ci path", "--verify", "true"]);
+    let path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, text.replace("verify: \"true\"", "verify: \"exit 0\"")).unwrap();
+    untrusted(&repo).args(["close", &id]).assert().failure();
     untrusted(&repo)
         .env("MESHWORK_TRUST", "1")
         .args(["close", &id])
         .assert()
         .success();
+}
+
+/// mw-2kgkn0j (§12b ruling 2026-08-21, approve-at-mint): a verify
+/// authored through this clone's CLI is already trusted — the first
+/// close of self-authored shell text runs unprompted on an untrusted
+/// clone. The merge stand-in (a hand-edit after mint) still gates:
+/// authoring, not file presence, is what approves.
+#[test]
+fn approve_at_mint_close_runs_unprompted() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let authored = add_id(&repo, &["add", "authored here", "--verify", "exit 0"]);
+    untrusted(&repo).args(["close", &authored]).assert().success();
+
+    let merged = add_id(&repo, &["add", "arrived by merge", "--verify", "true"]);
+    let path = task_file(&repo, &merged);
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, text.replace("verify: \"true\"", "verify: \"exit 0\"")).unwrap();
+    let assert = untrusted(&repo).args(["close", &merged]).assert().failure();
+    let err = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
+    assert!(
+        err.contains("refusing unapproved verify"),
+        "hand-edited text still gates: {err}"
+    );
+}
+
+/// mw-51x0wty: the ledger half of approve-at-mint — `add --verify` and
+/// `set --verify` record the same (id, text) approval `close --approve`
+/// would, at write time, in the same gitignored ledger.
+#[test]
+fn add_authored_verify_preapproved() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let a = add_id(&repo, &["add", "minted with verify", "--verify", "exit 0"]);
+    untrusted(&repo).args(["close", &a]).assert().success();
+
+    let b = add_id(&repo, &["add", "minted bare"]);
+    untrusted(&repo)
+        .args(["set", &b, "--verify", "test -f docs/meshwork/config.toml"])
+        .assert()
+        .success();
+    untrusted(&repo).args(["close", &b]).assert().success();
 }
 
 /// `--waive` never shells out, so it never needs trust (MW-E2 loudness is

@@ -86,21 +86,24 @@ fn verify_verb_json_envelope() {
 
 /// The §12b gates are close's exactly: an unapproved legacy-shell verify
 /// refuses in the dry run too, runs nothing, and the refusal still names
-/// close's approval step — approval stays a close-side act.
+/// close's approval step — approval stays a close-side act. The
+/// hand-edit is the merge stand-in (minted text is pre-approved).
 #[test]
 fn verify_verb_gates_like_close() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
     let marker = repo.join("pwned");
-    let id = add_id(
-        &repo,
-        &[
-            "add",
-            "merged-in verify",
-            "--verify",
-            &format!("touch {}", marker.display()),
-        ],
-    );
+    let id = add_id(&repo, &["add", "merged-in verify", "--verify", "true"]);
+    let path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(
+        &path,
+        text.replace(
+            "verify: \"true\"",
+            &format!("verify: \"touch {}\"", marker.display()),
+        ),
+    )
+    .unwrap();
     let assert = untrusted(&repo).args(["verify", &id]).assert().failure();
     let err = String::from_utf8(assert.get_output().stderr.clone()).unwrap();
     assert!(

@@ -99,7 +99,16 @@ fn verify_migration_run_vacuous_zero_passed_fails() {
 fn verify_migration_run_rode_along_gates() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
-    let id = add_id(&repo, &["add", "rode along", "--verify", "run cargo test t"]);
+    // The verify arrives by hand-edit, not CLI authorship — minted text
+    // would be pre-approved (mw-2kgkn0j) and skip the ride-along guard.
+    let id = add_id(&repo, &["add", "rode along"]);
+    let task_path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&task_path).unwrap();
+    std::fs::write(
+        &task_path,
+        text.replace("status: open", "status: open\nverify: run cargo test t"),
+    )
+    .unwrap();
     std::fs::write(repo.join("payload.rs"), "code that arrived with the task\n").unwrap();
     git(&repo, &["add", "-A"]);
     git(&repo, &["commit", "-qm", "task plus payload in one commit"]);

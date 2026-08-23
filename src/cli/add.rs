@@ -124,6 +124,15 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
 
     std::fs::create_dir_all(&tasks_dir).map_err(|e| e.to_string())?;
     std::fs::write(&path, file).map_err(|e| e.to_string())?;
+    // Approve-at-mint (§12b as amended 2026-08-21, mw-2kgkn0j/mw-51x0wty):
+    // authoring text through this clone's CLI IS the operator's approval —
+    // record what `close --approve` would. Best-effort: a failed record
+    // only restores the prompt (the cache is never a dependency, MW-A2).
+    if let Some(verify) = &args.verify {
+        if let Err(e) = crate::trust::record_approval(&root, &id, verify) {
+            eprintln!("warning: could not record verify approval: {e}");
+        }
+    }
 
     if json {
         crate::cli::emit_json("add", &serde_json::json!({ "id": id, "path": rel }));

@@ -7,7 +7,7 @@ verify: run cargo test e2e::approve_at_mint
 seq: 290
 docs:
   - DESIGN-meshwork.md#§-12b-trust-boundary
-status: open
+status: done
 created: 2026-08-08T16:42Z
 blocked-reason:
 ---
@@ -26,6 +26,8 @@ prompts — that asymmetry is the point, and it needs the §12b ruling.
 - 2026-08-08T16:42Z created
 - 2026-08-20T11:42Z open→blocked — needs owner ruling on the trust-boundary wording before any code: authoring-through-this-clone's-CLI counts as approval (approve-at-mint). Evidence is filed on-task; unblock by recording the nod (or refusal) in a comment
 - 2026-08-21T21:12Z blocked→open
+- 2026-08-23T19:26Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-23T19:31Z doing→done — verify exit 0 @ 1510907+12
 
 ## comments
 - 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Adoption-week evidence from both stores: the MW-E5 refusal fired in 5 of 5 leras post-migration sessions — every time on a verify the same session had just authored (faba7815, ea33cc32, 4545e5a6, cb94b3f3, 4e5b1f04) — and in 14 of 34 sazed sessions, ~63 --approve invocations total. Every refusal was rubber-stamped within seconds, zero outcome changes; by mid-week agents pass --approve preemptively on first attempt. The gate is training the reflex that will neutralize it against genuinely merge-arrived verifies. Approve-at-mint removes exactly the noise half (with mw-51x0wty and mw-hz1ezcg as siblings), and HEAD's set --verify content-hash re-arming composes cleanly with it.
