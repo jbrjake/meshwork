@@ -197,6 +197,57 @@ fn add_show_roundtrip() {
     assert_eq!(v["data"]["comments"]["shown"].as_array().unwrap().len(), 3);
 }
 
+/// mw-s3905fv (§6 ruling 2026-08-21): `add --body` lands the description
+/// at creation — literal text, `@file`, or `-` (stdin) per the prose
+/// spellings — placed above the tail sections, rendered by show. Every
+/// substantive pilot task went add-then-append before this existed.
+#[test]
+fn add_body_lands_above_tail_sections() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_id(
+        &repo,
+        &[
+            "add",
+            "Described task",
+            "--verify",
+            "true",
+            "--body",
+            "Two lines of context.\nSecond line.",
+        ],
+    );
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    let body_at = text.find("Two lines of context.").unwrap();
+    let log_at = text.find("## log").unwrap();
+    assert!(body_at < log_at, "body above the tail sections: {text}");
+    let shown = stdout_of(&meshwork(&repo).args(["show", &id]).assert().success());
+    assert!(shown.contains("Two lines of context."), "{shown}");
+
+    // `-` reads stdin; the payload never transits shell quoting.
+    let out = meshwork(&repo)
+        .args(["add", "Stdin body", "--verify", "true", "--body", "-"])
+        .write_stdin("From stdin.\n")
+        .assert()
+        .success();
+    let id2 = stdout_of(&out).lines().next().unwrap().to_string();
+    let text = std::fs::read_to_string(task_file(&repo, &id2)).unwrap();
+    assert!(text.contains("From stdin."), "{text}");
+
+    // `@file` reads a file.
+    std::fs::write(repo.join("body.md"), "From a file.\n").unwrap();
+    let id3 = add_id(
+        &repo,
+        &["add", "File body", "--verify", "true", "--body", "@body.md"],
+    );
+    let text = std::fs::read_to_string(task_file(&repo, &id3)).unwrap();
+    assert!(text.contains("From a file."), "{text}");
+
+    // An empty payload writes no body at all — no stray blank scaffold.
+    let id4 = add_id(&repo, &["add", "Bare", "--verify", "true", "--body", ""]);
+    let text = std::fs::read_to_string(task_file(&repo, &id4)).unwrap();
+    assert!(text.contains("---\n\n## log"), "no body block: {text}");
+}
+
 /// MW-D2/A5: caps with explicit `… and N more`, `--comments` opts out.
 #[test]
 fn show_caps() {

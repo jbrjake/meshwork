@@ -14,7 +14,7 @@ pub(crate) struct AddArgs {
     /// Several tasks at once from a file ("-" = stdin): concatenated task
     /// documents, `id:` omitted, local `handle:` names usable as @refs in
     /// needs/parent/from/relates — atomic, all files or none.
-    #[arg(long, value_name = "FILE", conflicts_with_all = ["title", "cat", "label", "needs", "parent", "from", "verify", "seq", "docs"])]
+    #[arg(long, value_name = "FILE", conflicts_with_all = ["title", "cat", "label", "needs", "parent", "from", "verify", "seq", "docs", "body"])]
     batch: Option<String>,
     /// Print the would-be task file(s), write nothing.
     #[arg(long)]
@@ -43,6 +43,10 @@ pub(crate) struct AddArgs {
     /// Doc link `path#§-anchor`; repeatable.
     #[arg(long = "docs", alias = "doc", value_name = "LINK")]
     docs: Vec<String>,
+    /// Body prose at creation. `@<file>` reads the file, `-` reads
+    /// stdin — the payload never transits shell quoting.
+    #[arg(long, value_name = "TEXT|@FILE|-")]
+    body: Option<String>,
 }
 
 pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
@@ -101,7 +105,22 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     }
     let _ = writeln!(fm, "created: {today}");
 
-    let file = format!("---\n{fm}---\n\n## log\n- {today} created\n");
+    // Body above the tail sections (mw-s3905fv, §6 ruling 2026-08-21):
+    // the description finally has a CLI path at creation — before this,
+    // every substantive body arrived by shell append, the damage source
+    // the stray-tail lint repairs. Empty payload = no body block.
+    let body = match &args.body {
+        Some(raw) => {
+            let payload = crate::cli::prose_payload(raw)?;
+            if payload.trim().is_empty() {
+                String::new()
+            } else {
+                format!("{payload}\n\n")
+            }
+        }
+        None => String::new(),
+    };
+    let file = format!("---\n{fm}---\n\n{body}## log\n- {today} created\n");
     let path = tasks_dir.join(format!("{id}-{}.md", slugify(&title)));
     let rel = format!(
         "docs/meshwork/{}",

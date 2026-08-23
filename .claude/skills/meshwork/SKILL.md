@@ -54,20 +54,18 @@ the repo's committed shim — `docs/meshwork/meshwork` (pre-v0.3.1 adopters:
 
 ## Sibling stores
 
-Cross-repo questions ("what do we owe that repo?", "is their side done?")
-have a taught path — never guess a sibling's store paths:
+Cross-repo questions ("what do we owe that repo?") have a taught path —
+never guess a sibling's store paths:
 
 - cd into the sibling repo and use ITS committed shim — versions pin
   per-repo, and the shim supplies the right session author.
-- Resolve ids with `show <id>` there: filenames carry cosmetic slugs, so a
-  path guessed from an id alone is wrong by construction. Never `find` or
-  `grep` a sibling's store for what its own binary answers.
-- The union question ("what's ready across everything?") is `portfolio
-  ready` / `portfolio next` / `portfolio q` — register the repos once in
-  the portfolio's `repos.toml` instead of walking checkouts by hand.
+- Resolve ids there with `show <id>`: filenames carry cosmetic slugs, so
+  a path guessed from an id is wrong by construction — never `find`/`grep`
+  what the sibling's own binary answers.
+- The union question is `portfolio ready` / `next` / `q` — register the
+  repos once in the portfolio's `repos.toml`.
 - Asks TO a sibling stay in YOUR store: `to: <repo>` surfaces in their
-  prime and ready until a task anywhere answers it — no file in their
-  repo, no guessing where one would go.
+  prime until a task anywhere answers it — no file in their repo.
 
 ## Rules
 
@@ -76,8 +74,10 @@ have a taught path — never guess a sibling's store paths:
   CLI path: flags on `add` at creation (including `--seq`/`--docs`), then
   `meshwork set <id> --seq/--docs/--handoff`.
 - Body prose goes ABOVE the tail sections — `## log` and `## comments` end
-  the file; never append prose after them. A task that needs a real body at
-  creation is a one-document `add --batch -`, not a hand-written file.
+  the file; never append prose after them. A task that needs a real body
+  at creation takes `add "title" --body "text"|@file|-` (never a shell
+  append); several tasks at once, or structured frontmatter, is a
+  one-document `add --batch -`, not a hand-written file.
 - `seq` is the priority primitive (integers, gaps of 10; lower = sooner). There
   is no priority field and no due date, deliberately.
 - How tasks mesh: `--parent <id>` = section umbrella — `ready` hides the
@@ -110,14 +110,12 @@ have a taught path — never guess a sibling's store paths:
   close-condition shapes:
   1. **Umbrella** → the zero-open-children count: the parent-progress `q`
      idiom above, closing on `"rows":[[0]]`.
-  2. **Owner- or event-gated hold** → grep for a hand-written, dated
-     marker line, e.g. `contains docs/meshwork/<task-file> /2026-09-01
-     owner approved/` — date-first, so the CLI's own T-stamped log and
-     comment lines can never satisfy it early; the owner writes the
-     marker when the gate opens.
+  2. **Owner- or event-gated hold** → grep for a hand-written dated
+     marker, e.g. `contains docs/meshwork/<task-file> /2026-09-01 owner
+     approved/` — date-first, so the CLI's own T-stamped lines can never
+     satisfy it early; the owner writes the marker when the gate opens.
   3. **Artifact task** → `exists <path>` naming the deliverable — the
-     verify doubles as the naming contract, so pick the filename at add
-     time and build to it.
+     verify doubles as the naming contract; pick the filename at add.
 - Remaining traps: greps satisfiable by prose that already exists — the
   task's own file and rotated archives count; target artifacts that cannot
   pre-exist. For shell verifies: piped tails report the tail's exit, and
