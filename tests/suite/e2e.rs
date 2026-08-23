@@ -117,3 +117,4 @@ include!("e2e_show_docs.rs");
 include!("e2e_sigpipe.rs");
 include!("e2e_verify_migration.rs");
 include!("e2e_verify_trust.rs");
+include!("e2e_verify_verb.rs");

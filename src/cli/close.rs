@@ -175,40 +175,7 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
         ));
     };
 
-    // DESIGN §12b gate routing (mw-4aqmf0t): the shape decides the gate.
-    // Native predicates load no code and run free; `run` runs free only
-    // on store-only provenance; malformed refuses before any gate; legacy
-    // shell keeps the full MW-E5 gate.
-    let verdict = match crate::verify_dsl::classify(verify) {
-        crate::verify_dsl::Classified::Malformed(why) => {
-            // Never runs, never gate-prompts: approving garbage is not a
-            // reviewable act, and a downgrade to shell reopens the hole.
-            return Err(format!(
-                "refusing malformed verify for {id}: {why}\n  verify: {verify}\n  \
-                 keyword-led text never runs as shell — fix it: \
-                 meshwork set {id} --verify '<predicate>'",
-                id = args.id
-            ));
-        }
-        crate::verify_dsl::Classified::Dsl(preds) => {
-            if preds
-                .iter()
-                .any(|p| matches!(p, crate::verify_dsl::Predicate::Run { .. }))
-            {
-                gate_run(&root, &path, &args.id, verify, args.approve)?;
-            }
-            crate::verify_exec::execute(&root, &preds).map_err(|why| {
-                (
-                    "verify failed (dsl)".to_string(),
-                    format!("verify failed — {why}"),
-                )
-            })
-        }
-        crate::verify_dsl::Classified::LegacyShell => {
-            require_trusted(&root, &args.id, verify, args.approve)?;
-            run_shell(&root, verify, json)?
-        }
-    };
+    let verdict = routed_verdict(&root, &path, &args.id, verify, args.approve, json)?;
 
     match verdict {
         Ok(()) => {
@@ -242,7 +209,52 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
 }
 
 /// A verify outcome: `Ok` closes; `Err` is (log note, stays-open reason).
-type Verdict = Result<(), (String, String)>;
+pub(crate) type Verdict = Result<(), (String, String)>;
+
+/// DESIGN §12b gate routing (mw-4aqmf0t), shared by close and the verify
+/// dry-run (mw-dx4pndb): the shape decides the gate. Native predicates
+/// load no code and run free; `run` runs free only on store-only
+/// provenance; malformed refuses before any gate; legacy shell keeps the
+/// full MW-E5 gate. The caller decides what a verdict means; this decides
+/// whether anything runs at all.
+pub(crate) fn routed_verdict(
+    root: &std::path::Path,
+    task_path: &std::path::Path,
+    id: &str,
+    verify: &str,
+    approve: bool,
+    json: bool,
+) -> Result<Verdict, String> {
+    match crate::verify_dsl::classify(verify) {
+        crate::verify_dsl::Classified::Malformed(why) => {
+            // Never runs, never gate-prompts: approving garbage is not a
+            // reviewable act, and a downgrade to shell reopens the hole.
+            Err(format!(
+                "refusing malformed verify for {id}: {why}\n  verify: {verify}\n  \
+                 keyword-led text never runs as shell — fix it: \
+                 meshwork set {id} --verify '<predicate>'"
+            ))
+        }
+        crate::verify_dsl::Classified::Dsl(preds) => {
+            if preds
+                .iter()
+                .any(|p| matches!(p, crate::verify_dsl::Predicate::Run { .. }))
+            {
+                gate_run(root, task_path, id, verify, approve)?;
+            }
+            Ok(crate::verify_exec::execute(root, &preds).map_err(|why| {
+                (
+                    "verify failed (dsl)".to_string(),
+                    format!("verify failed — {why}"),
+                )
+            }))
+        }
+        crate::verify_dsl::Classified::LegacyShell => {
+            require_trusted(root, id, verify, approve)?;
+            run_shell(root, verify, json)
+        }
+    }
+}
 
 /// Legacy shell execution, `sh -c` from the repo root — verify commands
 /// are written repo-relative. The outer error is "could not run at all";

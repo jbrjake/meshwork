@@ -19,6 +19,7 @@ mod set;
 mod show;
 mod stubs;
 mod transition;
+mod verify;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -62,6 +63,8 @@ enum Cmd {
     Reopen(transition::IdArg),
     /// Run verify:, close on exit 0 only; --waive records a loud skip.
     Close(close::CloseArgs),
+    /// Run a task's verify and report — close nothing, write nothing.
+    Verify(verify::VerifyArgs),
     /// Edge edits without opening the file.
     Dep(dep::DepArgs),
     /// Open tasks with met deps and no live children (the queue).
@@ -227,6 +230,7 @@ pub fn run() -> i32 {
         Cmd::Drop(args) => transition::drop(args, cli.json),
         Cmd::Reopen(args) => transition::reopen(args, cli.json),
         Cmd::Close(args) => close::run(args, cli.json),
+        Cmd::Verify(args) => verify::run(args, cli.json),
         Cmd::Ready(args) => query::ready(args, cli.json),
         Cmd::Q(args) => query::q(args, cli.json),
         Cmd::Search(args) => search::run(args, cli.json),
