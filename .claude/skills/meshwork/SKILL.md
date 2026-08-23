@@ -52,6 +52,23 @@ the repo's committed shim — `docs/meshwork/meshwork` (pre-v0.3.1 adopters:
   learned. Never leave `handoff:` on a task you close (lint warns:
   handoff-stale). Anything history-worthy goes in a comment instead.
 
+## Sibling stores
+
+Cross-repo questions ("what do we owe that repo?", "is their side done?")
+have a taught path — never guess a sibling's store paths:
+
+- cd into the sibling repo and use ITS committed shim — versions pin
+  per-repo, and the shim supplies the right session author.
+- Resolve ids with `show <id>` there: filenames carry cosmetic slugs, so a
+  path guessed from an id alone is wrong by construction. Never `find` or
+  `grep` a sibling's store for what its own binary answers.
+- The union question ("what's ready across everything?") is `portfolio
+  ready` / `portfolio next` / `portfolio q` — register the repos once in
+  the portfolio's `repos.toml` instead of walking checkouts by hand.
+- Asks TO a sibling stay in YOUR store: `to: <repo>` surfaces in their
+  prime and ready until a task anywhere answers it — no file in their
+  repo, no guessing where one would go.
+
 ## Rules
 
 - Task files are plain markdown — hand-edits are legal; run `meshwork lint`

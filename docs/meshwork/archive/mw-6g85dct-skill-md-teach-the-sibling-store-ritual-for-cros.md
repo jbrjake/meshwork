@@ -1,7 +1,7 @@
 ---
 id: mw-6g85dct
 title: "SKILL.md: teach the sibling-store ritual for cross-repo questions"
-status: open
+status: done
 category: skill
 verify: contains .claude/skills/meshwork/SKILL.md /Sibling stores/
 relates:
@@ -23,3 +23,5 @@ store paths from ids.
 
 ## log
 - 2026-08-12T20:48Z created
+- 2026-08-23T19:18Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-23T19:21Z doing→done — verify exit 0 @ be70fa5+4
