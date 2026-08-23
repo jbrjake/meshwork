@@ -1,7 +1,7 @@
 ---
 id: mw-bd390q6
 title: Accept --reason on drop, recorded to the log
-status: open
+status: done
 category: core/lifecycle
 verify: ./meshwork drop --help | grep -q -- --reason
 docs:
@@ -9,14 +9,6 @@ docs:
 created: 2026-08-12T20:48Z
 seq: 190
 blocked-reason:
-handoff: |
-  APPROVED 2026-08-22 (optional flag) — not yet worked, cleared for the
-  next session. Implementation sketch: drop currently takes IdArg
-  (src/cli/transition.rs); give it its own args struct with an optional
-  --reason, and transition() already threads a reason into the log note
-  for block — pass Some(reason) on drop the same way. DESIGN §6 drop
-  row gains [--reason "text"]; check e2e::cli_surface_frozen for what pins
-  the surface. Verify is the drop --help grep.
 ---
 `block` demands a reason; `drop` refuses one. Agents guess the symmetry
 exists and lose the reason from the structured record when it doesn't:
@@ -29,6 +21,8 @@ change — needs the DESIGN §6 owner ruling.
 ## log
 - 2026-08-22T01:22Z open→blocked — awaiting DESIGN §6 owner ruling — --reason on drop is a frozen-surface change; evidence for it is in the task body
 - 2026-08-22T01:43Z blocked→open
+- 2026-08-23T18:50Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-23T18:52Z doing→done — verify exit 0 @ 2c37d89+6
 
 ## comments
 - 2026-08-22T01:43Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Owner ruling 2026-08-22: APPROVED, optional. §6 drop row gains [--reason "text"]; the reason lands in the →dropped log note like block's. Bare drop keeps working — terminal drops are sometimes self-evident.

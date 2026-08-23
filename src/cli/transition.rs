@@ -1,4 +1,5 @@
-//! `start` / `block --reason` / `drop` / `reopen` (PLAN 0.6; MW-E1/E3):
+//! `start` / `block --reason` / `drop [--reason]` / `reopen` (PLAN 0.6;
+//! MW-E1/E3):
 //! one-frontmatter-line status edits plus a dated log append — never a
 //! full-file rewrite (MW-I1). `start` also records an advisory `claimed-by:`
 //! when the MW-K1 chain yields an identity; close/drop/reopen release it
@@ -34,6 +35,16 @@ pub(crate) struct BlockArgs {
     /// one at session start.
     #[arg(long, required = true, value_name = "TEXT")]
     reason: String,
+}
+
+#[derive(clap::Args)]
+pub(crate) struct DropArgs {
+    /// Task id (e.g. az-k7f3).
+    id: String,
+    /// Why the work is not happening — recorded on the log entry.
+    /// Optional: some drops are self-evident.
+    #[arg(long, value_name = "TEXT")]
+    reason: Option<String>,
 }
 
 pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
@@ -157,7 +168,7 @@ pub(crate) fn block(args: &BlockArgs, json: bool) -> Result<(), String> {
     )
 }
 
-pub(crate) fn drop(args: &IdArg, json: bool) -> Result<(), String> {
+pub(crate) fn drop(args: &DropArgs, json: bool) -> Result<(), String> {
     // Scan BEFORE the write (mw-kkvs8zq): a found-but-broken registry is
     // the mw-k7r5 loud error, and it must fire with nothing yet changed.
     // No registry anywhere = no cross-repo namespace = no scan (quiet).
@@ -173,7 +184,7 @@ pub(crate) fn drop(args: &IdArg, json: bool) -> Result<(), String> {
         &args.id,
         &[Status::Open, Status::Doing, Status::Blocked],
         Status::Dropped,
-        None,
+        args.reason.as_deref(),
         None,
         json,
     )?;

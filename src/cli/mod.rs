@@ -55,8 +55,9 @@ enum Cmd {
     Start(transition::StartArgs),
     /// open|doing → blocked; demands --reason.
     Block(transition::BlockArgs),
-    /// open|doing|blocked → dropped (recorded, never deleted).
-    Drop(transition::IdArg),
+    /// open|doing|blocked → dropped (recorded, never deleted); an
+    /// optional --reason lands on the log entry.
+    Drop(transition::DropArgs),
     /// blocked|doing|done → open.
     Reopen(transition::IdArg),
     /// Run verify:, close on exit 0 only; --waive records a loud skip.

@@ -576,6 +576,39 @@ fn drop_strips_handoff() {
     assert!(!text.contains("wrong symptom"), "{text}");
 }
 
+/// mw-bd390q6 (§6 ruling 2026-08-22): `drop --reason` records the
+/// rationale to the →dropped log entry, symmetric with block's — two
+/// pilot sessions guessed the flag existed and lost the reason to chat
+/// scrollback when it didn't. Optional: a bare drop stays legal (terminal
+/// drops are sometimes self-evident).
+#[test]
+fn drop_reason_lands_in_log() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Dropped for cause");
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["drop", &id, "--reason", "duplicate of wo-aaaa", "--json"])
+            .assert()
+            .success(),
+    );
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("status: dropped"));
+    assert!(
+        text.contains("open→dropped — duplicate of wo-aaaa"),
+        "reason on the log entry, block-style: {text}"
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["data"]["reason"], "duplicate of wo-aaaa");
+
+    // Bare drop keeps working — the flag is optional, unlike block's.
+    let bare = add_task(&repo, "Dropped bare");
+    meshwork(&repo).args(["drop", &bare]).assert().success();
+    let text = std::fs::read_to_string(task_file(&repo, &bare)).unwrap();
+    assert!(text.contains("status: dropped"));
+    assert!(text.contains("open→dropped\n"), "no dangling dash: {text}");
+}
+
 /// Unknown ids fail loudly.
 #[test]
 fn show_unknown_id_fails() {
