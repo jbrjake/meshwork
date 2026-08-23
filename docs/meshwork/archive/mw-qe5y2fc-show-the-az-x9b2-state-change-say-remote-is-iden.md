@@ -5,7 +5,7 @@ category: meta/readme
 verify: contains README.md /not a fetch target/
 docs:
   - README.md
-status: open
+status: done
 created: 2026-08-10T16:31Z
 seq: 240
 ---
@@ -24,3 +24,5 @@ a fetch target, fixes it.
 
 ## log
 - 2026-08-10T16:31Z created
+- 2026-08-23T19:15Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-23T19:15Z doing→done — verify exit 0 @ 0d8103b+4

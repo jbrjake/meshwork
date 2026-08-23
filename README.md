@@ -383,7 +383,7 @@ The CLI also has a `--json` output flag for scripts and agents.
 
 Every repo keeps its own store, and one repo's queue doesn't care about another's...until it does. You can always express interdependencies as `project_name#task_id`.
 
-With a lightweight [portfolio](docs/portfolios.md) (it's just a tiny git repo holding a `repos.toml`), meshwork can span locally cloned git repos. It can prioritize what work is ready across all of them, tracing blocking interdependencies. And you can query all your projects' tasks together with one SQL statement.
+With a lightweight [portfolio](docs/portfolios.md) (it's just a tiny git repo holding a `repos.toml`), meshwork can span locally cloned git repos. It can prioritize what work is ready across all of them, tracing blocking interdependencies. And you can query all your projects' tasks together with one SQL statement. The `remote` each repo lists there is identity, not a fetch target — the portfolio reads local checkouts only and never clones.
 
 ## boundaries
 

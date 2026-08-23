@@ -20,6 +20,8 @@ name = "gamma"
 remote = "git@github.com:example/gamma.git"
 ```
 
+`remote` is identity, not a fetch target: it names the repo for cross-repo references (and gives the planned mirror somewhere to point). The portfolio never clones or fetches — repos are read from local checkouts only.
+
 ## portfolio usage
 
 `portfolio ready` shows tasks from all repos in the .toml that you've got locally:
@@ -47,6 +49,7 @@ az-x9b2: nothing blocking — every hard dep is done/dropped
 That works from inside individual repos, no portfolio command involved. If it can't find the other repo on disk, it'll let you know:
 
 ```
+$ mv /Users/dev/Documents/code/beta /Users/dev/parked/beta
 $ meshwork why az-x9b2
 az-x9b2 blocked by 1:
 - beta#bz-c0r3 (unresolved — absent or unregistered repo)
