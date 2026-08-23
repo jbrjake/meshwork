@@ -10,6 +10,7 @@ pub mod cli;
 pub mod clock;
 pub mod docs;
 pub mod edit;
+pub mod grammar;
 pub mod id;
 pub mod lint;
 pub mod lint_tail;
