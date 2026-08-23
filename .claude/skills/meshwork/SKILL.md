@@ -104,6 +104,18 @@ have a taught path — never guess a sibling's store paths:
   closes) and runs approval-free only while the task's git history is
   store-only — commit task files separately from code. Shell text still
   works but gates per-clone and lint warns `verify-shell`.
+- Non-code tasks still get a real `verify:` — three proven
+  close-condition shapes:
+  1. **Umbrella** → the zero-open-children count: the parent-progress `q`
+     idiom above, closing on `"rows":[[0]]`.
+  2. **Owner- or event-gated hold** → grep for a hand-written, dated
+     marker line, e.g. `contains docs/meshwork/<task-file> /2026-09-01
+     owner approved/` — date-first, so the CLI's own T-stamped log and
+     comment lines can never satisfy it early; the owner writes the
+     marker when the gate opens.
+  3. **Artifact task** → `exists <path>` naming the deliverable — the
+     verify doubles as the naming contract, so pick the filename at add
+     time and build to it.
 - Remaining traps: greps satisfiable by prose that already exists — the
   task's own file and rotated archives count; target artifacts that cannot
   pre-exist. For shell verifies: piped tails report the tail's exit, and

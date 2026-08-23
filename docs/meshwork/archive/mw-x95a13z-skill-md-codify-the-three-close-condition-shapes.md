@@ -1,7 +1,7 @@
 ---
 id: mw-x95a13z
 title: "SKILL.md: codify the three close-condition shapes for non-code tasks"
-status: open
+status: done
 category: skill
 verify: contains .claude/skills/meshwork/SKILL.md /close-condition shapes/
 relates:
@@ -25,3 +25,5 @@ them. Pairs with mw-8kfqz2z (the traps are what these shapes avoid).
 
 ## log
 - 2026-08-12T20:48Z created
+- 2026-08-23T19:21Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-23T19:22Z doing→done — verify exit 0 @ 4aeb5ed+3
