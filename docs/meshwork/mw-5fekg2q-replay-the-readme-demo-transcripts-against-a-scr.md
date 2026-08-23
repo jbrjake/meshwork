@@ -2,7 +2,7 @@
 id: mw-5fekg2q
 title: Replay the README demo transcripts against a scratch store in the gate
 category: meta/readme
-needs: [mw-qe5y2fc]
+needs: [mw-qe5y2fc, mw-4r7v8vj]
 verify: ./scripts/check-readme-transcripts.sh
 docs:
   - README.md
@@ -31,3 +31,6 @@ output names the first divergent block by README line number.
 
 ## log
 - 2026-08-10T16:24Z created
+
+## comments
+- 2026-08-23T20:25Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Scoping this found approve-at-mint invalidated the README's trust-gate transcripts (filed mw-4r7v8vj, now a hard dep). Everything else about the script is specified in the body and stands: extract fences whose first line starts '$ meshwork', execute in order against a scratch store (the quick-start needs a cargo project with a passing stuff::thing test — see how the close block's output embeds cargo test lines), diff normalized for ids/timestamps/store-hash, elision lines ('...' and the curated cargo output) argue for in-order subsequence matching rather than strict equality.
