@@ -37,9 +37,7 @@ ac-acnxdkg open→doing
 $ meshwork comment ac-acnxdkg --as claude "Smoking gun! You're absolutely right. This seam is load-bearing. On it. Cerebrating..."
 ac-acnxdkg: comment added as [claude]
 ...
-$ meshwork close ac-acnxdkg --approve
-approving verify for ac-acnxdkg (this clone only):
-  verify: cargo test stuff::thing
+$ meshwork close ac-acnxdkg
 
 running 1 test
 test stuff::thing ... ok
@@ -250,29 +248,30 @@ sa-38wd6se blocked by 1:
 
 ### closing tasks
 
-Try to close something, and the first refusal isn't even about the work:
+meshwork tries to prevent closing tasks without doing the work:
 
 ```
 $ meshwork close sa-jt7zg9w
-meshwork: refusing unapproved verify for sa-jt7zg9w
-  verify: test -f docs/postmortem.md
-  task files arrive via merge and are untrusted; review the command, then:
-  meshwork close sa-jt7zg9w --approve   (records approval for this clone)
-  reviewed checkouts (CI, gates) may grant MESHWORK_TRUST=1 instead
-```
-
-Task files can come from untrusted sources, like third-party PRs. `verify:` fields are executed in the shell. This is not a fantastic combination for security. So shell verifies are trust-on-first-use: you approve the exact text, per task, and the approval is recorded per clone, outside git, where a merge can't plant one.
-
-What this means is the human in the loop is responsible for security. If you accept tasks from other people, make sure you read the contents of anything they will execute before you approve. If you just hit your enter key to every Claude prompt, all bets are off.
-
-Anyway, approve the verification run, and meshwork gets to the real objection. A task's `verify:` command must be witnessed exiting with code 0, and this one wasn't, since the postmortem hasn't actually been written.
-
-```
-$ meshwork close sa-jt7zg9w --approve
-approving verify for sa-jt7zg9w (this clone only):
-  verify: test -f docs/postmortem.md
 meshwork: sa-jt7zg9w stays open: verify exit 1 (`test -f docs/postmortem.md`)
 ```
+
+As you can see, there are limits to enforcement. An agent absolutely will just touch the file to hit that requirement. meshwork isn't guaranteeing anything more than that the provided validation passes.
+
+*`close --waive "reason"` exists for the genuinely unverifiable. It's recorded and queryable as `WHERE waived IS NOT NULL` so you can track it.*
+
+#### task verification security
+
+Task files can come from untrusted sources, like third-party PRs. `verify:` fields are executed in the shell. This is not a fantastic combination for security.
+
+When you add a task in meshwork and provide the verify field, it's trusted and will be run when you close a task. The assumption is that you or an agent you're delegating responsibility to is trusted. And if it's an agent, that you've configured your harness with the security you need.
+
+If task files get added or modified outside the CLI, their verify fields aren't implicitly trusted. That includes when you edit the markdown files directly, or when you pull down changes from a remote.
+
+Instead they're trust-on-first-use: `close` refuses them (`refusing unapproved verify`) until you or your agent approve the exact text of a task's verify field with `close --approve`. The approval is recorded per clone, and it's stored outside git, where a merge can't plant one.
+
+*Reviewed checkouts — CI, gates — may grant `MESHWORK_TRUST=1` instead.*
+
+What this means is the human in the loop is responsible for security. If you accept tasks from other people, make sure you read the contents of anything they will execute before you kick off an agent session. If you just hit your enter key to every Claude prompt, all bets are off.
 
 ### work loop
 
@@ -284,15 +283,9 @@ sa-nmvpyqr open→doing
 $ meshwork comment sa-nmvpyqr --as claude "cliff reproduces at batch=64k; tracks the governor wakeup interval, not batch size"
 sa-nmvpyqr: comment added as [claude]
 $ touch repro.log        # stand-in for the actual work
-$ meshwork close sa-nmvpyqr --approve
-approving verify for sa-nmvpyqr (this clone only):
-  verify: test -f repro.log
+$ meshwork close sa-nmvpyqr
 sa-nmvpyqr doing→done (verify exit 0)
 ```
-
-As you can see, there are limits to enforcement. An agent absolutely will reach for that stand-in and just touch the file to hit the requirement. meshwork isn't guaranteeing anything more than that the provided validation passes.
-
-(`close --waive "reason"` exists for the genuinely unverifiable. It's recorded and queryable as `WHERE waived IS NOT NULL` so it's loud and visible.)
 
 Before wrapping up a session, leave a note on whichever task is up next:
 
@@ -389,7 +382,7 @@ With a lightweight [portfolio](docs/portfolios.md) (it's just a tiny git repo ho
 
 - **Zero network required.** A one-way, append-only GitHub mirror (issues created, comments appended, nothing ever edited or closed remotely) is planned at some point.
 - **Never installs git hooks, never writes outside the repo.** The SessionStart hook that injects `prime` is Claude Code configuration you add yourself, once.
-- **`verify:` is untrusted input.** Nothing shells out until this clone's operator approves the exact text (`close --approve`; `MESHWORK_TRUST=1` for checkouts reviewed before the runner touched them).
+- **`verify:` is untrusted input.** Anything arriving by merge or hand-edit doesn't shell out until the checkout's operator approves the exact text (`close --approve`; `MESHWORK_TRUST=1` for checkouts reviewed before the runner touched them).
 - **The CLI surface is frozen.** Anything not in the design doc's verb table is a non-goal, enforced by a test that diffs `--help` against the spec. Feature ideas default to the rejection list so this doesn't turn into Jira.
 - **meshwork tracks meshwork.** This repo's own store holds its remaining roadmap, the repo's gate runs `lint` + `prime` against it on every push, and the digest you get when you open a session here is the one described above.
 
