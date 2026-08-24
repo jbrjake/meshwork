@@ -1,7 +1,7 @@
 ---
 id: mw-nx91erh
 title: Ship the legacy-shim-to-plugin migration path in the next release
-status: open
+status: done
 category: meta/distribution
 discovered-from: mw-84h1mve
 verify: exists .claude/skills/meshwork/references/migrate.md
@@ -32,3 +32,5 @@ per-repo migration sweep (sazed and leras first, to: asks per repo).
 
 ## log
 - 2026-08-24T13:09Z created
+- 2026-08-24T13:13Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-24T13:31Z doing→done — verify exit 0 @ 49ec2f7+2

@@ -2,7 +2,7 @@
 id: mw-84h1mve
 title: "Reconcile install.md's shim ritual with sazed's hook-based pin resolution"
 category: meta/distribution
-verify: grep -q SessionStart .claude/skills/meshwork/references/install.md || test -x ../sazed/meshwork
+verify: test -x ../sazed/docs/meshwork/meshwork && test -x ../leras/docs/meshwork/meshwork
 docs:
   - .claude/skills/meshwork/references/install.md
 discovered-from: mw-bds8yq5
@@ -10,7 +10,7 @@ status: open
 created: 2026-08-10T18:34Z
 seq: 260
 blocked-reason:
-needs: [mw-nx91erh]
+needs: [mw-nx91erh, mw-rtt16df, mw-mcx59sd]
 handoff: |
   Direction landed 2026-08-24: the reconciliation rides mw-nx91erh —
   next release ships a legacy-shim-to-plugin migration path, then adopter
@@ -44,3 +44,4 @@ the next release.
 ## comments
 - 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] The shim-vs-hook divergence has a measured cost now. sazed ran the whole week shim-less: zero --as uses in 35 sessions, so all 8 agent comments and every claimed-by stamp read as the owner in prime's weather (fc237a1a, 4b5a9264). The $(cat .meshwork-version) incantation failed three distinct ways: wrong-cwd cat (63b829ba), a sandbox EPERM retried 4x that killed every meshwork verb for a session (632ce3d2), and a version-pinned settings.local.json allow-rule that rotted at the v0.2.0 upgrade (f6e7cfbc). A committed shim fixes attribution and all three fragilities at once; adopt.md should also warn against version-pinned permission rules.
 - 2026-08-24T13:09Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Owner ruling 2026-08-24: neither option as posed. meshwork as a Claude plugin must migrate legacy shim deploys to modern plugin installs; the migration path ships in the next release, then all adopter repos upgrade and install through Claude Code plugins. sazed and leras pre-date the plugin and were set up manually by an agent. Filed mw-nx91erh to carry the release work; this task dep-blocks on it as the install.md-reconcile marker.
+- 2026-08-24T13:32Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] migrate.md landed (mw-nx91erh closed 2026-08-24): the modern layout is defined — plugin skill, per-repo pin, committed docs/meshwork/meshwork shim carrying MESHWORK_AUTHOR. Re-shaped this verify accordingly: both adopter shims at the modern path (was: grep SessionStart install.md || sazed root shim). Dep-wired onto the per-repo sweeps mw-rtt16df (sazed) and mw-mcx59sd (leras), which need the release cut mw-h4s4gka. install.md itself was reconciled on mw-nx91erh — this task now closes when reality matches it.
