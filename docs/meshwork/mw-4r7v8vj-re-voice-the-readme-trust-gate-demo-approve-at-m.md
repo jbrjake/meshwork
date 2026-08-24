@@ -1,7 +1,7 @@
 ---
 id: mw-4r7v8vj
 title: Re-voice the README trust-gate demo — approve-at-mint made its refusal transcripts impossible
-status: open
+status: blocked
 category: meta/readme
 discovered-from: mw-5fekg2q
 docs:
@@ -10,15 +10,19 @@ docs:
 seq: 285
 created: 2026-08-23T20:25Z
 handoff: |
-  Owner picked the re-voiced narrative 2026-08-24 (no merge-arrival
-  stand-in). Remaining work: 1) draft the re-voiced trust-gate prose —
-  close runs the mint-approved verify and fails honestly (exit 1, stays
-  open); the merge-arrival gate is described in prose, not staged on
-  screen. README words are owner-voiced: propose, never land unprompted.
-  2) re-paste the two affected sequences from real runs (quick-start close
-  block; the sa-jt7zg9w pair). 3) mw-5fekg2q then unblocks — its script
-  spec is complete in its body plus one comment (subsequence matching for
-  elided lines; scratch cargo project for the stuff::thing verify).
+  Everything agent-side is done; the words are yours. The attachment
+  (attachments/mw-4r7v8vj/proposal-readme-trust-gate-revoice.md) is a
+  landable diff: four README spots plus staging notes, transcripts from
+  real runs @ 8d777c9. Landing it flips this task's verify green (negative
+  greps on 'approving verify for' / 'refusing unapproved verify'); close
+  then unblocks mw-5fekg2q and the release chain mw-h4s4gka →
+  sazed/leras sweeps → mw-84h1mve. Quick-start staging must start
+  stuff::thing red (start red-checks now); demo.sh's --approve is a proven
+  no-op, cosmetic drop on your word.
+verify: "! grep -q \"approving verify for\" README.md && ! grep -q \"refusing unapproved verify\" README.md"
+claimed-by: claude (session_016iEafFdzwyKAtsU3AEMhaU)
+attachments: [attachments/mw-4r7v8vj/proposal-readme-trust-gate-revoice.md]
+blocked-reason: proposal attached; README words are owner-voiced — awaiting the owner's landing (which flips the verify green)
 ---
 
 Approve-at-mint (mw-2kgkn0j/mw-51x0wty, landed 2026-08-23) records this
@@ -43,6 +47,9 @@ its script cannot go green against blocks whose story must change.
 
 ## log
 - 2026-08-23T20:25Z created
+- 2026-08-24T13:43Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-24T13:54Z doing→blocked — proposal attached; README words are owner-voiced — awaiting the owner's landing (which flips the verify green)
 
 ## comments
 - 2026-08-24T13:09Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Owner ruling 2026-08-24: re-voiced narrative. Drop the staged-refusal story — no merge-arrival stand-in in the README. The close demo goes straight to the honest objection: verify runs (pre-approved at mint), exits 1, task stays open. The gate itself gets narrated, not demonstrated.
+- 2026-08-24T13:54Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Proposal done, nothing landed in README (owner-voiced). attachments/mw-4r7v8vj/proposal-readme-trust-gate-revoice.md has the full diff: quick-start close block, §closing-tasks collapsed to one block with the gate narrated in prose, work-loop close block, concepts trust bullet, optional demo.sh flag drop. Every transcript line captured from real runs 2026-08-24 (binary @ 8d777c9), probes A-E in the appendix: mint-approved close goes straight to the honest objection; --approve is a silent no-op when already approved; hand-edited text still refuses. One staging finding: start now red-checks, so the quick-start scratch must stage stuff::thing red and fix it inside the existing '...' elision, or the start block grows a warning line.
