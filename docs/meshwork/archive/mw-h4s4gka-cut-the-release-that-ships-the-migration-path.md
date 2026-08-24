@@ -6,20 +6,8 @@ discovered-from: mw-nx91erh
 needs: [mw-4r7v8vj]
 seq: 252
 verify: t=$(git tag --sort=-v:refname | head -1); git ls-tree -r --name-only "$t" | grep -q references/migrate.md && git merge-base --is-ancestor "$t" origin/main
-status: doing
+status: done
 created: 2026-08-24T13:32Z
-handoff: |
-  Everything the release carries is on main as of dd793ae: migrate.md
-  ritual (verify-recast step 6), re-voiced README with the new verify-DSL
-  section (owner-revised, landed dd793ae), batch approve-at-mint, and gate
-  §9 machine-proving every README transcript against a real run — the
-  README this tag publishes is gate-checked, not hand-promised. Cut with
-  scripts/cut-release.sh vX.Y.Z — never hand-bump — then push main +
-  the tag; release.yml builds binaries + skill tarball, marketplace serves
-  the tag immediately. Suggest v0.4.0: the batch trust change is behavior,
-  not a patch. After the push, the sazed/leras sweeps (mw-rtt16df,
-  mw-mcx59sd) unblock onto this tag.
-claimed-by: claude (session_016iEafFdzwyKAtsU3AEMhaU)
 ---
 Publishes the migration ritual landed on mw-nx91erh: marketplace installs
 resolve the newest tag, so cutting this release IS the skill publish.
@@ -42,3 +30,7 @@ must land on a release that carries references/migrate.md.
 ## log
 - 2026-08-24T13:32Z created
 - 2026-08-24T21:43Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-24T22:14Z doing→done — verify exit 0 @ c01fccf+2
+
+## comments
+- 2026-08-24T22:08Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] v0.4.0 cut and published 2026-08-24: tag at c01fccf, pre-push gate green (9 sections), release run 32781283245 green, 5 assets (skill tarball + darwin-arm64, linux-arm64/x86_64, windows-x86_64), draft=false. Marketplace now serves this tag. Ships: migrate.md ritual, re-voiced README + verify-DSL section, batch approve-at-mint, gate §9 transcript replay, docs/ reorg.
