@@ -5,8 +5,8 @@ status: done
 category: core/portfolio
 verify: cargo test e2e::registry_rename_alias
 docs:
-  - REQUIREMENTS-meshwork.md#§-g-portfolio
-  - DESIGN-meshwork.md#§-9-portfolio-master-sequencing
+  - docs/REQUIREMENTS-meshwork.md#§-g-portfolio
+  - docs/DESIGN-meshwork.md#§-9-portfolio-master-sequencing
 seq: 18
 created: 2026-08-06
 ---

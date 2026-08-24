@@ -6,8 +6,8 @@ needs: [mw-ncfg]
 verify: out=$(cargo test --release -- --ignored --nocapture perf::prime_1k 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 230
 docs:
-  - DESIGN-meshwork.md#§-14-gate
-  - DESIGN-meshwork.md#§-7-session-integration
+  - docs/DESIGN-meshwork.md#§-14-gate
+  - docs/DESIGN-meshwork.md#§-7-session-integration
 status: done
 created: 2026-08-08T14:09Z
 ---

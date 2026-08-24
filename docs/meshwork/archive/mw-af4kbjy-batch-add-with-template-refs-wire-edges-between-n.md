@@ -7,8 +7,8 @@ verify: cargo test e2e::add_batch
 seq: 250
 relates: [mw-0f4j]
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface # frozen verb table — needs the ruling
-  - DESIGN-meshwork.md#§-2-task-file-format # batch input should reuse this
+  - docs/DESIGN-meshwork.md#§-6-cli-surface # frozen verb table — needs the ruling
+  - docs/DESIGN-meshwork.md#§-2-task-file-format # batch input should reuse this
 created: 2026-08-06
 ---
 Owner-requested 2026-08-06, from observed friction: filing the six-task

@@ -6,7 +6,7 @@ relates: [mw-9rc4vs6, mw-hz1ezcg, mw-51x0wty]
 verify: run cargo test e2e::approve_at_mint
 seq: 290
 docs:
-  - DESIGN-meshwork.md#§-12b-trust-boundary
+  - docs/DESIGN-meshwork.md#§-12b-trust-boundary
 status: done
 created: 2026-08-08T16:42Z
 blocked-reason:

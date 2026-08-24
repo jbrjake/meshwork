@@ -5,7 +5,7 @@ status: done
 category: meta/distribution
 verify: test -f .github/workflows/release.yml
 docs:
-  - REQUIREMENTS-meshwork.md#§-j-non-functional   # MW-J3 adoptable-in-one-session
+  - docs/REQUIREMENTS-meshwork.md#§-j-non-functional   # MW-J3 adoptable-in-one-session
 created: 2026-08-06
 ---
 Owner ruling 2026-08-06: NO global cargo install — each consuming repo chooses

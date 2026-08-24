@@ -6,7 +6,7 @@ relates: [mw-ncfg]
 verify: cargo bench --bench startup && test -f docs/bench-startup.md
 seq: 220
 docs:
-  - DESIGN-meshwork.md#§-14-gate
+  - docs/DESIGN-meshwork.md#§-14-gate
 status: done
 created: 2026-08-08T14:09Z
 ---

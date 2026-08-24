@@ -7,8 +7,8 @@ relates: [mw-9rc4vs6]
 verify: run cargo test e2e::approve_bulk_then_single_prompt
 seq: 190
 docs:
-  - DESIGN-meshwork.md#§-12b-trust-boundary
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-12b-trust-boundary
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 status: dropped
 created: 2026-08-08T14:09Z
 blocked-reason:

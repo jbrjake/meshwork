@@ -6,7 +6,7 @@ needs: [mw-qe5y2fc, mw-4r7v8vj]
 verify: ./scripts/check-readme-transcripts.sh
 docs:
   - README.md
-  - DESIGN-meshwork.md#§-14-gate
+  - docs/DESIGN-meshwork.md#§-14-gate
 status: done
 created: 2026-08-10T16:24Z
 seq: 290

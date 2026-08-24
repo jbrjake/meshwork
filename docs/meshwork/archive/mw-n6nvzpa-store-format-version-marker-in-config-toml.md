@@ -5,7 +5,7 @@ status: done
 category: core/format
 verify: cargo test e2e::format_marker
 docs:
-  - DESIGN-meshwork.md#§-1-on-disk-layout-per-repo
+  - docs/DESIGN-meshwork.md#§-1-on-disk-layout-per-repo
 seq: 4
 created: 2026-08-06
 ---

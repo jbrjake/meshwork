@@ -5,8 +5,8 @@ status: open
 category: core/store
 verify: run cargo test e2e::archive_compact
 docs:
-  - DESIGN-meshwork.md#§-1-on-disk-layout-per-repo
-  - DESIGN-meshwork.md#§-3-ingestion-pipeline
+  - docs/DESIGN-meshwork.md#§-1-on-disk-layout-per-repo
+  - docs/DESIGN-meshwork.md#§-3-ingestion-pipeline
 created: 2026-08-07T01:38Z
 seq: 360
 ---

@@ -6,7 +6,7 @@ category: core/verify
 parent: mw-6895bkg
 verify: out=$(cargo test ride_along 2>&1) && echo "$out" | grep -qE "ok\. [1-9][0-9]* passed"
 docs:
-  - DESIGN-meshwork.md#§-12b-trust-boundary
+  - docs/DESIGN-meshwork.md#§-12b-trust-boundary
 seq: 175
 created: 2026-08-14T15:39Z
 ---

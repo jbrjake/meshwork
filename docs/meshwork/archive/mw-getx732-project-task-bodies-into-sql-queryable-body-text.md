@@ -6,7 +6,7 @@ category: core/format
 verify: run cargo test e2e::body_projection
 docs:
   - FORMAT.md#projection
-  - DESIGN-meshwork.md#§-4-tables-the-sql-contract
+  - docs/DESIGN-meshwork.md#§-4-tables-the-sql-contract
 created: 2026-08-09T23:11Z
 seq: 220
 ---

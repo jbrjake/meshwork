@@ -7,8 +7,8 @@ needs: [mw-8r1a, mw-a413]
 verify: ./verify_meshwork.sh --strict
 seq: 150
 docs:
-  - REQUIREMENTS-meshwork.md#§-4-acceptance-gate-for-v1   # all 5 clauses
-  - DESIGN-meshwork.md#§-14-gate   # --strict
+  - docs/REQUIREMENTS-meshwork.md#§-4-acceptance-gate-for-v1   # all 5 clauses
+  - docs/DESIGN-meshwork.md#§-14-gate   # --strict
 created: 2026-08-05
 ---
 

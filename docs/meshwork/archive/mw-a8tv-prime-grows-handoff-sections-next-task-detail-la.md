@@ -5,8 +5,8 @@ status: done
 category: product/prime
 verify: cargo test e2e::prime_handoff_sections
 docs:
-  - DESIGN-meshwork.md#§-7b-prime-as-materialized-handoff   # THE spec, owner-ruled
-  - REQUIREMENTS-meshwork.md#§-d-context-discipline   # MW-D3, MW-D5
+  - docs/DESIGN-meshwork.md#§-7b-prime-as-materialized-handoff   # THE spec, owner-ruled
+  - docs/REQUIREMENTS-meshwork.md#§-d-context-discipline   # MW-D3, MW-D5
 created: 2026-08-06
 ---
 Owner-ruled over four design rounds (2026-08-06); full spec is DESIGN §7b —

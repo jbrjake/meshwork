@@ -6,8 +6,8 @@ category: meta/readme
 verify: cargo test e2e::store_at_docs_meshwork
 seq: 220
 docs:
-  - DESIGN-meshwork.md#§-1-on-disk-layout
-  - DESIGN-meshwork.md#§-5-canned-verbs-frozen-sql
+  - docs/DESIGN-meshwork.md#§-1-on-disk-layout
+  - docs/DESIGN-meshwork.md#§-5-canned-verbs-frozen-sql
 created: 2026-08-06
 ---
 README specs `docs/meshwork/<id>-<slug>.md` — flat, no tasks/ level shown.

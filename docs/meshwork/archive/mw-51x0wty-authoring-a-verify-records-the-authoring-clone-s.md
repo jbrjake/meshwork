@@ -5,7 +5,7 @@ category: core/verify
 relates: [mw-hz1ezcg, mw-9rc4vs6, mw-f1x71yg, mw-2kgkn0j]
 verify: run cargo test e2e::add_authored_verify_preapproved
 docs:
-  - DESIGN-meshwork.md#§-12b-trust-boundary
+  - docs/DESIGN-meshwork.md#§-12b-trust-boundary
 status: done
 created: 2026-08-09T23:35Z
 blocked-reason:

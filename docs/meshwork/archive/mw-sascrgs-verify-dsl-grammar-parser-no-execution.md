@@ -8,8 +8,8 @@ parent: mw-6895bkg
 verify: out=$(cargo test verify_dsl::grammar 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 160
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
-  - REQUIREMENTS-meshwork.md#§-3-non-goals # ruling recorded here when scope moves
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
+  - docs/REQUIREMENTS-meshwork.md#§-3-non-goals # ruling recorded here when scope moves
 created: 2026-08-06
 ---
 Small declarative predicate grammar covering observed verify shapes

@@ -7,8 +7,8 @@ needs: [mw-vmzg]
 verify: run cargo test e2e::mirror_status_reports_only
 seq: 930
 docs:
-  - REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H4
-  - DESIGN-meshwork.md#§-8-github-push
+  - docs/REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H4
+  - docs/DESIGN-meshwork.md#§-8-github-push
 created: 2026-08-05
 ---
 

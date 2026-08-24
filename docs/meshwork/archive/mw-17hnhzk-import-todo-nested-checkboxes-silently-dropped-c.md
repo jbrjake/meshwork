@@ -7,7 +7,7 @@ verify: cargo test e2e::import_nested_checkboxes
 discovered-from: mw-ntt5
 seq: 120
 docs:
-  - DESIGN-meshwork.md#§-10-migration
+  - docs/DESIGN-meshwork.md#§-10-migration
 created: 2026-08-07T13:47Z
 ---
 Pilot evidence (sazed, 2026-08-07, abe358b): TODO.md had 124 checkboxes,

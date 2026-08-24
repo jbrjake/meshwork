@@ -7,7 +7,7 @@ verify: cargo test e2e::handoff_from_file
 discovered-from: mw-ntt5
 seq: 60
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-07T13:47Z
 ---
 Pilot evidence (sazed work session): a multi-paragraph --handoff payload

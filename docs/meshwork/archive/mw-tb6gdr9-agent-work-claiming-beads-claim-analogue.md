@@ -6,9 +6,9 @@ category: core/lifecycle
 verify: cargo test e2e::claim
 seq: 240
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface # frozen verb table — amending needs the ruling
-  - REQUIREMENTS-meshwork.md#§-3-non-goals # adjacent to "no assignees/roles" fence
-  - REQUIREMENTS-meshwork.md#§-k-comments-attachments # MW-K1 self-professed identity
+  - docs/DESIGN-meshwork.md#§-6-cli-surface # frozen verb table — amending needs the ruling
+  - docs/REQUIREMENTS-meshwork.md#§-3-non-goals # adjacent to "no assignees/roles" fence
+  - docs/REQUIREMENTS-meshwork.md#§-k-comments-attachments # MW-K1 self-professed identity
 created: 2026-08-06
 ---
 Owner-requested 2026-08-06: a way for agents to take on work, like beads'

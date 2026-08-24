@@ -5,7 +5,7 @@ status: done
 category: core/arch
 verify: cargo test arch::model_boundary
 docs:
-  - REQUIREMENTS-meshwork.md#§-j-non-functional
+  - docs/REQUIREMENTS-meshwork.md#§-j-non-functional
 seq: 230
 created: 2026-08-06
 ---

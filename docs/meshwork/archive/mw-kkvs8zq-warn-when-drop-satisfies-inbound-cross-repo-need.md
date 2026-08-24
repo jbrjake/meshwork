@@ -5,8 +5,8 @@ category: plan/m2
 seq: 60
 verify: cargo test e2e::drop_inbound_cross_repo_warns
 docs:
-  - DESIGN-meshwork.md#§-9-portfolio-master-sequencing
-  - DESIGN-meshwork.md#§-12b-trust-boundary
+  - docs/DESIGN-meshwork.md#§-9-portfolio-master-sequencing
+  - docs/DESIGN-meshwork.md#§-12b-trust-boundary
 status: done
 created: 2026-08-10T16:31Z
 ---

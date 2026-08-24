@@ -8,8 +8,8 @@ relates: [mw-17hnhzk]
 verify: out=$(cargo test import_wrapped 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 100
 docs:
-  - DESIGN-meshwork.md#§-10-migration
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-10-migration
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-10T22:22Z
 ---
 leras import (2026-08-10): 12 titles truncated at hard-wrapped line breaks

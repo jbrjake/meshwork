@@ -7,9 +7,9 @@ needs: [mw-9093]
 verify: cargo test -- e2e::crossrepo_resolution e2e::absent_repo
 seq: 40
 docs:
-  - REQUIREMENTS-meshwork.md#§-b-graph-model   # MW-B3
-  - REQUIREMENTS-meshwork.md#§-g-portfolio   # MW-G5
-  - DESIGN-meshwork.md#§-5-canned-verbs-frozen-sql
+  - docs/REQUIREMENTS-meshwork.md#§-b-graph-model   # MW-B3
+  - docs/REQUIREMENTS-meshwork.md#§-g-portfolio   # MW-G5
+  - docs/DESIGN-meshwork.md#§-5-canned-verbs-frozen-sql
 created: 2026-08-05
 ---
 Expected diff when this lands: re-bless ready-alpha.json — az-x9b2 becomes

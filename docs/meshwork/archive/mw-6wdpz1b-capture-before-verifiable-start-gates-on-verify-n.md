@@ -5,9 +5,9 @@ status: done
 category: core/lifecycle
 verify: cargo test e2e::needs_verify
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
-  - DESIGN-meshwork.md#§-6-cli-surface
-  - DESIGN-meshwork.md#§-7-session-integration
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-7-session-integration
 seq: 50
 created: 2026-08-07T04:48Z
 ---

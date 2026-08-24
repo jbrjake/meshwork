@@ -5,7 +5,7 @@ status: done
 category: meta/store
 verify: test -z "$(grep -L 'docs:' meshwork/tasks/mw-*.md)"
 docs:
-  - DESIGN-meshwork.md#2-task-file-format-normative-example
+  - docs/DESIGN-meshwork.md#2-task-file-format-normative-example
 created: 2026-08-06
 ---
 The 1.8 plan→task conversion kept titles and verifies but dropped each PLAN

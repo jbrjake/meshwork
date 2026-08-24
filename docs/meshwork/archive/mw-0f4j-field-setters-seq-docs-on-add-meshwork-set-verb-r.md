@@ -6,8 +6,8 @@ category: meta/readme
 verify: cargo test e2e::field_setters
 seq: 230
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
-  - DESIGN-meshwork.md#§-7b-prime-as-materialized-handoff
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-7b-prime-as-materialized-handoff
 created: 2026-08-06
 ---
 README: "Hand-editing is legal and expected but never necessary" —

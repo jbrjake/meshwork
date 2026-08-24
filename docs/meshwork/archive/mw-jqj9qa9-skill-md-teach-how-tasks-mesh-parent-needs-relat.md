@@ -7,8 +7,8 @@ discovered-from: mw-9zrd
 verify: grep -q -- '--parent' .claude/skills/meshwork/SKILL.md && grep -q 'relates' .claude/skills/meshwork/SKILL.md
 seq: 80
 docs:
-  - DESIGN-meshwork.md#§-7-session-integration
-  - REQUIREMENTS-meshwork.md#§-b-graph-model
+  - docs/DESIGN-meshwork.md#§-7-session-integration
+  - docs/REQUIREMENTS-meshwork.md#§-b-graph-model
 created: 2026-08-10T22:22Z
 ---
 leras evidence (2026-08-10 migration review): the import-review pass produced

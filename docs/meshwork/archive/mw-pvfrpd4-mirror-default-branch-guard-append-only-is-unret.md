@@ -5,8 +5,8 @@ status: done
 category: core/mirror
 verify: cargo test e2e::mirror_branch_guard
 docs:
-  - DESIGN-meshwork.md#§-8-github-push
-  - REQUIREMENTS-meshwork.md#§-h-github-push
+  - docs/DESIGN-meshwork.md#§-8-github-push
+  - docs/REQUIREMENTS-meshwork.md#§-h-github-push
 seq: 75
 created: 2026-08-06
 ---

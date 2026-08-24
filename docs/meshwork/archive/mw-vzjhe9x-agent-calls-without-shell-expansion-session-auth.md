@@ -6,7 +6,7 @@ relates: [mw-b9d4qpr]
 verify: grep -q MESHWORK_AUTHOR meshwork
 seq: 63
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 status: done
 created: 2026-08-10T13:57Z
 ---

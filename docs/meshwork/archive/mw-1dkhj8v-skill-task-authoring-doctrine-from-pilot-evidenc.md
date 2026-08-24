@@ -7,7 +7,7 @@ verify: grep -q 'imperative' .claude/skills/meshwork/SKILL.md
 discovered-from: mw-ntt5
 seq: 66
 docs:
-  - DESIGN-meshwork.md#§-7-session-integration
+  - docs/DESIGN-meshwork.md#§-7-session-integration
 created: 2026-08-07T13:47Z
 ---
 Three behaviors the pilot's work session paid for that the distributed

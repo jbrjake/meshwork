@@ -7,7 +7,7 @@ verify: run cargo test e2e::lint_doing_missing_verify
 discovered-from: mw-ntt5
 seq: 260
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
 created: 2026-08-07T13:47Z
 ---
 Pilot evidence (sazed): 94 live tasks lacked verifies after import; lint

@@ -5,7 +5,7 @@ status: done
 category: core/lifecycle
 verify: ./meshwork drop --help | grep -q -- --reason
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-12T20:48Z
 seq: 190
 blocked-reason:

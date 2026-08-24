@@ -6,8 +6,8 @@ category: core/id
 verify: "cargo test id::"
 seq: 5
 docs:
-  - DESIGN-meshwork.md#§-2-task-file-format # §2 format decisions
-  - REQUIREMENTS-meshwork.md#§-a-store # MW-A4
+  - docs/DESIGN-meshwork.md#§-2-task-file-format # §2 format decisions
+  - docs/REQUIREMENTS-meshwork.md#§-a-store # MW-A4
 created: 2026-08-06
 ---
 Owner ruling 2026-08-06: minted IDs grow from `<alias>-<4-char base32>`

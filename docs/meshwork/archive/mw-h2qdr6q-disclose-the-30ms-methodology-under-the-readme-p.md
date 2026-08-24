@@ -5,7 +5,7 @@ category: meta/readme
 verify: contains docs/portfolios.md check-perf
 docs:
   - README.md
-  - DESIGN-meshwork.md#§-14-gate
+  - docs/DESIGN-meshwork.md#§-14-gate
 status: done
 created: 2026-08-10T16:31Z
 seq: 250

@@ -6,8 +6,8 @@ category: core/verify
 verify: "run cargo test verify_dsl::"
 seq: 15
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
-  - REQUIREMENTS-meshwork.md#§-3-non-goals # ruling recorded here when scope moves
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
+  - docs/REQUIREMENTS-meshwork.md#§-3-non-goals # ruling recorded here when scope moves
 created: 2026-08-06
 ---
 Owner-ruled scope extension 2026-08-06: security warrants it. Today

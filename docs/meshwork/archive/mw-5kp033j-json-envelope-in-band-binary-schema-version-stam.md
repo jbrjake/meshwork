@@ -5,7 +5,7 @@ status: done
 category: core/query
 verify: cargo test e2e::json_envelope
 docs:
-  - REQUIREMENTS-meshwork.md#§-c-query
+  - docs/REQUIREMENTS-meshwork.md#§-c-query
 seq: 7
 created: 2026-08-06
 ---

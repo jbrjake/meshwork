@@ -6,8 +6,8 @@ category: core/render
 verify: run cargo test e2e::graph_render
 seq: 950
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface # frozen surface — flags/behavior need the ruling
-  - REQUIREMENTS-meshwork.md#§-d-context-discipline # MW-D5 byte budgets bound the art
+  - docs/DESIGN-meshwork.md#§-6-cli-surface # frozen surface — flags/behavior need the ruling
+  - docs/REQUIREMENTS-meshwork.md#§-d-context-discipline # MW-D5 byte budgets bound the art
 created: 2026-08-06
 handoff: |
   Up next after the 2026-08-19 sweep (startup bench, gate §7 prime

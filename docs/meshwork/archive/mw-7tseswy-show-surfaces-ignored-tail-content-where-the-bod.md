@@ -5,7 +5,7 @@ category: core/render
 needs: [mw-n3xgfs0]
 verify: run cargo test e2e::show_flags_ignored_tail_content
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
   - FORMAT.md#tail-section-grammars
 status: done
 created: 2026-08-09T23:35Z

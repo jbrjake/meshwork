@@ -8,7 +8,7 @@ relates: [mw-8kfqz2z, mw-4aqmf0t, mw-0y66mhb]
 verify: bad=0; for f in docs/meshwork/mw-*.md; do grep -qE '^status:[[:space:]](open|blocked)' "$f" || continue; grep -m1 '^verify:' "$f" | grep -qE '^verify:[[:space:]]"?cargo test [^|&;]*$' && bad=1; done; test $bad -eq 0
 seq: 75
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
 created: 2026-08-10T22:22Z
 ---
 Sweep observed 2026-08-10, this session: 39 of 48 open-task verifies exit 0

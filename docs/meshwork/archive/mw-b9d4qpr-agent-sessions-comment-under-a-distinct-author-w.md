@@ -5,7 +5,7 @@ category: skill
 relates: [mw-we7g0k3]
 verify: grep -q 'MESHWORK_AUTHOR' .claude/skills/meshwork/references/install.md
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 status: done
 created: 2026-08-09T23:52Z
 seq: 64

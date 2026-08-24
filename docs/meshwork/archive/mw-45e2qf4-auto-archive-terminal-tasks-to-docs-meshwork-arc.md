@@ -5,8 +5,8 @@ status: done
 category: core/store
 verify: cargo test e2e::archive_on_close
 docs:
-  - DESIGN-meshwork.md#§-1-on-disk-layout
-  - REQUIREMENTS-meshwork.md#§-a-store # MW-A1/A4
+  - docs/DESIGN-meshwork.md#§-1-on-disk-layout
+  - docs/REQUIREMENTS-meshwork.md#§-a-store # MW-A1/A4
 seq: 17
 created: 2026-08-06
 ---

@@ -8,7 +8,7 @@ relates:
   - mw-175bn4c
   - mw-yj2fq9x
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-12T20:48Z
 seq: 200
 blocked-reason:

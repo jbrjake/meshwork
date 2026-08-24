@@ -8,7 +8,7 @@ parent: mw-6895bkg
 verify: run cargo test e2e::verify_migration
 seq: 180
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
 created: 2026-08-06
 handoff: |
   Everything this wiring needs is landed: verify_dsl::classify →

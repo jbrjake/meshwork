@@ -6,7 +6,7 @@ relates: [mw-175bn4c, mw-6wdpz1b]
 verify: out=$(cargo test lint::trivial_verify_warn 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 210
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
 status: done
 created: 2026-08-08T14:09Z
 ---

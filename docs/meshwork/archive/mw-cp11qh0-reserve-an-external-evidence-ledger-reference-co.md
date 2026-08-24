@@ -6,7 +6,7 @@ category: core/format
 needs: [mw-dg5j1sv]
 verify: grep -qi 'ledger' FORMAT.md
 docs:
-  - REQUIREMENTS-meshwork.md#§-3-non-goals
+  - docs/REQUIREMENTS-meshwork.md#§-3-non-goals
 seq: 86
 created: 2026-08-06
 ---

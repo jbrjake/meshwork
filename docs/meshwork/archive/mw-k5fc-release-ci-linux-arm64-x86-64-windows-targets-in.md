@@ -5,7 +5,7 @@ status: done
 category: meta/distribution
 verify: grep -q linux .github/workflows/release.yml && grep -qi windows .github/workflows/release.yml
 docs:
-  - REQUIREMENTS-meshwork.md#§-j-non-functional   # MW-J3 adoptability
+  - docs/REQUIREMENTS-meshwork.md#§-j-non-functional   # MW-J3 adoptability
 seq: 200
 created: 2026-08-06
 ---

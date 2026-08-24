@@ -5,7 +5,7 @@ status: done
 category: meta/distribution
 verify: grep -qi cache .github/workflows/release.yml
 docs:
-  - REQUIREMENTS-meshwork.md#§-j-non-functional   # MW-J3 adoptability
+  - docs/REQUIREMENTS-meshwork.md#§-j-non-functional   # MW-J3 adoptability
 seq: 210
 created: 2026-08-06
 ---

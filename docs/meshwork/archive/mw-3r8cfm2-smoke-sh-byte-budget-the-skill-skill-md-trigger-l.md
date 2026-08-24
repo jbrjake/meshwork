@@ -6,7 +6,7 @@ category: skill
 discovered-from: mw-jqj9qa9
 verify: grep -q 'skills/meshwork' scripts/smoke.sh
 docs:
-  - DESIGN-meshwork.md#§-7-session-integration
+  - docs/DESIGN-meshwork.md#§-7-session-integration
 seq: 95
 created: 2026-08-14T13:00Z
 ---

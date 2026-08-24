@@ -5,8 +5,8 @@ status: done
 category: core/lifecycle
 verify: cargo test e2e::commit_trace
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-07T00:27Z
 ---
 Owner-requested 2026-08-07: a mechanized, automated tie between a

@@ -7,7 +7,7 @@ verify: cargo test e2e::set_cat_verify
 discovered-from: mw-ntt5
 seq: 55
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-07T13:47Z
 ---
 Pilot evidence (sazed), both sessions. Migration: enriching 94 imported

@@ -6,7 +6,7 @@ seq: 50
 needs: [mw-2nmsys2]
 verify: cargo test e2e::portfolio_sequence_prune
 docs:
-  - DESIGN-meshwork.md#§-9-portfolio-master-sequencing
+  - docs/DESIGN-meshwork.md#§-9-portfolio-master-sequencing
 status: done
 created: 2026-08-10T16:31Z
 blocked-reason:

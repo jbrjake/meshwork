@@ -6,7 +6,7 @@ relates: [mw-rz4ey2h, mw-t01ek6s]
 verify: run cargo test e2e::add_body
 seq: 300
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 status: done
 created: 2026-08-08T16:42Z
 blocked-reason:

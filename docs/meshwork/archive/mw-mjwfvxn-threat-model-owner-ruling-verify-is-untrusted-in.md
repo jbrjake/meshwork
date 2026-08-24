@@ -4,11 +4,11 @@ title: "Threat model + owner ruling: verify: is untrusted input"
 status: done
 category: core/verify
 parent: mw-6895bkg
-verify: grep -q MW-E5 REQUIREMENTS-meshwork.md
+verify: grep -q MW-E5 docs/REQUIREMENTS-meshwork.md
 seq: 15
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
-  - REQUIREMENTS-meshwork.md#§-3-non-goals # ruling recorded here when scope moves
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
+  - docs/REQUIREMENTS-meshwork.md#§-3-non-goals # ruling recorded here when scope moves
 created: 2026-08-06
 ---
 Deliverable is a ruling, written down: DESIGN gains a trust-boundary

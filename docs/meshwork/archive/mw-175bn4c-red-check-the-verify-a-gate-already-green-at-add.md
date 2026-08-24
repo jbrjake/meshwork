@@ -7,8 +7,8 @@ verify: out=$(cargo test e2e::verify_red_check 2>&1) && echo "$out" | grep -qE '
 discovered-from: mw-ntt5
 seq: 125
 docs:
-  - DESIGN-meshwork.md#§-12b-trust-boundary
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
+  - docs/DESIGN-meshwork.md#§-12b-trust-boundary
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
 created: 2026-08-07T13:47Z
 ---
 The pilot hit this class TWICE in one day. Migration: 5 of 30 executed

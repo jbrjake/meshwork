@@ -6,7 +6,7 @@ category: core/verify
 discovered-from: mw-mjwfvxn
 verify: run cargo test e2e::path_confinement
 docs:
-  - DESIGN-meshwork.md#§-12b-trust-boundary
+  - docs/DESIGN-meshwork.md#§-12b-trust-boundary
 created: 2026-08-07T01:55Z
 seq: 160
 ---

@@ -7,8 +7,8 @@ needs: [mw-9zrd, mw-pvfrpd4]
 verify: run cargo test e2e::mirror_create
 seq: 900
 docs:
-  - REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H1, MW-H3
-  - DESIGN-meshwork.md#§-8-github-push
+  - docs/REQUIREMENTS-meshwork.md#§-h-github-push   # MW-H1, MW-H3
+  - docs/DESIGN-meshwork.md#§-8-github-push
 created: 2026-08-05
 handoff: |
   M3 opens here; M2 closed 2026-08-13 (portfolio live:

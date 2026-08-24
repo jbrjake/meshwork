@@ -8,8 +8,8 @@ parent: mw-6895bkg
 verify: cargo test e2e::verify_trust
 seq: 16
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
-  - DESIGN-meshwork.md#§-6-cli-surface # frozen verb table
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline # MW-E2 sh -c today
+  - docs/DESIGN-meshwork.md#§-6-cli-surface # frozen verb table
 created: 2026-08-06
 ---
 The direnv-allow pattern, minimal: SHA-256 over (id, verify text)

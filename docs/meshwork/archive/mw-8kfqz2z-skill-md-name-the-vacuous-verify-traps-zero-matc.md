@@ -8,7 +8,7 @@ relates: [mw-175bn4c, mw-221f3jt]
 verify: grep -qi 'vacuous' .claude/skills/meshwork/SKILL.md
 seq: 90
 docs:
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
 created: 2026-08-10T22:22Z
 ---
 The doctrine line exists ("must FAIL while the work is undone") but names no

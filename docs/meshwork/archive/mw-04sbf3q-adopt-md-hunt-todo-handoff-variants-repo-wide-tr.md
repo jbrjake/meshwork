@@ -7,7 +7,7 @@ discovered-from: mw-9zrd
 verify: grep -q 'red-check' .claude/skills/meshwork/references/adopt.md && grep -q 'between checkboxes' .claude/skills/meshwork/references/adopt.md
 seq: 85
 docs:
-  - DESIGN-meshwork.md#§-10-migration
+  - docs/DESIGN-meshwork.md#§-10-migration
 created: 2026-08-10T22:22Z
 ---
 Three leras lessons, in ritual order. (1) Step 2 assumes a root TODO.md and

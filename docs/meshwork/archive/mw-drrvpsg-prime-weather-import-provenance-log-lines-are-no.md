@@ -7,7 +7,7 @@ verify: cargo test e2e::weather_skips_import_log
 discovered-from: mw-ntt5
 seq: 40
 docs:
-  - DESIGN-meshwork.md#§-7-session-integration
+  - docs/DESIGN-meshwork.md#§-7-session-integration
 created: 2026-08-07T13:47Z
 ---
 Pilot evidence (sazed): all 8 imported `doing` tasks render the identical

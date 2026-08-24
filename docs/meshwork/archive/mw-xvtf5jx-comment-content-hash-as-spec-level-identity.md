@@ -7,8 +7,8 @@ needs: [mw-zp1h12d]
 relates: [mw-vmzg]
 verify: cargo test e2e::comment_identity
 docs:
-  - DESIGN-meshwork.md#§-8-github-push
-  - REQUIREMENTS-meshwork.md#§-k-comments-attachments
+  - docs/DESIGN-meshwork.md#§-8-github-push
+  - docs/REQUIREMENTS-meshwork.md#§-k-comments-attachments
 seq: 85
 created: 2026-08-06
 ---

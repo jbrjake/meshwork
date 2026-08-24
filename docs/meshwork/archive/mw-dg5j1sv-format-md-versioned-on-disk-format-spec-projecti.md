@@ -6,8 +6,8 @@ category: core/format
 needs: [mw-zp1h12d, mw-n6nvzpa, mw-3wnhhvp]
 verify: grep -qi '## projection' FORMAT.md
 docs:
-  - DESIGN-meshwork.md#§-2-task-file-format
-  - REQUIREMENTS-meshwork.md#§-a-store
+  - docs/DESIGN-meshwork.md#§-2-task-file-format
+  - docs/REQUIREMENTS-meshwork.md#§-a-store
 seq: 6
 created: 2026-08-06
 ---

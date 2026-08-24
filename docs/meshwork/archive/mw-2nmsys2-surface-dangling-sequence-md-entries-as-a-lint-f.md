@@ -5,7 +5,7 @@ category: plan/m2
 seq: 40
 verify: cargo test e2e::portfolio_sequence_dangling
 docs:
-  - DESIGN-meshwork.md#§-9-portfolio-master-sequencing
+  - docs/DESIGN-meshwork.md#§-9-portfolio-master-sequencing
 status: done
 created: 2026-08-10T16:31Z
 ---

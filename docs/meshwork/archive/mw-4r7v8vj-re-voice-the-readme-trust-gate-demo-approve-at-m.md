@@ -6,7 +6,7 @@ category: meta/readme
 discovered-from: mw-5fekg2q
 docs:
   - README.md
-  - DESIGN-meshwork.md#§-12b-trust-boundary
+  - docs/DESIGN-meshwork.md#§-12b-trust-boundary
 seq: 285
 created: 2026-08-23T20:25Z
 verify: "! grep -q \"approving verify for\" README.md && ! grep -q \"refusing unapproved verify for\" README.md"

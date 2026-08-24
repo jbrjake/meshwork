@@ -6,8 +6,8 @@ category: core/format
 needs: [mw-zp1h12d]
 verify: cargo test e2e::log_table
 docs:
-  - DESIGN-meshwork.md#§-4-tables-the-sql-contract
-  - REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
+  - docs/DESIGN-meshwork.md#§-4-tables-the-sql-contract
+  - docs/REQUIREMENTS-meshwork.md#§-e-lifecycle-discipline
 seq: 5
 created: 2026-08-06
 ---

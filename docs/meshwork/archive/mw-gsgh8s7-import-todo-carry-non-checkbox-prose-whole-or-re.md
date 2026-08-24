@@ -7,7 +7,7 @@ discovered-from: mw-mrjhwws
 verify: out=$(cargo test import_prose 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 105
 docs:
-  - DESIGN-meshwork.md#§-10-migration
+  - docs/DESIGN-meshwork.md#§-10-migration
 created: 2026-08-14T13:28Z
 ---
 Column-0 prose outside any checkbox is dropped with exit 0 today; a whole

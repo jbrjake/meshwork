@@ -6,7 +6,7 @@ relates: [mw-dkwf26w]
 verify: run cargo test lint::stale_doing_warn
 seq: 320
 docs:
-  - DESIGN-meshwork.md#§-7-session-integration
+  - docs/DESIGN-meshwork.md#§-7-session-integration
 status: done
 created: 2026-08-08T16:42Z
 ---

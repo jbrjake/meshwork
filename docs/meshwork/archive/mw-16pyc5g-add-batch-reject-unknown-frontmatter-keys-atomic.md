@@ -7,7 +7,7 @@ verify: cargo test e2e::batch_rejects_unknown_keys
 discovered-from: mw-ntt5
 seq: 25
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 created: 2026-08-07T13:47Z
 ---
 Pilot evidence (sazed): a batch document using `from:` (the slot name §6

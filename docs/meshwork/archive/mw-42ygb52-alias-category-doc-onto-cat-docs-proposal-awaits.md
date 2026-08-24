@@ -6,7 +6,7 @@ relates: [mw-rz4ey2h]
 verify: cargo test e2e::category_doc_aliases
 seq: 57
 docs:
-  - DESIGN-meshwork.md#§-6-cli-surface
+  - docs/DESIGN-meshwork.md#§-6-cli-surface
 status: done
 created: 2026-08-10T14:40Z
 ---

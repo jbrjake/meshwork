@@ -9,7 +9,7 @@ relates:
 verify: out=$(cargo test import_marker_doing 2>&1) && echo "$out" | grep -qE 'ok\. [1-9][0-9]* passed'
 seq: 115
 docs:
-  - DESIGN-meshwork.md#§-10-migration
+  - docs/DESIGN-meshwork.md#§-10-migration
 created: 2026-08-14T13:28Z
 ---
 [~] maps to doing with no claimant, seeding instant doing-rot (the leras

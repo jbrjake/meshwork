@@ -5,7 +5,7 @@ status: done
 category: core/session
 verify: cargo test e2e::prime_provenance
 docs:
-  - DESIGN-meshwork.md#§-7-session-integration
+  - docs/DESIGN-meshwork.md#§-7-session-integration
 seq: 22
 created: 2026-08-06
 ---

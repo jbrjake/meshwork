@@ -5,8 +5,8 @@ status: done
 category: core/format
 verify: cargo test e2e::minute_stamps
 docs:
-  - DESIGN-meshwork.md#§-2-task-file-format
-  - REQUIREMENTS-meshwork.md#§-i-concurrency-merge
+  - docs/DESIGN-meshwork.md#§-2-task-file-format
+  - docs/REQUIREMENTS-meshwork.md#§-i-concurrency-merge
 seq: 3
 created: 2026-08-06
 ---

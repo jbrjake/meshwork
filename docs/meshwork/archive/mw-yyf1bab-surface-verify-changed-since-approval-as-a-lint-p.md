@@ -7,7 +7,7 @@ relates: [mw-9rc4vs6]
 verify: run cargo test lint::verify_changed_since_approval
 seq: 200
 docs:
-  - DESIGN-meshwork.md#§-12b-trust-boundary
+  - docs/DESIGN-meshwork.md#§-12b-trust-boundary
 status: done
 created: 2026-08-08T14:09Z
 ---
