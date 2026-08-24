@@ -6,7 +6,7 @@ discovered-from: mw-nx91erh
 needs: [mw-4r7v8vj]
 seq: 252
 verify: t=$(git tag --sort=-v:refname | head -1); git ls-tree -r --name-only "$t" | grep -q references/migrate.md && git merge-base --is-ancestor "$t" origin/main
-status: open
+status: doing
 created: 2026-08-24T13:32Z
 handoff: |
   Everything the release carries is on main as of dd793ae: migrate.md
@@ -19,6 +19,7 @@ handoff: |
   the tag immediately. Suggest v0.4.0: the batch trust change is behavior,
   not a patch. After the push, the sazed/leras sweeps (mw-rtt16df,
   mw-mcx59sd) unblock onto this tag.
+claimed-by: claude (session_016iEafFdzwyKAtsU3AEMhaU)
 ---
 Publishes the migration ritual landed on mw-nx91erh: marketplace installs
 resolve the newest tag, so cutting this release IS the skill publish.
@@ -40,3 +41,4 @@ must land on a release that carries references/migrate.md.
 
 ## log
 - 2026-08-24T13:32Z created
+- 2026-08-24T21:43Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
