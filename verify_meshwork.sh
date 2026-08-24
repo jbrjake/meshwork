@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# verify_meshwork.sh — THE gate (DESIGN-meshwork.md §14, MW-J5). One exit 0 or it didn't pass.
+# verify_meshwork.sh — THE gate (docs/DESIGN-meshwork.md §14, MW-J5). One exit 0 or it didn't pass.
 # House pattern: numbered sections, each PASS / FAIL / SKIP(reason). Skips are loud, never silent.
 # --strict: skips and TRACE rows still marked `planned` become failures (v1 acceptance mode, PLAN 4.3).
 # No network anywhere in the gate (MW-J6): proxies cleared, mirror tests use the stub gh.
@@ -55,15 +55,15 @@ section 5 "file length: warn >500, fail >750 (code files)"
 if ./scripts/check-file-length.sh; then pass; else fail "file(s) over 750-line ceiling"; fi
 
 # ---------------------------------------------------------------- §6 trace completeness (MW-J5)
-section 6 "TRACE.md: every MW-* MUST mapped; done-rows name real tests"
-if [[ ! -f TRACE.md ]]; then
-  fail "TRACE.md missing"
+section 6 "docs/TRACE.md: every MW-* MUST mapped; done-rows name real tests"
+if [[ ! -f docs/TRACE.md ]]; then
+  fail "docs/TRACE.md missing"
 else
   TRACE_FAIL=0
   # every MUST id in REQUIREMENTS appears as a TRACE row
   while IFS= read -r id; do
-    grep -q "^| $id " TRACE.md || { printf '   unmapped requirement: %s\n' "$id"; TRACE_FAIL=1; }
-  done < <(grep -Eo 'MW-[A-Z][0-9]+ \(MUST\)' REQUIREMENTS-meshwork.md | sed 's/ (MUST)//' | sort -u)
+    grep -q "^| $id " docs/TRACE.md || { printf '   unmapped requirement: %s\n' "$id"; TRACE_FAIL=1; }
+  done < <(grep -Eo 'MW-[A-Z][0-9]+ \(MUST\)' docs/REQUIREMENTS-meshwork.md | sed 's/ (MUST)//' | sort -u)
   # done-rows must cite tests that exist (gate-satisfied rows say "gate")
   TEST_LIST=$(PATH="$TEST_PATH" cargo test -- --list 2>/dev/null || true)
   while IFS= read -r row; do
@@ -75,9 +75,9 @@ else
     for t in $tests; do
       printf '%s' "$TEST_LIST" | grep -q "$t" || { printf '   phantom test in done-row: %s\n' "$t"; TRACE_FAIL=1; }
     done
-  done < <(grep '^| MW-' TRACE.md | grep '| done |')
+  done < <(grep '^| MW-' docs/TRACE.md | grep '| done |')
   # planned rows: fine normally, fatal under --strict
-  PLANNED=$(grep -c '| planned |' TRACE.md || true)
+  PLANNED=$(grep -c '| planned |' docs/TRACE.md || true)
   if [[ $STRICT -eq 1 && ${PLANNED:-0} -gt 0 ]]; then printf '   %d rows still planned\n' "$PLANNED"; TRACE_FAIL=1; fi
   if [[ $TRACE_FAIL -eq 0 ]]; then pass "(${PLANNED:-0} rows planned)"; else fail "trace"; fi
 fi

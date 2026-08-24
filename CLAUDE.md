@@ -4,11 +4,11 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 
 ## Doc map (read in this order when cold)
 
-- `REQUIREMENTS-meshwork.md` — WHAT/WHY. `MW-*` IDs are normative; §3 non-goals is the anti-scope-creep fence (changing it requires an owner ruling).
-- `DESIGN-meshwork.md` — HOW. File format §2, SQL contract §4–5, CLI surface §6 (frozen: anything not there is a non-goal), trust boundary §12b, test architecture §13, gate §14, decisions §15.
+- `docs/REQUIREMENTS-meshwork.md` — WHAT/WHY. `MW-*` IDs are normative; §3 non-goals is the anti-scope-creep fence (changing it requires an owner ruling).
+- `docs/DESIGN-meshwork.md` — HOW. File format §2, SQL contract §4–5, CLI surface §6 (frozen: anything not there is a non-goal), trust boundary §12b, test architecture §13, gate §14, decisions §15.
 - `FORMAT.md` — the on-disk format + projection contract, versioned and self-contained; third-party readers implement from this, never from the binary.
-- `PLAN-meshwork-build.md` — THE WORKLIST. Ordered items, each with a `verify:` command. The **Position** line at top marks the next item. Work top-to-bottom; no skipping ahead.
-- `TRACE.md` — requirement → test map, machine-checked by the gate.
+- `docs/PLAN-meshwork-build.md` — THE WORKLIST. Ordered items, each with a `verify:` command. The **Position** line at top marks the next item. Work top-to-bottom; no skipping ahead.
+- `docs/TRACE.md` — requirement → test map, machine-checked by the gate.
 
 ## Engineering baseline
 
@@ -16,7 +16,7 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 
 **Explicit overrides, with reasons (baseline permits exactly this):**
 
-1. **No TODO.md, no check-todo.sh.** `PLAN-meshwork-build.md` is the worklist until M1, when meshwork starts tracking itself (gate §8 self-host). Reason: this project exists to replace TODO.md; duplicating the plan into one would recreate the disease it cures. New work discovered mid-build: file it as a plan item with a `verify:` (pre-M1) or a meshwork task (post-M1) — never carry it in your head.
+1. **No TODO.md, no check-todo.sh.** `docs/PLAN-meshwork-build.md` is the worklist until M1, when meshwork starts tracking itself (gate §8 self-host). Reason: this project exists to replace TODO.md; duplicating the plan into one would recreate the disease it cures. New work discovered mid-build: file it as a plan item with a `verify:` (pre-M1) or a meshwork task (post-M1) — never carry it in your head.
 2. **Doc budgets are in bytes, not lines** (MW-D5 doctrine — line caps get gamed; this repo's own audit proved it). No HANDOFF.md exists — `prime` materializes the handoff (DESIGN §7b). Code files still use the 500/750 line caps.
 3. **check-perf.sh + bench-baseline.json landed with PLAN 2.5** (gate §7 live since 2026-08-10). The gate owns the absolute MW-C4 budgets; `scripts/check-perf.sh` is the 1.5× drift wall underneath them (`UPDATE_BASELINE=1` reseeds; the baseline is data, reviewed like code).
 
@@ -32,7 +32,7 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 1. `meshwork prime` (`./meshwork` — a committed shim over `target/debug/meshwork` that also supplies the agent session author, so verbs need no `--as`; a SessionStart hook in `.claude/settings.json` injects prime automatically). Then `meshwork show <ready-id>` and read its `docs:` refs. The PLAN Position line stays in sync until v1 but the store is the live worklist.
 2. Red first: the item's test precedes its code. Golden files change only via `--bless` + a reviewed diff.
 3. An item closes only on its `verify:` exit 0 AND a green `./verify_meshwork.sh` — observed, not predicted. Close via `meshwork close <id>` (it runs the verify).
-4. Same commit: flip the item's TRACE.md rows `planned`→`done`, advance the Position line. Session end: refresh `handoff:` on whatever task is up next (DESIGN §7b) — there is no HANDOFF.md; prime is the handoff.
+4. Same commit: flip the item's docs/TRACE.md rows `planned`→`done`, advance the Position line. Session end: refresh `handoff:` on whatever task is up next (DESIGN §7b) — there is no HANDOFF.md; prime is the handoff.
 
 ## Hard boundaries
 
