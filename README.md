@@ -261,7 +261,31 @@ As you can see, there are limits to enforcement. An agent absolutely will just t
 
 #### task verification security
 
-Task files can come from untrusted sources, like third-party PRs. `verify:` fields are executed in the shell. This is not a fantastic combination for security.
+Tasks can be verified with a small expression language, or with shell execution and all the security risks that entails.
+
+##### the verify dsl, the preferred path
+
+A verify field that leads with a DSL keyword is parsed as a predicate instead of being handed to a shell:
+
+```
+verify: exists bench/spill.csv
+verify: absent src/legacy_parser.rs
+verify: contains CHANGELOG.md /^## v0\.4/
+verify: run cargo test spill::batch
+verify: all(exists bench/spill.csv, run cargo test spill::batch)
+```
+
+`exists`, `absent`, and `contains` (literal or `/regex/`) evaluate natively. No process runs, and there's nothing to approve, because they're just reads. `run` executes a real command, but not through a shell: the arguments are validated against a very restricted per-runner grammar (today `cargo test`, `cargo build`, `cargo fmt`) and spawned directly as an argument list, so shell metacharacters are just characters that fail to parse. Paths are repo-relative and can't traverse out.
+
+Because there's no shell to smuggle anything through, DSL verifies generally skip the approval ceremony below that shell execution uses. `run` stays approval-free only under certain conditions. If any commit ever delivered the task file alongside code or any other changes outside the meshwork tasks directory, it has to be approved like shell does. Tasks never vouch for code that arrived with them.
+
+`run cargo test` also closes a classic hole: `cargo test` exits 0 when a filter matches nothing, so the DSL demands an observed `ok. N passed` with N ≥ 1 before it counts as green. A filter that matches zero tests can never close a task.
+
+Text that doesn't lead with a keyword gets treated as plain shell, falls to the path below, and `lint` nags about it. Keyword-led text that doesn't parse refuses outright rather than falling back to shell.
+
+#### shell execution
+
+Task files can come from untrusted sources, like third-party PRs. `verify:` fields outside the DSL above are executed in the shell. This is not a fantastic combination for security.
 
 When you add a task in meshwork and provide the verify field, it's trusted and will be run when you close a task. The assumption is that you or an agent you're delegating responsibility to is trusted. And if it's an agent, that you've configured your harness with the security you need.
 
