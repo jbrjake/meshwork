@@ -1,7 +1,7 @@
 ---
 id: mw-9dq6850
 title: "Extend approve-at-mint to add --batch verifies, or rule the carve-out"
-status: open
+status: done
 category: core/trust
 discovered-from: mw-4r7v8vj
 verify: run cargo test batch_authored_verify_preapproved
@@ -37,3 +37,8 @@ closes would refuse. Wording fix proposed on mw-4r7v8vj.
 
 ## log
 - 2026-08-24T16:42Z created
+- 2026-08-24T16:56Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-24T17:12Z doing→done — verify exit 0 @ 940e387+2
+
+## comments
+- 2026-08-24T16:56Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Owner ruling 2026-08-24: extend — batch-minted verifies get the same at-write approval as add --verify/set --verify. The README security prose landed as-is (112e32e) on the strength of this fix making it accurate.
