@@ -10,18 +10,15 @@ docs:
 seq: 285
 created: 2026-08-23T20:25Z
 handoff: |
-  Owner decision point, then mechanical work. The decision: how the README
-  demonstrates the trust gate now that self-authored verifies pre-approve
-  (approve-at-mint) — a merge-arrival stand-in (hand-edit a verify
-  between
-  blocks, mirroring how the trust tests construct it), or a re-voiced
-  narrative. Once the words land, re-paste the two affected sequences from
-  real runs (quick-start close block; the sa-jt7zg9w refusal pair) and
-  mw-5fekg2q unblocks — its script spec is complete in its body plus one
-  comment (subsequence matching for elided lines; scratch cargo project
-  for the stuff::thing verify). Sibling decisions also parked for you:
-  mw-84h1mve (install.md shim vs hook, evidence scores it shim-ward) and
-  mw-59f0t1q (the reveal flip, yours alone).
+  Owner picked the re-voiced narrative 2026-08-24 (no merge-arrival
+  stand-in). Remaining work: 1) draft the re-voiced trust-gate prose —
+  close runs the mint-approved verify and fails honestly (exit 1, stays
+  open); the merge-arrival gate is described in prose, not staged on
+  screen. README words are owner-voiced: propose, never land unprompted.
+  2) re-paste the two affected sequences from real runs (quick-start close
+  block; the sa-jt7zg9w pair). 3) mw-5fekg2q then unblocks — its script
+  spec is complete in its body plus one comment (subsequence matching for
+  elided lines; scratch cargo project for the stuff::thing verify).
 ---
 
 Approve-at-mint (mw-2kgkn0j/mw-51x0wty, landed 2026-08-23) records this
@@ -46,3 +43,6 @@ its script cannot go green against blocks whose story must change.
 
 ## log
 - 2026-08-23T20:25Z created
+
+## comments
+- 2026-08-24T13:09Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Owner ruling 2026-08-24: re-voiced narrative. Drop the staged-refusal story — no merge-arrival stand-in in the README. The close demo goes straight to the honest objection: verify runs (pre-approved at mint), exits 1, task stays open. The gate itself gets narrated, not demonstrated.
