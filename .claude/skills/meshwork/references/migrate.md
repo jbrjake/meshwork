@@ -71,7 +71,23 @@ pin bump: every meshwork call starts prompting again. Delete any such rule
 from `.claude/settings.json` and `.claude/settings.local.json`; rules
 target the committed shim path instead.
 
-## 6. Delete the vendored skill copy — last
+## 6. Recast the store's verifies into the DSL
+
+The pinned binary runs `verify:` DSL — `run cargo test <filter>`,
+`exists <path>`, `absent <path>`, `contains <path> <lit|/regex/>`,
+`all(p, …)` — and gates legacy shell text per-clone: text this clone did
+not author prompts before it runs, and `lint` warns `verify-shell`. A
+pre-DSL store's verifies are all shell, so sweep every open task: recast
+each verify into the DSL where it fits (adopt.md step 6 is the
+recast-and-red-check ritual); a check only shell can express gets
+re-authored on this clone via `set --verify` — that mints this clone's
+approval — and keeps the lint warning as its price.
+
+Land the recasts as their own store-only commit, never mixed into the
+migration commit below: `run cargo test` stays approval-free only while
+a task file's git history touches nothing outside the store.
+
+## 7. Delete the vendored skill copy — last
 
 ```bash
 git rm -r .claude/skills/meshwork
@@ -83,10 +99,11 @@ deliberately pins the skill TEXT to its binary version keeps vendoring
 (install.md's vendored section) and skips this step; for everyone else the
 plugin copy wins and a vendored one is drift waiting to happen.
 
-## 7. Prove it, one commit
+## 8. Prove it
 
 The migration lands as a single commit: shim move or creation, hook edits,
-permission sweep, vendored-skill removal, pin bump. Then:
+permission sweep, vendored-skill removal, pin bump (the verify recasts of
+step 6 ride their own store-only commit). Then:
 
 - `claude -p "Without tools: quote the first line the session-start hook
   injected"` — expect the `meshwork — N open` digest, proving prime ran
