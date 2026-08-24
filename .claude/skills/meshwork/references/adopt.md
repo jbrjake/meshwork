@@ -1,4 +1,4 @@
-# Adopting meshwork in a repo (migration ritual — read only when migrating)
+# Adopting meshwork in a repo (TODO.md retirement — read only when adopting)
 
 Prerequisite: the pinned binary is installed and the `docs/meshwork/meshwork`
 shim is committed (`install.md`). Every `meshwork` below means the shim —
@@ -41,6 +41,12 @@ never create anything at the adopter's repo root (mw-raty5mm).
 
    Prove it fired: `claude -p "Without tools: quote the first line the
    session-start hook injected"` — expect the `meshwork — N open` digest.
+
+   When permission allow-rules for meshwork get added, they target the
+   committed shim path — never a `~/.meshwork/versions/<tag>/…` path. A
+   rule that embeds a release tag dies silently at the next pin bump and
+   every meshwork call starts prompting again (`migrate.md` step 5 is the
+   repair).
 5. Retire the old ritual **in the same commit**, working the step-1 list to
    zero: delete TODO.md (its content now lives in `docs/meshwork/`), delete
    check-todo.sh and every reference to it, and DELETE HANDOFF.md outright —

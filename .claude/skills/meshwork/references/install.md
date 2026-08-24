@@ -47,10 +47,10 @@ The shim resolves `.meshwork-version` relative to ITSELF (`dirname "$0"`,
 two levels up to the repo root), so git worktrees and subdirectory shells
 both work. Hooks and scripts invoke the shim too; the raw
 `~/.meshwork/versions/$(cat .meshwork-version)/meshwork` path remains the
-fallback where a repo checkout isn't available. Repos that adopted before
-v0.3.1 carry the shim at `./meshwork`: migrate with
-`git mv meshwork docs/meshwork/meshwork`, change its `cat` path to
-`../../.meshwork-version`, and repoint the SessionStart hook.
+fallback where a repo checkout isn't available. Legacy deploys — a root
+`./meshwork` shim, a hook that rebuilds the raw versions path, or a
+vendored skill copy from before the plugin — upgrade via `migrate.md`'s
+ordered ritual; don't improvise the move.
 
 An explicit `--as` always wins, and a human shell (no session id) falls
 through to `default_author` untouched. Never put `]` in an author — the

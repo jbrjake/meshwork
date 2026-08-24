@@ -11,9 +11,11 @@ the repo's committed shim — `docs/meshwork/meshwork` (pre-v0.3.1 adopters:
 `./meshwork`) — which execs the pinned binary
 (`~/.meshwork/versions/$(cat .meshwork-version)/meshwork` — install.md).
 
-**Installing the binary or adopting meshwork in a new repo?** Read
-`references/install.md` (pinned install, no globals) and `references/adopt.md`
-(migration ritual) from this skill's directory first. Don't improvise either.
+**Installing, adopting, or upgrading a legacy deploy?** Read
+`references/install.md` (pinned install, no globals), `references/adopt.md`
+(TODO.md retirement), or `references/migrate.md` (pre-plugin deploys:
+vendored skill copy, root `./meshwork` shim, raw versions-path hooks).
+Don't improvise any of them.
 
 ## Session ritual
 
