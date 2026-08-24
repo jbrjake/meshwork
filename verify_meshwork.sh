@@ -111,6 +111,15 @@ else
   skip "no self store yet (pending M1 dogfood, PLAN 1.8)"
 fi
 
+# ---------------------------------------------------------------- §9 readme transcripts
+section 9 "README transcripts replay against scratch stores"
+RT_OUT=$(./scripts/check-readme-transcripts.sh 2>&1); RT_RC=$?
+if [[ $RT_RC -eq 0 ]]; then
+  pass "$(printf '%s' "$RT_OUT" | tail -1)"
+else
+  fail "readme transcripts"; printf '%s\n' "$RT_OUT" | tail -25
+fi
+
 # ----------------------------------------------------------------
 printf '\n'
 if [[ $FAILURES -eq 0 ]]; then

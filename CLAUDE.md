@@ -23,7 +23,7 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 ## Gates
 
 - `./scripts/smoke.sh` — pre-commit (seconds): file caps, fmt, fast unit tests.
-- `./verify_meshwork.sh` — THE gate (DESIGN §14, 8 sections, one exit 0). `scripts/regression.sh` (pre-push) delegates to it. `--strict` = v1 acceptance mode.
+- `./verify_meshwork.sh` — THE gate (DESIGN §14, 9 sections, one exit 0). `scripts/regression.sh` (pre-push) delegates to it. `--strict` = v1 acceptance mode.
 - Hooks are version-controlled in `.githooks/`; enable per clone: `git config core.hooksPath .githooks`.
 - **Zero network in all tests and the whole gate** (MW-J6). Mirror tests use the stub `gh` in `tests/bin/`. A test that touches the network is a bug.
 
