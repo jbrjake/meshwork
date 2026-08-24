@@ -71,6 +71,7 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
     // writing ANY file (partial failure writes nothing).
     let today = crate::clock::stamp();
     let mut files: Vec<(std::path::PathBuf, String, String)> = Vec::new(); // (path, rel, text)
+    let mut verifies: Vec<Option<String>> = Vec::new();
     for (i, (entry, id)) in entries.iter().zip(&ids).enumerate() {
         let n = i + 1;
         let text = render_task(entry, id, &today, &by_handle)
@@ -87,6 +88,7 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
                 "batch task {n}: parent must stay in-repo — hierarchy never crosses repos"
             ));
         }
+        verifies.push(task.verify.clone());
         files.push((
             tasks_dir.join(&file_name),
             format!("docs/meshwork/{file_name}"),
@@ -112,6 +114,17 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
     std::fs::create_dir_all(&tasks_dir).map_err(|e| e.to_string())?;
     for (path, _, text) in &files {
         std::fs::write(path, text).map_err(|e| e.to_string())?;
+    }
+    // Approve-at-mint (§12b, mw-9dq6850): a batch document is authored
+    // through this clone's CLI the same as `add --verify` — record each
+    // minted verify at write. Best-effort: a failed record only restores
+    // the prompt (the cache is never a dependency, MW-A2).
+    for (id, verify) in ids.iter().zip(&verifies) {
+        if let Some(v) = verify {
+            if let Err(e) = crate::trust::record_approval(&root, id, v) {
+                eprintln!("warning: could not record verify approval: {e}");
+            }
+        }
     }
     emit(json, &ids, &files, false);
     Ok(())

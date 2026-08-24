@@ -106,8 +106,8 @@ never guess a sibling's store paths:
   closes) and runs approval-free only while the task's git history is
   store-only — commit task files separately from code. Shell text still
   works but gates per-clone (text you authored on this clone via `add
-  --verify`/`set --verify` is pre-approved; merged-in or hand-edited text
-  prompts) and lint warns `verify-shell`.
+  --verify`/`add --batch`/`set --verify` is pre-approved; merged-in or
+  hand-edited text prompts) and lint warns `verify-shell`.
 - Non-code tasks still get a real `verify:` — three proven
   close-condition shapes:
   1. **Umbrella** → the zero-open-children count: the parent-progress `q`

@@ -169,6 +169,24 @@ fn add_authored_verify_preapproved() {
     untrusted(&repo).args(["close", &b]).assert().success();
 }
 
+/// mw-9dq6850: the batch path is CLI authoring too — a verify carried in
+/// an `add --batch` document records the same at-write approval as
+/// `add --verify`, so close runs it unprompted on the minting clone.
+#[test]
+fn batch_authored_verify_preapproved() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "--batch", "-"])
+            .write_stdin("---\ntitle: minted in a batch\ncategory: core/verify\nverify: \"exit 0\"\n---\n")
+            .assert()
+            .success(),
+    );
+    let id = out.lines().next().expect("batch prints the minted id").trim();
+    untrusted(&repo).args(["close", id]).assert().success();
+}
+
 /// `--waive` never shells out, so it never needs trust (MW-E2 loudness is
 /// its own gate); and deleting .cache drops approvals — conservative,
 /// re-approve, never an error (MW-A2: cache is never a dependency).
