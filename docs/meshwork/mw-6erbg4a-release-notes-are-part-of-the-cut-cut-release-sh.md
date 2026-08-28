@@ -4,7 +4,7 @@ title: "Release notes are part of the cut — cut-release.sh requires the notes 
 status: open
 category: meta/distribution
 discovered-from: mw-h4s4gka
-verify: sh -c 'grep -q "release-notes" scripts/cut-release.sh && grep -q "notes-file" .github/workflows/release.yml'
+verify: "all(contains scripts/cut-release.sh release-notes, contains .github/workflows/release.yml notes-file)"
 created: 2026-08-25T21:28Z
 ---
 
