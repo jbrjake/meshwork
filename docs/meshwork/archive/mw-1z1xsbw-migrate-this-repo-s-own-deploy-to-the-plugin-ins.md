@@ -1,7 +1,7 @@
 ---
 id: mw-1z1xsbw
 title: Migrate this repo's own deploy to the plugin install
-status: doing
+status: done
 category: meta/distribution
 discovered-from: mw-nx91erh
 verify: "all(exists docs/meshwork/meshwork, absent meshwork)"
@@ -9,7 +9,6 @@ docs:
   - .claude/skills/meshwork/references/migrate.md
 seq: 250
 created: 2026-08-28T13:59Z
-claimed-by: claude (session_016iEafFdzwyKAtsU3AEMhaU)
 ---
 
 Own-repo variant of references/migrate.md, with the dev-repo deviations
@@ -31,3 +30,7 @@ each from its own session.
 ## log
 - 2026-08-28T13:59Z created
 - 2026-08-28T14:00Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-28T14:07Z doing→done — verify exit 0 @ 1502832+4
+
+## comments
+- 2026-08-28T14:06Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Attribution probe through the moved shim (migrate.md step 8): this comment must carry the session-tagged author, not default_author.
