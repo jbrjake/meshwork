@@ -7,7 +7,7 @@ needs: ["mw-h4s4gka"]
 to: sazed
 seq: 254
 verify: test -x ../sazed/docs/meshwork/meshwork && test ! -d ../sazed/.claude/skills/meshwork
-status: open
+status: done
 created: 2026-08-24T13:32Z
 ---
 sazed's legacy shape, observed 2026-08-24: pin v0.2.0; no shim anywhere
@@ -31,6 +31,8 @@ repo, so check what is staged and commit with explicit pathspec.
 - 2026-08-24T13:32Z created
 - 2026-08-28T13:56Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
 - 2026-08-28T13:58Z doing→open
+- 2026-08-28T14:08Z open→doing — claimed by claude (session_016iEafFdzwyKAtsU3AEMhaU)
+- 2026-08-28T14:46Z doing→done — verify exit 0 @ 43cb659+4
 
 ## comments
 - 2026-08-24T13:35Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] Owner instruction 2026-08-24: the ritual includes recasting the store's pre-DSL shell verifies into the verify DSL (migrate.md step 6, pointing at adopt.md step 6 for recast-and-red-check). Under the bumped pin, shell verify text this clone did not author prompts per-clone before it runs. Land the recasts as their own store-only commit — mixing task files with config/code edits costs run-cargo-test its approval-free path.
