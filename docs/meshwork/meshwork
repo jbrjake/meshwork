@@ -3,4 +3,4 @@
 if [ -z "$MESHWORK_AUTHOR" ] && [ -n "$CLAUDE_CODE_BRIDGE_SESSION_ID" ]; then
   export MESHWORK_AUTHOR="claude ($CLAUDE_CODE_BRIDGE_SESSION_ID)"
 fi
-exec "$(dirname "$0")"/target/debug/meshwork "$@"
+exec "$(dirname "$0")"/../../target/debug/meshwork "$@"
