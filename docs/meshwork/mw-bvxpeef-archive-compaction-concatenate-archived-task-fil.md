@@ -9,6 +9,14 @@ docs:
   - docs/DESIGN-meshwork.md#§-3-ingestion-pipeline
 created: 2026-08-07T01:38Z
 seq: 360
+handoff: |
+  Deploy changed 2026-08-28, session-wide: every repo's shim now lives at
+  docs/meshwork/meshwork (root ./meshwork is gone here; the dev shim still
+  execs target/debug/meshwork). The plugin meshwork@jbrjake serves the
+  skill user-scoped; .claude/skills/meshwork/ in THIS repo is the plugin
+  source, keep it. The task itself is untouched: write the red
+  e2e::archive_compact test first; the archive gained five fresh migration
+  closes to compact against.
 ---
 Owner request 2026-08-06: archive/ accumulates one file per closed task
 forever — DataFusion opens a file handle per task and git tracks an
