@@ -103,7 +103,10 @@ plugin copy wins and a vendored one is drift waiting to happen.
 
 The migration lands as a single commit: shim move or creation, hook edits,
 permission sweep, vendored-skill removal, pin bump (the verify recasts of
-step 6 ride their own store-only commit). Then:
+step 6 ride their own store-only commit). Adopter repos often have live
+agent sessions sharing the checkout — check what is already staged before
+each commit and stage by explicit pathspec, never a bare `git add -A`.
+Then:
 
 - `claude -p "Without tools: quote the first line the session-start hook
   injected"` — expect the `meshwork — N open` digest, proving prime ran
