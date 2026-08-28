@@ -6,22 +6,11 @@ verify: test -x ../sazed/docs/meshwork/meshwork && test -x ../leras/docs/meshwor
 docs:
   - .claude/skills/meshwork/references/install.md
 discovered-from: mw-bds8yq5
-status: open
+status: done
 created: 2026-08-10T18:34Z
 seq: 260
 blocked-reason:
 needs: [mw-nx91erh, mw-rtt16df, mw-mcx59sd]
-handoff: |
-  Direction landed 2026-08-24: the reconciliation rides mw-nx91erh —
-  next release ships a legacy-shim-to-plugin migration path, then adopter
-  repos (sazed, leras first) install through the Claude Code plugin.
-  Neither hook-bless nor a hand-installed shim proceeds on its own. This
-  task stays as the install.md-reconcile marker, dep-blocked on
-  mw-nx91erh. The current verify (grep SessionStart install.md || test -x
-  ../sazed/meshwork) still detects one valid endpoint but re-shape it once
-  migrate.md defines the modern layout. The 2026-08-12 evidence comment
-  stays binding: MESHWORK_AUTHOR session tagging must survive migration or
-  attribution silently falls to default_author.
 ---
 Found during the mw-bds8yq5 upgrade (2026-08-10): install.md prescribes a
 committed ./meshwork shim as "what sessions actually run", but sazed — a
@@ -40,6 +29,7 @@ the next release.
 - 2026-08-10T18:34Z created
 - 2026-08-23T19:18Z open→blocked — awaiting owner direction pick: bless sazed's SessionStart hook pattern in install.md, or install the committed shim in sazed — evidence comment (2026-08-12) scores it shim-ward: zero --as in 35 shim-less sessions, three distinct $(cat) fragilities
 - 2026-08-24T13:09Z blocked→open
+- 2026-08-28T14:53Z open→done — verify exit 0 @ 44b62e1+3
 
 ## comments
 - 2026-08-12T20:50Z [claude (session_016iEafFdzwyKAtsU3AEMhaU)] The shim-vs-hook divergence has a measured cost now. sazed ran the whole week shim-less: zero --as uses in 35 sessions, so all 8 agent comments and every claimed-by stamp read as the owner in prime's weather (fc237a1a, 4b5a9264). The $(cat .meshwork-version) incantation failed three distinct ways: wrong-cwd cat (63b829ba), a sandbox EPERM retried 4x that killed every meshwork verb for a session (632ce3d2), and a version-pinned settings.local.json allow-rule that rotted at the v0.2.0 upgrade (f6e7cfbc). A committed shim fixes attribution and all three fragilities at once; adopt.md should also warn against version-pinned permission rules.
