@@ -5,7 +5,7 @@ status: done
 category: store
 verify: run cargo test addressed
 docs:
-  - ../REVIEW-fresh-eyes-2026-08-14.md
+  - ../portfolio/REVIEW-fresh-eyes-2026-08-14.md
 seq: 30
 created: 2026-08-17T03:16Z
 handoff: |

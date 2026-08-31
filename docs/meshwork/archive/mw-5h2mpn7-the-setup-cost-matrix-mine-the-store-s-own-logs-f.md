@@ -5,8 +5,8 @@ status: done
 category: analysis
 verify: exists docs/setup-cost-matrix.md
 docs:
-  - ../REVIEW-fresh-eyes-2026-08-14.md
-  - ../DESIGN-thought-mill.md
+  - ../portfolio/REVIEW-fresh-eyes-2026-08-14.md
+  - ../portfolio/DESIGN-thought-mill.md
 seq: 20
 created: 2026-08-17T03:16Z
 handoff: |
