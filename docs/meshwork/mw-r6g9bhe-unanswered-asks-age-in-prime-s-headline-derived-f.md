@@ -6,6 +6,24 @@ labels: [asks]
 seq: 185
 status: open
 created: 2026-08-31T18:39Z
+handoff: |
+  This task carries prime's asks line for the pulse. Two halves with
+  different
+  gates: the age — "N asks unanswered, oldest D days" — derives from
+  `created`
+  plus the absence of `answers` and lands from `addressed.rs` alone (the
+  same
+  filter `addressed::inbox` uses to build the inbox rows prime already
+  renders).
+  The union count across stores wants the `asks` view's state columns
+  (`unanswered`, and the age column beside it), so that half waits on
+  mw-p2q2fxd registering the views; mw-sg8phqk is where `asks` gains
+  `answer_open`/`answer_done`/`answered`/`unanswered` as state rather than
+  the
+  suppression rule. Land the age first; the union count is additive.
+  
+  The verify names `prime_asks_age_line` — write it red before the code.
+verify: run cargo test prime_asks_age_line
 ---
 The recorded risk fired verbatim this period: *"If B never runs meshwork, the message sits
 forever and A can't tell unread from ignored."* Nine asks sat undeliverable in the applied
