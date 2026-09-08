@@ -143,3 +143,87 @@ fn absent_repo() {
     );
     assert!(text.contains("unresolved"), "{text}");
 }
+
+/// A `docs:` link may name a doc in a registered sibling —
+/// `repo#path[#anchor]`, the `needs:` spelling — resolved through the
+/// registry and confined to that repo. An unregistered repo is reported,
+/// never read; a bare `../` path stays refused, and lint --fix rewrites
+/// it to the registered form when the registry resolves the directory.
+#[test]
+fn docs_crossrepo_ref() {
+    let (dir, portfolio) = portfolio_fixture();
+    let alpha = dir.path().join("alpha");
+    let beta = dir.path().join("beta");
+    std::fs::write(
+        alpha.join("DOC.md"),
+        "# Alpha doc\n\n## 1. Landing\n\nlanding body.\n\n## 2. Other\n\nother body.\n",
+    )
+    .unwrap();
+    let batch = "---\ntitle: Reads alpha's doc\nverify: \"true\"\ndocs:\n  \
+                 - alpha#DOC.md#§-1-landing\n  - nowhere#X.md\n  - ../alpha/DOC.md#§-2-other\n---\n";
+    let id = stdout_of(
+        &meshwork(&beta)
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["add", "--batch", "-"])
+            .write_stdin(batch)
+            .assert()
+            .success(),
+    )
+    .split_whitespace()
+    .next()
+    .unwrap()
+    .to_string();
+    let show_docs = |with_registry: bool| {
+        let mut cmd = meshwork(&beta);
+        if with_registry {
+            cmd.env("MESHWORK_PORTFOLIO", &portfolio);
+        }
+        stdout_of(&cmd.args(["show", &id, "--docs"]).assert().success())
+    };
+    let lint = |with_registry: bool, fix: bool| {
+        let mut cmd = meshwork(&beta);
+        if with_registry {
+            cmd.env("MESHWORK_PORTFOLIO", &portfolio);
+        }
+        cmd.arg("lint");
+        if fix {
+            cmd.arg("--fix");
+        }
+        stdout_of(&cmd.assert().success())
+    };
+
+    // Registered: the excerpt is the anchored section of alpha's file.
+    let out = show_docs(true);
+    assert!(out.contains("landing body."), "{out}");
+    assert!(!out.contains("other body."), "excerpt, not the file: {out}");
+    assert!(out.contains("nowhere#X.md") && out.contains("not registered"), "{out}");
+    assert!(out.contains("../alpha/DOC.md") && out.contains("escapes the repo"), "{out}");
+    let l = lint(true, false);
+    assert!(l.contains("[doc-repo-unknown]") && l.contains("nowhere"), "{l}");
+    assert!(l.contains("[path-escape]"), "{l}");
+    assert!(
+        !l.contains("[doc-missing]") && !l.contains("[anchor-missing]"),
+        "the registered link resolves clean: {l}"
+    );
+
+    // Unregistered session: the link is unverifiable — show says so, lint
+    // stays quiet on it rather than inventing a missing doc.
+    let out = show_docs(false);
+    assert!(out.contains("no registry"), "{out}");
+    assert!(!out.contains("landing body."), "{out}");
+    let l = lint(false, false);
+    assert!(!l.contains("[doc-missing]") && !l.contains("[doc-repo-unknown]"), "{l}");
+
+    // --fix rewrites the ../ spelling to the registered one, logged.
+    // (the fixture's done task at the root rides along as a misplaced fix)
+    let fixed = lint(true, true);
+    assert!(fixed.contains("fixed 2 file(s)"), "{fixed}");
+    let text = std::fs::read_to_string(task_file(&beta, &id)).unwrap();
+    assert!(text.contains("  - alpha#DOC.md#§-2-other\n"), "{text}");
+    assert!(!text.contains("- ../alpha"), "{text}");
+    assert!(text.contains("lint --fix: docs: ../alpha/DOC.md#§-2-other → alpha#DOC.md#§-2-other"), "{text}");
+    let l = lint(true, false);
+    assert!(!l.contains("[path-escape]"), "{l}");
+    let out = show_docs(true);
+    assert!(out.contains("other body."), "the rewritten link resolves: {out}");
+}

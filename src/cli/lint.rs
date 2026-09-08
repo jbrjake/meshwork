@@ -30,7 +30,8 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
             + fix_duplicate_ids(&store)?
             + fix_misplaced(&store)?
             + fix_gitattributes(&store)?
-            + fix_stray_tail(&store)?;
+            + fix_stray_tail(&store)?
+            + fix_crossrepo_docs(&store)?;
         if repairs > 0 && !json {
             println!("fixed {repairs} file(s)");
         }
@@ -311,6 +312,41 @@ fn fix_needs_collision(store: &RepoStore) -> Result<usize, String> {
             ),
         );
         std::fs::write(&path, repaired).map_err(|e| e.to_string())?;
+        fixed += 1;
+    }
+    Ok(fixed)
+}
+
+/// A `docs:` item spelled `../<dir>/rest` — refused as `path-escape` —
+/// becomes `<repo>#rest` when the registry resolves `<dir>` (mw-8q0srvb).
+/// Surgical: the one list line changes, the rest of the file is bytes as
+/// written; the repair is logged. No registry, no rewrite.
+fn fix_crossrepo_docs(store: &RepoStore) -> Result<usize, String> {
+    let today = crate::clock::stamp();
+    let mut fixed = 0;
+    for entry in &store.entries {
+        let ParsedTask::Valid(t) = &entry.parsed else {
+            continue;
+        };
+        let rewrites: Vec<(String, String)> = t
+            .docs
+            .iter()
+            .filter_map(|d| crate::docs::crossrepo_rewrite(d).map(|n| (d.clone(), n)))
+            .collect();
+        if rewrites.is_empty() {
+            continue;
+        }
+        let path = crate::store::tasks_dir(&store.root).join(&entry.file_name);
+        let mut text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        for (old, new) in &rewrites {
+            text = text.replacen(&format!("- {old}"), &format!("- {new}"), 1);
+            text = append_section_entry(
+                &text,
+                "log",
+                &format!("{today} lint --fix: docs: {old} \u{2192} {new} (registered repo)"),
+            );
+        }
+        std::fs::write(&path, text).map_err(|e| e.to_string())?;
         fixed += 1;
     }
     Ok(fixed)

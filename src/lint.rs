@@ -110,6 +110,10 @@ fn check_docs(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
                 crate::docs::LinkError::Unreadable { .. } => "doc-missing",
                 crate::docs::LinkError::AnchorMissing { .. } => "anchor-missing",
                 crate::docs::LinkError::Escapes { .. } => "path-escape",
+                crate::docs::LinkError::RepoUnknown { .. } => "doc-repo-unknown",
+                // No registry or no checkout here: unverifiable, not
+                // wrong — a finding would fire in every registry-less run.
+                crate::docs::LinkError::RepoUnavailable { .. } => continue,
             };
             out.push(finding(
                 Severity::Warning,

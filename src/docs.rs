@@ -1,11 +1,14 @@
 //! Anchor-scoped doc excerpts (MW-F1/F2): a `docs:` link is
-//! `path[#§-anchor]`, repo-relative; its excerpt is the anchored section —
+//! `path[#§-anchor]`, repo-relative, or `repo#path[#§-anchor]` for a doc
+//! in a registered sibling repo (mw-8q0srvb — the `needs:` spelling,
+//! resolved through the registry and confined to that repo; a bare
+//! `../` path stays refused). Its excerpt is the anchored section —
 //! heading through the next same-or-shallower heading — byte-capped per
 //! link. Drill-through is itself progressive disclosure: the section,
 //! never the whole file. Unresolvable links resolve to an error string,
 //! not a failure — a task view must never die on a stale doc pointer.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Per-link excerpt budget in bytes (MW-F2; bytes are the budget currency,
 /// MW-D5).
@@ -42,6 +45,19 @@ pub enum LinkError {
         /// The path as written in the link.
         path: String,
     },
+    /// `repo#path` names a repo the registry does not know.
+    RepoUnknown {
+        /// The repo segment as written.
+        repo: String,
+    },
+    /// `repo#path` cannot be resolved here — no registry, or the repo
+    /// has no local checkout; nothing was read, nothing is known.
+    RepoUnavailable {
+        /// The repo segment as written.
+        repo: String,
+        /// What is missing.
+        why: String,
+    },
 }
 
 impl std::fmt::Display for LinkError {
@@ -50,26 +66,95 @@ impl std::fmt::Display for LinkError {
             LinkError::Unreadable { path } => write!(f, "{path} not readable"),
             LinkError::AnchorMissing { anchor } => write!(f, "anchor not found: #{anchor}"),
             LinkError::Escapes { path } => write!(f, "{path} escapes the repo — refusing to read"),
+            LinkError::RepoUnknown { repo } => {
+                write!(f, "{repo} is not registered — never read")
+            }
+            LinkError::RepoUnavailable { repo, why } => {
+                write!(f, "{repo} unavailable here ({why})")
+            }
         }
+    }
+}
+
+/// Where a link's file lives once the repo segment is settled.
+enum Home {
+    Local,
+    Sibling(PathBuf),
+    Failed(LinkError),
+}
+
+/// Settle `head` — the text before the first `#` — as a repo name or a
+/// local path. A head with no `/` and no `.` may be a registered repo;
+/// it is one when the registry says so, a local file when that exists,
+/// and otherwise the registry's absence or ignorance is the answer.
+fn home_of(root: &Path, head: &str) -> Home {
+    let looks_like_repo = !head.contains(['/', '.']) && !head.is_empty();
+    if !looks_like_repo {
+        return Home::Local;
+    }
+    let registry = crate::registry::quiet_load();
+    let local_exists = root.join(head).exists();
+    match registry {
+        Ok(Some(reg)) => match reg.resolve(head) {
+            Some((entry, _)) => match &entry.path {
+                Some(p) if p.exists() => Home::Sibling(p.clone()),
+                Some(p) => Home::Failed(LinkError::RepoUnavailable {
+                    repo: head.to_string(),
+                    why: format!("no checkout at {}", p.display()),
+                }),
+                None => Home::Failed(LinkError::RepoUnavailable {
+                    repo: head.to_string(),
+                    why: "no local path in the registry".to_string(),
+                }),
+            },
+            None if local_exists => Home::Local,
+            None => Home::Failed(LinkError::RepoUnknown {
+                repo: head.to_string(),
+            }),
+        },
+        _ if local_exists => Home::Local,
+        Ok(None) => Home::Failed(LinkError::RepoUnavailable {
+            repo: head.to_string(),
+            why: "no registry (MESHWORK_PORTFOLIO unset)".to_string(),
+        }),
+        Err(e) => Home::Failed(LinkError::RepoUnavailable {
+            repo: head.to_string(),
+            why: format!("registry failed to load: {e}"),
+        }),
     }
 }
 
 /// Resolve one `docs:` link against the repo root.
 #[must_use]
 pub fn resolve(root: &Path, link: &str) -> Excerpt {
-    let (path, anchor) = match link.split_once('#') {
-        Some((p, a)) => (p, Some(a)),
-        None => (link, None),
-    };
     let make = |text, truncated, error| Excerpt {
         link: link.to_string(),
         text,
         truncated,
         error,
     };
+    let (head, rest) = match link.split_once('#') {
+        Some((h, r)) => (h, Some(r)),
+        None => (link, None),
+    };
+    let (base, path, anchor) = match home_of(root, head) {
+        Home::Local => {
+            let (p, a) = (head, rest);
+            (root.to_path_buf(), p, a)
+        }
+        Home::Sibling(sibling) => {
+            // `repo#path[#anchor]`: the rest splits once more.
+            let (p, a) = match rest.unwrap_or_default().split_once('#') {
+                Some((p, a)) => (p, Some(a)),
+                None => (rest.unwrap_or_default(), None),
+            };
+            (sibling, p, a)
+        }
+        Home::Failed(err) => return make(String::new(), false, Some(err)),
+    };
     // Confinement before any read: the link is a string from a merged
-    // task file (mw-2pz0zqc).
-    let Ok(on_disk) = crate::paths::confine(root, path) else {
+    // task file (mw-2pz0zqc) — confined to whichever repo it names.
+    let Ok(on_disk) = crate::paths::confine(&base, path) else {
         let err = LinkError::Escapes {
             path: path.to_string(),
         };
@@ -95,6 +180,22 @@ pub fn resolve(root: &Path, link: &str) -> Excerpt {
     };
     let (text, truncated) = cap(section);
     make(text, truncated, None)
+}
+
+/// The registered spelling of a `../<dir>/rest` link, when the registry
+/// resolves `<dir>` as a repo name or alias: `<name>#rest`. None for any
+/// other shape, or when no registry loads — the `../` form then stays a
+/// `path-escape` finding for a human.
+#[must_use]
+pub fn crossrepo_rewrite(link: &str) -> Option<String> {
+    let after = link.strip_prefix("../")?;
+    let (dir, rest) = after.split_once('/')?;
+    if dir.is_empty() || rest.is_empty() || dir.contains("..") {
+        return None;
+    }
+    let registry = crate::registry::quiet_load().ok()??;
+    let (entry, _) = registry.resolve(dir)?;
+    Some(format!("{}#{rest}", entry.name))
 }
 
 /// The section owned by `anchor`: from its heading line through the line
