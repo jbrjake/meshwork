@@ -34,6 +34,15 @@ def pct(a, b):
     return f"{a}/{b} ({100.0 * a / b:.0f}%)" if b else f"{a}/0"
 
 
+def load_event(line):
+    """One envelope record → the envelope keys plus its `detail` payload, flat, for this script's
+    own use; `id` is the bare id of `gid`, `verbs` is [] for non-call kinds."""
+    e = json.loads(line)
+    d = e.pop("detail") or {}
+    ids = d.get("ids") or []
+    return {**e, **d, "id": ids[0] if ids else "", "verbs": d.get("verbs") or []}
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("scores")
@@ -42,7 +51,8 @@ def main():
     args = ap.parse_args()
     rows = json.load(open(args.scores))
     by_sid = {r["session"]: r for r in rows}
-    events = [json.loads(l) for l in open(args.events)]
+    events = [load_event(l) for l in open(args.events)]
+    calls = [e for e in events if e["kind"] == "call"]
     per_session = defaultdict(list)
     for e in events:
         per_session[e["session"]].append(e)
@@ -60,7 +70,7 @@ def main():
     for r in rows:
         verbs.update(r["verbs"])
         guessed.update(r["guessed"])
-    for e in events:
+    for e in calls:
         if e["help"]:
             for v in e["verbs"]:
                 helps[v] += 1
@@ -71,11 +81,11 @@ def main():
 
     # ---- errors ------------------------------------------------------------------------------
     kinds, lines = Counter(), Counter()
-    for e in events:
+    for e in calls:
         if e.get("err"):
             kinds[e["err"]] += 1
             lines[(e["err"], norm(e.get("err_line", "")))] += 1
-    total_calls = sum(1 for e in events if not e["verbs"][0].startswith(("hand-edit", "store-shell")))
+    total_calls = len(calls)
     print(f"\nerrors: {sum(kinds.values())} of {total_calls} meshwork calls; kinds:", kinds.most_common())
     print("top normalized error lines:")
     for (k, l), n in lines.most_common(28):
@@ -86,8 +96,8 @@ def main():
     # ---- close refusals → what happened next -------------------------------------------------
     res = Counter()
     sub = Counter()
-    waives = sum(1 for e in events if e["waive"])
-    set_verify_total = sum(1 for e in events if e["set_verify"])
+    waives = sum(1 for e in calls if e["waive"])
+    set_verify_total = sum(1 for e in calls if e["set_verify"])
 
     def refusal_kind(line):
         if "unapproved" in line:
@@ -102,7 +112,7 @@ def main():
 
     for sid, evs in per_session.items():
         for i, e in enumerate(evs):
-            if e.get("err") != "close-refused" or not e["id"]:
+            if e["kind"] != "call" or e.get("err") != "close-refused" or not e["id"]:
                 continue
             tid = e["id"]
             res["refusals"] += 1
@@ -111,10 +121,10 @@ def main():
             modified = None
             outcome = "never-closed"
             for f in evs[i + 1:]:
-                if tid not in f.get("ids", []) and f["id"] != tid:
+                if f["kind"] not in ("call", "hand-edit") or (tid not in f.get("ids", []) and f["id"] != tid):
                     continue
-                if f["set_verify"] or f["verbs"][0].startswith("hand-edit"):
-                    modified = modified or ("set-verify" if f["set_verify"] else "hand-edit")
+                if f.get("set_verify") or f["kind"] == "hand-edit":
+                    modified = modified or ("set-verify" if f.get("set_verify") else "hand-edit")
                 if "close" in f["verbs"]:
                     if f["waive"]:
                         outcome = "waived"
@@ -140,7 +150,7 @@ def main():
             continue
         nxt = r["prime_next"].split("#")[-1]
         own = nxt[:2]
-        first_start = next((e["id"] for e in evs if "start" in e["verbs"] and e["id"]), None)
+        first_start = next((e["id"] for e in evs if e["kind"] == "call" and "start" in e["verbs"] and e["id"]), None)
         if r["mw_cmds"] == 0:
             adher["prime-shown-no-meshwork-call"] += 1
         elif first_start is None:
@@ -151,7 +161,8 @@ def main():
             adher["started-elsewhere"] += 1
         if r.get("prime_addressed", 0) > 0:
             asks["sessions-with-asks-in-prime"] += 1
-            touched = any((e["id"] and e["id"][:2] != own) or e["hop"] or "answers" in e["cmd"] for e in evs)
+            touched = any((e["id"] and e["id"][:2] != own) or e.get("hop") or "answers" in e["note"]
+                          for e in evs if e["kind"] in ("call", "hand-edit"))
             asks["touched-a-foreign-id-or-hopped"] += 1 if touched else 0
     print(f"\nprime adherence (sessions where the hook injected prime): {dict(adher)}")
     print(f"asks addressed to the repo: {dict(asks)}")
@@ -164,21 +175,21 @@ def main():
         out["prime_bytes"] = {"n": len(sizes), "p50": q(.5), "p90": q(.9), "max": sizes[-1], "over_6144": sum(s > 6144 for s in sizes)}
 
     # ---- store access outside the CLI --------------------------------------------------------
-    shell_reads = [e for e in events if e["verbs"][0] == "store-shell-read"]
-    hand = [e for e in events if e["verbs"][0].startswith("hand-edit")]
-    searches = sum(1 for e in events if "search" in e["verbs"])
+    shell_reads = [e for e in events if e["kind"] == "shell-read"]
+    hand = [e for e in events if e["kind"] == "hand-edit"]
+    searches = sum(1 for e in calls if "search" in e["verbs"])
     tool_rx = re.compile(r"\b(grep|rg|find|ls|cat|head|sed|awk)\b[^\n|]*docs/meshwork")
-    by_tool = Counter(m.group(1) for e in shell_reads for m in [tool_rx.search(e["cmd"])] if m)
+    by_tool = Counter(m.group(1) for e in shell_reads for m in [tool_rx.search(e["note"])] if m)
     print(f"\nstore read via shell instead of the CLI: {len(shell_reads)} calls in {len({e['session'] for e in shell_reads})} sessions; "
           f"by tool {by_tool.most_common()}; `search` verb: {searches} commands")
-    archived = sum(1 for e in hand if "/archive/" in e["cmd"])
+    archived = sum(1 for e in hand if "/archive/" in e["note"])
     print(f"hand edits of task files: {len(hand)} in {len({e['session'] for e in hand})} sessions; by tool:",
-          Counter(e["verbs"][0] for e in hand).most_common(), f"; on archived files: {archived}")
+          Counter(e["tool"] for e in hand).most_common(), f"; on archived files: {archived}")
     out["store_shell_reads"], out["searches"], out["hand_edits"] = len(shell_reads), searches, len(hand)
 
     # ---- cross-repo hops ---------------------------------------------------------------------
-    hops = [e for e in events if e["hop"]]
-    targets = Counter(m.group(1) for e in hops for m in [HOP.search(e["cmd"])] if m)
+    hops = [e for e in calls if e["hop"]]
+    targets = Counter(m.group(1) for e in hops for m in [HOP.search(e["note"])] if m)
     hop_verbs = Counter(v for e in hops for v in e["verbs"])
     print(f"\ncross-repo hops (cd ../x && meshwork …): {len(hops)} calls in {len({e['session'] for e in hops})} sessions; "
           f"targets {targets.most_common(8)}; verbs {hop_verbs.most_common(8)}")
@@ -186,7 +197,7 @@ def main():
 
     # ---- output volume -----------------------------------------------------------------------
     big = Counter()
-    for e in events:
+    for e in calls:
         if e.get("out_bytes", 0) > 12000:
             big[e["verbs"][0]] += 1
     print("results over 12 KB by verb:", big.most_common(10))
@@ -194,12 +205,12 @@ def main():
 
     # ---- bookkeeping share & comment volume --------------------------------------------------
     shares = [r["mw_cmds"] / r["n_tool"] for r in used if r["n_tool"]]
-    comments = [e for e in events if "comment" in e["verbs"]]
-    clen = [len(e["cmd"]) for e in comments]
+    comments = [e for e in calls if "comment" in e["verbs"]]
+    clen = [len(e["note"]) for e in comments]
     print(f"\nmeshwork share of all tool calls (sessions that used it): median {statistics.median(shares):.2f}, "
           f"p90 {sorted(shares)[int(.9 * len(shares))]:.2f}")
     print(f"comments: {len(comments)} calls; median command length {statistics.median(clen) if clen else 0:.0f} chars "
-          f"(300 = truncated); @file/stdin bodies: {sum('@' in e['cmd'] or ' - ' in e['cmd'] for e in comments)}")
+          f"(300 = truncated); @file/stdin bodies: {sum('@' in e['note'] or ' - ' in e['note'] for e in comments)}")
     out["mw_share_median"] = statistics.median(shares) if shares else None
 
     # ---- weekly trend ------------------------------------------------------------------------
@@ -220,10 +231,10 @@ def main():
                                          w["mw_help"], w["store_hand_edit"], w["heated"]]))
     out["weeks"] = {k: dict(v) for k, v in weeks.items()}
 
-    denied = [e for e in events if e.get("denied")]
+    denied = [e for e in calls if e.get("denied")]
     print(f"\ndenied meshwork calls: {len(denied)}")
     for e in denied[:12]:
-        print(f"  [{e['repo']}/{e['session'][:8]} t{e['turn']}] {e['cmd'][:160]}")
+        print(f"  [{e['repo']}/{e['session'][:8]} t{e['turn']}] {e['note'][:160]}")
     if args.json:
         json.dump(out, open(args.json, "w"), indent=1)
 

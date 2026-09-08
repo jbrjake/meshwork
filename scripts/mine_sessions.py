@@ -25,6 +25,26 @@ Signals per session
   mw_deny         meshwork tool_uses the user declined
   store_hand_edit Edit/Write/heredoc directly on docs/meshwork/*.md (bypassing the CLI)
   skill           Skill-tool invocations of the meshwork skill
+
+Event stream (--events, JSONL) — the event envelope
+  One record per event, in one shape shared with the store's `events` view so a session's
+  stream and the store's stream sort onto one timeline: the six envelope keys are the view's
+  column subset, then two the transcript alone can supply.
+    repo     the repo the transcript belongs to (its project directory)
+    gid      `<repo>#<id>` of the task the event names, from the id's prefix; null when none
+    kind     call | hand-edit | shell-read | prompt | stop
+    at       the record's timestamp, ISO 8601 — the view's `at`
+    actor    the author the shim stamps for this session: `claude (session_<bridge id>)` for a
+             bridge session, else `claude (<transcript uuid>)`; joins to comments.author and to
+             the `claimed by` log notes where the store carries the same string
+    note     the command (call, shell-read), the file path (hand-edit), the prompt text (prompt),
+             or the stop reason (stop) — the view's `note`; truncated to 300 chars
+    session  the transcript uuid
+    detail   kind-specific payload: call → turn, verbs, ids, sidechain, help, hop, waive,
+             set_verify, err, err_line, denied, out_bytes; hand-edit → turn, tool, ids,
+             sidechain; shell-read → turn, sidechain; prompt → turn, heated, mentions, queued
+  Filter on `kind`, never on the payload's shape. The store side of the same timeline is
+  `SELECT repo, gid, kind, at, actor, note FROM events` once the view is registered.
 """
 import argparse
 import glob
@@ -39,6 +59,8 @@ PROJECTS_DIR = os.path.expanduser(os.environ.get("CLAUDE_PROJECTS", "~/.claude/p
 CODE_PREFIX = "-Users-jonr-Documents-code"
 MW_REPOS = {"portfolio", "sazed", "leras", "meshwork", "marasi", "tensoon", "oreseur",
             "wyndam", "marasi-applied-r-and-d", "code"}   # 'code' = sessions at the code root
+PREFIX = {"mw": "meshwork", "sa": "sazed", "le": "leras", "ma": "marasi", "te": "tensoon",
+          "or": "oreseur", "wy": "wyndam", "ar": "marasi-applied-r-and-d", "po": "portfolio"}
 
 SURFACE = {"init", "add", "set", "show", "comment", "attach", "start", "block", "drop", "reopen",
            "close", "verify", "dep", "ready", "blocked", "tree", "why", "q", "search", "prime",
@@ -156,7 +178,20 @@ def new_stats(path):
             "end": "", "version": "", "verbs": Counter(), "guessed": Counter(), "err_kinds": Counter(),
             "heated_samples": [], "corr_samples": [], "err_samples": [], "user_mw_samples": [],
             "guess_samples": [], "events": [], "prime_next": "", "prime_addressed": -1,
-            "prime_bytes": 0, "prime_count": 0}
+            "prime_bytes": 0, "prime_count": 0, "bridge": ""}
+
+
+def gid_of(task_id):
+    """`repo#id` for a bare id, by prefix; None when the prefix is not a registered repo's."""
+    repo = PREFIX.get(task_id[:2]) if task_id else None
+    return f"{repo}#{task_id}" if repo else None
+
+
+def emit(st, kind, ts, note, ids=(), **detail):
+    """Append one envelope record (repo/actor/session are stamped when the stream is written)."""
+    st["events"].append({"kind": kind, "at": ts, "gid": gid_of(ids[0]) if ids else None,
+                         "note": (note or "")[:300], "detail": {"ids": list(ids)[:6], **detail}})
+    return st["events"][-1]["detail"]
 
 
 def score_file(path):
@@ -181,6 +216,9 @@ def score_file(path):
             if typ == "last-prompt":
                 st["last_prompt"] = rec.get("lastPrompt") or st["last_prompt"]
                 continue
+            if typ == "bridge-session":
+                st["bridge"] = st["bridge"] or str(rec.get("bridgeSessionId") or "")
+                continue
             if rec.get("version") and not st["version"]:
                 st["version"] = rec["version"]
             if typ == "attachment":
@@ -201,7 +239,7 @@ def score_file(path):
                 t = (rec.get("content") or "").strip()
                 if t and t not in queued:
                     queued.add(t)
-                    typ, rec = "user", {"type": "user", "message": {"content": t}}
+                    typ, rec = "user", {"type": "user", "message": {"content": t}, "queued": True}
             if typ == "user":
                 t = human_text(rec)
                 if t is not None and t in queued and rec.get("uuid"):
@@ -210,6 +248,8 @@ def score_file(path):
                     st["n_user"] += 1
                     mentions = bool(MW_WORD.search(t) or TASK_ID.search(t))
                     heated = is_heated(t)
+                    emit(st, "prompt", ts, t, TASK_ID.findall(t), turn=st["n_user"], heated=heated,
+                         mentions=mentions, queued=bool(rec.get("queued")))
                     if not first_seen:
                         first_seen, st["first_mw"] = True, mentions
                     else:
@@ -239,7 +279,7 @@ def score_file(path):
                         if not kind or kind[0] != "mw":
                             continue
                         txt = result_text(b.get("content"))
-                        ev = st["events"][kind[3]] if kind[3] is not None else None
+                        ev = st["events"][kind[3]]["detail"] if kind[3] is not None else None
                         if rec.get("toolDenialKind") or "user doesn't want to proceed" in txt \
                                 or "The user doesn't want to take this action" in txt:
                             st["mw_deny"] += 1
@@ -281,14 +321,12 @@ def score_file(path):
                         if hits:
                             st["mw_cmds"] += 1
                             st["sidechain_mw"] += 1 if rec.get("isSidechain") else 0
-                            ids = TASK_ID.findall(cmd)
                             ev_idx = len(st["events"])
-                            st["events"].append({
-                                "turn": st["n_user"], "ts": ts, "verbs": [v if v != "portfolio" else f"portfolio {s or ''}".strip() for v, s in hits],
-                                "id": ids[0] if ids else "", "ids": ids[:6], "cmd": cmd[:300],
-                                "sidechain": bool(rec.get("isSidechain")), "help": "--help" in cmd or " -h" in cmd,
-                                "hop": bool(re.search(r"cd \.\./[\w-]+", cmd)), "waive": "--waive" in cmd,
-                                "set_verify": bool(re.search(r"\bset\b.*--verify", cmd)), "err": None})
+                            emit(st, "call", ts, cmd, TASK_ID.findall(cmd), turn=st["n_user"],
+                                 verbs=[v if v != "portfolio" else f"portfolio {s or ''}".strip() for v, s in hits],
+                                 sidechain=bool(rec.get("isSidechain")), help="--help" in cmd or " -h" in cmd,
+                                 hop=bool(re.search(r"cd \.\./[\w-]+", cmd)), waive="--waive" in cmd,
+                                 set_verify=bool(re.search(r"\bset\b.*--verify", cmd)), err=None)
                             for verb, sub in hits:
                                 if verb in ("--help", "-h") or sub in ("--help", "-h") or "--help" in cmd:
                                     is_help = True
@@ -311,26 +349,17 @@ def score_file(path):
                                         heat_credited = True
                         if HEREDOC_STORE.search(cmd):
                             st["store_hand_edit"] += 1
-                            ids = TASK_ID.findall(cmd)
-                            st["events"].append({"turn": st["n_user"], "ts": ts, "verbs": ["hand-edit-shell"],
-                                                 "id": ids[0] if ids else "", "ids": ids[:6], "cmd": cmd[:300],
-                                                 "sidechain": bool(rec.get("isSidechain")), "help": False,
-                                                 "hop": False, "waive": False, "set_verify": False, "err": None})
+                            emit(st, "hand-edit", ts, cmd, TASK_ID.findall(cmd), turn=st["n_user"],
+                                 tool="shell", sidechain=bool(rec.get("isSidechain")))
                         elif re.search(r"\b(?:grep|rg|find|ls|cat|head|sed|awk)\b[^\n|]*docs/meshwork(?!/meshwork\b)", cmd):
-                            st["events"].append({"turn": st["n_user"], "ts": ts, "verbs": ["store-shell-read"],
-                                                 "id": "", "ids": [], "cmd": cmd[:300],
-                                                 "sidechain": bool(rec.get("isSidechain")), "help": False,
-                                                 "hop": False, "waive": False, "set_verify": False, "err": None})
+                            emit(st, "shell-read", ts, cmd, turn=st["n_user"], sidechain=bool(rec.get("isSidechain")))
                         tool_by_id[tid] = ("mw" if hits else "other", cmd, is_help, ev_idx)
                     elif name in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
                         fp = inp.get("file_path", "") or ""
                         if STORE_PATH.search(fp):
                             st["store_hand_edit"] += 1
-                            ids = TASK_ID.findall(fp)
-                            st["events"].append({"turn": st["n_user"], "ts": ts, "verbs": ["hand-edit-" + name.lower()],
-                                                 "id": ids[0] if ids else "", "ids": ids[:1], "cmd": fp[-120:],
-                                                 "sidechain": bool(rec.get("isSidechain")), "help": False,
-                                                 "hop": False, "waive": False, "set_verify": False, "err": None})
+                            emit(st, "hand-edit", ts, fp[-120:], TASK_ID.findall(fp)[:1], turn=st["n_user"],
+                                 tool=name.lower(), sidechain=bool(rec.get("isSidechain")))
                         tool_by_id[tid] = ("other", fp, False, None)
                     elif name == "Skill":
                         sk = inp.get("skill") or ""
@@ -367,7 +396,8 @@ def main():
     ap.add_argument("--top", type=int, default=40)
     ap.add_argument("--min-cmds", type=int, default=1)
     ap.add_argument("--all-projects", action="store_true")
-    ap.add_argument("--events", help="write every meshwork call / hand-edit as JSONL (input to mine_telemetry.py)")
+    ap.add_argument("--events", help="write the session event stream as JSONL in the event envelope "
+                                     "(input to mine_telemetry.py)")
     args = ap.parse_args()
     rows = []
     for d in sorted(glob.glob(os.path.join(PROJECTS_DIR, "*"))):
@@ -382,8 +412,11 @@ def main():
     if args.events:
         with open(args.events, "w") as f:
             for r in rows:
+                actor = f"claude (session_{r['bridge'][4:]})" if r["bridge"].startswith("cse_") else f"claude ({r['session']})"
                 for e in r["events"]:
-                    f.write(json.dumps({"session": r["session"], "repo": r["repo"], **e}) + "\n")
+                    f.write(json.dumps({"repo": r["repo"], "gid": e["gid"], "kind": e["kind"], "at": e["at"],
+                                        "actor": actor, "note": e["note"], "session": r["session"],
+                                        "detail": e["detail"]}) + "\n")
     if args.json:
         with open(args.json, "w") as f:
             json.dump([{**r, "verbs": dict(r["verbs"]), "guessed": dict(r["guessed"]),
