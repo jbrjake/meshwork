@@ -26,6 +26,7 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     if args.fix {
         let repairs = fix_duplicate_keys(&store)?
             + fix_needs_collision(&store)?
+            + fix_stranded_block(&store)?
             + fix_duplicate_ids(&store)?
             + fix_misplaced(&store)?
             + fix_gitattributes(&store)?
@@ -34,6 +35,20 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
             println!("fixed {repairs} file(s)");
         }
         store = load_repo(&root).map_err(|e| e.to_string())?;
+        // What no fixer mends is said plainly, by name — a file that
+        // still fails to parse is a human's problem, not a silent one.
+        if !json {
+            for entry in &store.entries {
+                if let ParsedTask::Invalid(inv) = &entry.parsed {
+                    let reason = inv.error.lines().next().unwrap_or_default();
+                    println!(
+                        "cannot repair {}: {}",
+                        crate::cli::sanitize(&inv.id),
+                        crate::cli::sanitize(reason)
+                    );
+                }
+            }
+        }
     }
 
     let mut findings = lint_store(&store);
@@ -293,6 +308,38 @@ fn fix_needs_collision(store: &RepoStore) -> Result<usize, String> {
             &format!(
                 "{today} lint --fix: dropped {dropped} stranded needs item{s} \
                  already carried by the flow list"
+            ),
+        );
+        std::fs::write(&path, repaired).map_err(|e| e.to_string())?;
+        fixed += 1;
+    }
+    Ok(fixed)
+}
+
+/// Indented lines stranded under a scalar key after a blank line — what a
+/// block strip that stopped at the blank left behind. Mechanical by
+/// shape (`edit::strip_stranded_block`), so it is dropped and logged.
+fn fix_stranded_block(store: &RepoStore) -> Result<usize, String> {
+    let today = crate::clock::stamp();
+    let mut fixed = 0;
+    for entry in &store.entries {
+        let ParsedTask::Invalid(_) = &entry.parsed else {
+            continue;
+        };
+        let path = crate::store::tasks_dir(&store.root).join(&entry.file_name);
+        let Ok(text) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Some((repaired, dropped)) = crate::edit::strip_stranded_block(&text) else {
+            continue;
+        };
+        let s = if dropped == 1 { "" } else { "s" };
+        let repaired = append_section_entry(
+            &repaired,
+            "log",
+            &format!(
+                "{today} lint --fix: dropped {dropped} stranded line{s} left in the \
+                 frontmatter under no key"
             ),
         );
         std::fs::write(&path, repaired).map_err(|e| e.to_string())?;

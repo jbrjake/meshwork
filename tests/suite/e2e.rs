@@ -94,6 +94,7 @@ include!("e2e_crossrepo.rs");
 include!("e2e_forgiveness.rs");
 include!("e2e_format_marker.rs");
 include!("e2e_graph.rs");
+include!("e2e_handoff_blocks.rs");
 include!("e2e_import.rs");
 include!("e2e_json_envelope.rs");
 include!("e2e_lifecycle.rs");
