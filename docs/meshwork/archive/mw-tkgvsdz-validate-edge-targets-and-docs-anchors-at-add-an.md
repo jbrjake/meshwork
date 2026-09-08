@@ -6,7 +6,7 @@ seq: 300
 verify: run cargo test add_refuses_dangling_edge
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-5-defects
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 `add --from mw-mjwfxn` (typo) minted two dangling edges silently. Refuse a same-repo
@@ -17,3 +17,4 @@ task reuses this validation for `--to`/`--answers`/`--relates`.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-08T00:44Z open→done — verify exit 0 @ 86f462b+9

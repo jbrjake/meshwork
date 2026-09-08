@@ -7,7 +7,7 @@ verify: run cargo test e2e::did_you_mean_inbox_verbs
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-4-discoverability-tax
   - docs/FIELD-STUDY-session-transcripts.md#§-1-3-errors
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 Five messages, each with a test: `show <foreign-id>` names the repo and prints the sibling
@@ -21,3 +21,4 @@ did-you-mean and the success line models `--needs`. No task ids in any message.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-08T00:45Z open→done — verify exit 0 @ 86f462b+11
