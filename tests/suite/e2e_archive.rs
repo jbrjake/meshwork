@@ -2,6 +2,37 @@
 // to docs/meshwork/archive/ automagically; archived tasks stay fully
 // queryable (owner-confirmed) — only the file's location changes.
 
+/// show prints the path the store actually holds: `archive/` once close
+/// has moved the file, the root again after reopen — text and JSON alike.
+#[test]
+fn show_archived_file_path() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Archived path");
+    let root_path = format!("docs/meshwork/{id}-archived-path.md");
+    let archived = format!("docs/meshwork/archive/{id}-archived-path.md");
+
+    let shown = stdout_of(&meshwork(&repo).args(["show", &id]).assert().success());
+    assert!(shown.contains(&format!("file: {root_path}")), "{shown}");
+
+    meshwork(&repo).args(["close", &id]).assert().success();
+    let shown = stdout_of(&meshwork(&repo).args(["show", &id]).assert().success());
+    assert!(shown.contains(&format!("file: {archived}")), "{shown}");
+    assert!(!shown.contains(&format!("file: {root_path}")), "{shown}");
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["show", &id, "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["data"]["path"], archived, "{v}");
+
+    meshwork(&repo).args(["reopen", &id]).assert().success();
+    let shown = stdout_of(&meshwork(&repo).args(["show", &id]).assert().success());
+    assert!(shown.contains(&format!("file: {root_path}")), "{shown}");
+}
+
 /// close/drop archive the file, reopen un-archives it; deps on archived
 /// done tasks still count as met; lint --fix sweeps misplaced files.
 #[test]

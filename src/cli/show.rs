@@ -52,9 +52,17 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
     let Some(path) = find_task_file(&tasks_dir, &args.id) else {
         return Err(format!("{} not found in {}", args.id, tasks_dir.display()));
     };
-    let rel = format!(
-        "docs/meshwork/{}",
-        path.file_name().unwrap_or_default().to_string_lossy()
+    // The path the store actually holds — archive/ included once close
+    // has moved the file (mw-7ywrxf1: a root path for an archived task
+    // sent an agent to `find`).
+    let rel = path.strip_prefix(&root).map_or_else(
+        |_| {
+            format!(
+                "docs/meshwork/{}",
+                path.file_name().unwrap_or_default().to_string_lossy()
+            )
+        },
+        |p| p.to_string_lossy().replace('\\', "/"),
     );
 
     match parse_task_file(&path) {
