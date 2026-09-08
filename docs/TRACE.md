@@ -57,3 +57,17 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-J4 | `fixtures::corpus_covers_features` | done |
 | MW-J5 | gate §6 (this file's own checker) | planned |
 | MW-J6 | `e2e::offline_all` + stub-gh harness | done |
+| MW-S1 | `tables::views_registered`, `conformance::views_golden` | planned |
+| MW-S2 | `conformance::views_golden` (a bless from the six tables + `clock` alone) | planned |
+| MW-S3 | `conformance::views_golden` (nonconforming stamps in the fixture project NULL) | planned |
+| MW-S4 | `lint::discovered_cycle`, `conformance::views_golden` | planned |
+| MW-S5 | `tables::views_registered` (`[stats] window_days` substituted) | planned |
+| MW-S6 | `e2e::prime_pulse_matches_view` | planned |
+| MW-S7 | `e2e::prime_pulse_matches_view` | planned |
+| MW-S10 | `set_handoff_mints_log_line` | planned |
+| MW-S11 | `arch::analytics_fences` | planned |
+| MW-S12 | `e2e::ready_unchanged_by_views` | planned |
+| MW-S13 | `arch::analytics_fences` | planned |
+| MW-S14 | `portfolio_q_never_prunes` | planned |
+| MW-S15 | `e2e::offline_all` (the view sessions run under it) | planned |
+| MW-S16 | `conformance::views_golden` (a reopened task in the fixture is not a closure) | planned |

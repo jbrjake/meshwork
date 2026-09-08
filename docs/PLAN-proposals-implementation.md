@@ -146,7 +146,7 @@ decision, and TRACE.md gains `planned` rows in the same commit.
 
 | | |
 |---|---|
-| **R-A** | analytics rulings 1, 2, 4, 5, 6 · argued in `PROPOSAL-analytics.md` §12 · **unruled** |
+| **R-A** | analytics rulings 1, 2, 4, 5, 6 · argued in `PROPOSAL-analytics.md` §12 · **R-A RULED 2026-09-08** — owner, in session, asked to rule on the six items with the recommendation attached, selected: *"Rule yes on all six (Recommended)"*. Recorded as REQUIREMENTS §S (`MW-S1`–`MW-S16`) and §3's fourth scope ruling, DESIGN §15.13, TRACE rows `planned` |
 
 | item | decision | recommendation |
 |---|---|---|

@@ -109,6 +109,25 @@ Keywords MUST / SHOULD / MAY per RFC 2119. IDs are stable; cite as `MW-A1`.
 - **MW-J5 (MUST)** Traceable verification: every MW-* MUST requirement maps to ≥1 named test in an in-repo `TRACE.md`; `verify_meshwork.sh` (DESIGN §14) is the single gate — fmt, clippy `-D warnings`, unit+integration+e2e, coverage ≥80%, file caps 500/750, trace completeness — one exit 0, house pattern (verify_alpha.sh precedent). An untraced requirement fails the gate, not a review vibe.
 - **MW-J6 (MUST)** The gate runs with zero network: `mirror` tests execute against a stub `gh` on `$PATH` that records invocations and replays canned responses. The live scratch-repo drill in §4 is a manual acceptance step outside the gate.
 
+### S. Analytics — the derived projection (owner ruling 2026-09-08, mw-w2920xb; argued in `PROPOSAL-analytics.md`)
+
+- **MW-S1 (MUST)** The binary registers, in every SQL session that serves a query (`q`, `portfolio q`, and any verb built on them), a one-row `clock` table honouring `MESHWORK_TODAY` and the thirteen public views `events`, `spans`, `facts`, `graph`, `asks`, `mentions`, `lineage`, `attention`, `sessions`, `flow`, `hazard`, `pulse` (and `clock`), defined by the SQL published in FORMAT.md §Views. The derivation prose there is normative; the SQL is the reference implementation; the blessed JSON under `fixtures/conformance/expected/views/` is the portable test. Helper views MAY be registered; only the thirteen are contract. Additive: no format or `--json` schema bump.
+- **MW-S2 (MUST)** Every view is a pure function of the six tables and `clock`. Nothing is persisted; nothing is authored; no view executes text.
+- **MW-S3 (MUST)** Stamps parse only in FORMAT.md's two conforming forms; nonconforming stamps project `NULL` and are invisible to every duration. Views scope task rows to loaded stores via `repos`.
+- **MW-S4 (MUST)** Recursive derivations carry a depth bound of 64; component labelling stops on convergence. A bound reached is a lint finding (`discovered-cycle`), never a silent cap.
+- **MW-S5 (MUST)** `[stats] window_days` (default 7) is the only parameter; the binary substitutes it into the published SQL at registration and `stats --window` overrides per call.
+- **MW-S6 (MUST)** `prime` renders the repo's `pulse` row at the top of `weather` (before the doing/blocked lines) as ≤ 5 lines, ≤ 800 bytes, zero-valued lines omitted, every count with its denominator, cut loud under the existing budget; and a `cites N closed tasks` tail on the next block when `mentions` reports one.
+- **MW-S7 (MUST)** The pulse rendered by `prime` equals `SELECT * FROM pulse` for the same store and `MESHWORK_TODAY`, enforced by a differential test in the gate.
+- **MW-S8 (SHOULD)** A `stats [--window] [--json]` verb and `portfolio stats` print the proposal's §5.3 tables as canned `SELECT`s over the views. **§6 ruling required** (R-D, mw-xg67266).
+- **MW-S9 (SHOULD)** `lint` gains `handoff-cites-closed`, `implicit-edge`, `discovered-cycle`, `seq-collision`, `close-attempts` — warnings.
+- **MW-S10 (MUST)** `set --handoff` mints a log line (`- <stamp> handoff`) so a handoff has an author and an age; the line form lands in FORMAT.md's log grammar; `show` gains the proposal's §5.5 derived lines.
+- **MW-S11 (MUST)** No metric is a velocity, a target, or a forecast. Flow is reported as counts in a named window; no line is extrapolated past `clock.today`.
+- **MW-S12 (MUST)** No metric enters the ready order. Ordering is the prioritization proposal's key; the view layer supplies columns to it and renders them.
+- **MW-S13 (MUST)** No generated prose. Output is numbers, ids, and the owner's own words (titles, reasons, handoffs) — never a sentence the tool composed about them.
+- **MW-S14 (MUST)** Reads never prune. `q`, `stats`, and `portfolio q`/`portfolio stats` do not touch `sequence.md`; `next` and `ready` keep pruning. Narrows mw-chcqk6g.
+- **MW-S15 (MUST)** Zero network; local checkouts only; `prime`'s scope widens by nothing beyond the union read the inbox already performs.
+- **MW-S16 (MUST)** The closure convention is pinned in FORMAT.md §Views and every view obeys it: `done` means *current* status — a reopened task is not a closure — and a date-only stamp is midnight UTC.
+
 ## 3. Non-goals (normative — this list is the anti-Jira, anti-nerdsnipe contract)
 
 No web UI. No daemon or background sync. No user accounts, auth, roles, or permissions — identities are self-professed strings (MW-K1). No notifications. No time tracking, estimates, or burndown. No sprint/agile semantics — hierarchy is generic structure only (MW-B8); ceremonies stay in giles. No MCP server in v1. No plugin system. No bespoke query language. No SaaS component. GitHub is never the store and is never mutated beyond append (MW-H2). No two-way sync. Feature requests landing in this list are rejected by default; moving an item out requires an owner ruling recorded here.
@@ -120,6 +139,8 @@ Ruled out of the reject list (owner 2026-08-06, mw-tb6gdr9): **advisory work cla
 Scope ruling (owner ask 2026-08-21, mw-5xdyxep): **full-text search** (`search <term>`, DESIGN §6) is NOT the rejected "bespoke query language". That fence bans query *languages* — SQL stays the only one — and a canned-SQL verb over the §4 projection is the `ready`/`blocked` pattern, not a language: the term is a literal substring, no pattern syntax, no operators. The verb exists because the projection alone failed discoverability in the field: sessions fell back to `grep -r` over the store, losing every join against status and edges.
 
 Scope ruling (owner lane commit 2026-08-17, mw-hfvtx0s): **addressed tasks** (`to:`/`answers:` frontmatter, DESIGN §15.12) are NOT the rejected notifications/daemon/sync. Those fences ban things that *run* or *push*; an addressed task is data in its author's store, surfaced by the addressee's own read-time query over the portfolio union — nothing executes, nothing is delivered, nothing crosses a repo boundary in git. The fence text above holds verbatim.
+
+Scope ruling (owner 2026-09-08, mw-w2920xb): three clauses on the derived projection (§S). **Log-derived lifecycle statistics** — queue, service and age hours computed from `## log` stamps the tool already writes — are NOT the rejected time tracking or estimates: nothing is authored, nothing is predicted, the numbers are what happened. **Ordering the ready set** by a computed key is NOT sprint semantics: no iteration, no commitment, no ceremony — a deterministic sort over data the store already holds. **Period counts with their denominators** (`flow`: filed, closed, reopened in a named window) are NOT the rejected burndown: no chart, no projection, no target, no line past today. The fence text above holds verbatim; MW-S11–S13 are the enforcement.
 
 ## 4. Acceptance gate for v1
 
