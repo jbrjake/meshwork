@@ -6,6 +6,7 @@
 mod arch;
 mod cache;
 mod common;
+mod conformance;
 mod e2e;
 mod fixtures;
 mod format;

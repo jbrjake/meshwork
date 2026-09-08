@@ -1,0 +1,11 @@
+# The linked fixture's registry: two stores, `left` and `right`, whose union
+# is what the cross-repo columns of FORMAT.md §Views are blessed over. The
+# test harness writes a gitignored repos.local.toml pointing at its tempdir.
+
+[[repo]]
+name = "left"
+remote = "git@github.com:example/left.git"
+
+[[repo]]
+name = "right"
+remote = "git@github.com:example/right.git"
