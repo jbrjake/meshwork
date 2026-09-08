@@ -298,6 +298,31 @@ fn next_block_lines(tasks: &[&Task], ready: &[Vec<String>]) -> Vec<String> {
     out
 }
 
+/// Incoming asks (mw-hfvtx0s) — between weather and next: they inform
+/// the session before it commits to a task, but never displace next.
+/// Each row carries its age; the headline carries the oldest.
+fn inbox_lines(inbox: &[crate::addressed::Ask], today: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    if inbox.is_empty() {
+        return out;
+    }
+    out.push(format!("addressed to this repo ({}):", inbox.len()));
+    for a in inbox.iter().take(ADDRESSED_ROWS) {
+        let age = crate::addressed::age_suffix(a, today);
+        out.push(clamp_bytes(
+            &format!("- {} {}{age}", a.gid, a.title),
+            LINE_CLAMP,
+        ));
+    }
+    if inbox.len() > ADDRESSED_ROWS {
+        out.push(format!(
+            "… and {} more addressed",
+            inbox.len() - ADDRESSED_ROWS
+        ));
+    }
+    out
+}
+
 /// Also-ready one-liners with blocks-lines.
 fn also_ready_lines(tasks: &[&Task], ready: &[Vec<String>]) -> Vec<String> {
     let mut out = Vec::new();
@@ -418,6 +443,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     let mut also_ready = also_ready_lines(&tasks, &ready);
     let dones = recent_dones(&tasks);
     let inbox = crate::addressed::inbox(&store.repo);
+    let today = crate::clock::today();
 
     if json {
         let next_task = ready
@@ -431,13 +457,20 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
             next: next_task,
             dones: &dones,
             inbox: &inbox,
+            today: &today,
             provenance: provenance_line(&root).as_deref(),
         });
         return Ok(());
     }
 
-    // Assemble lines, then enforce the byte budget with a loud tail.
-    let mut lines: Vec<String> = vec![counts_line(&counts, invalid, &store.repo)];
+    // Assemble lines, then enforce the byte budget with a loud tail. The
+    // headline carries the inbox's silence as a number (mw-r6g9bhe): an
+    // ask nobody answers ages in every session's first line.
+    let mut headline = counts_line(&counts, invalid, &store.repo);
+    if let Some(tail) = crate::addressed::headline_tail(&inbox, &today) {
+        let _ = write!(headline, " \u{b7} {tail}");
+    }
+    let mut lines: Vec<String> = vec![headline];
     if let Some(p) = provenance_line(&root) {
         lines.push(clamp_bytes(&p, LINE_CLAMP));
     }
@@ -448,20 +481,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         lines.push("weather:".to_string());
         lines.append(&mut weather);
     }
-    // Incoming asks (mw-hfvtx0s) — between weather and next: they inform
-    // the session before it commits to a task, but never displace next.
-    if !inbox.is_empty() {
-        lines.push(format!("addressed to this repo ({}):", inbox.len()));
-        for a in inbox.iter().take(ADDRESSED_ROWS) {
-            lines.push(clamp_bytes(&format!("- {} {}", a.gid, a.title), LINE_CLAMP));
-        }
-        if inbox.len() > ADDRESSED_ROWS {
-            lines.push(format!(
-                "… and {} more addressed",
-                inbox.len() - ADDRESSED_ROWS
-            ));
-        }
-    }
+    lines.append(&mut inbox_lines(&inbox, &today));
     lines.append(&mut next_block);
     if !also_ready.is_empty() {
         lines.push(format!(
@@ -508,6 +528,7 @@ struct PrimeJson<'a> {
     next: Option<&'a Task>,
     dones: &'a [(String, &'a str, &'a str)],
     inbox: &'a [crate::addressed::Ask],
+    today: &'a str,
     provenance: Option<&'a str>,
 }
 
@@ -539,8 +560,15 @@ fn emit_prime_json(v: &PrimeJson) {
     let addressed: Vec<_> = v
         .inbox
         .iter()
-        .map(|a| serde_json::json!({ "gid": a.gid, "title": a.title }))
+        .map(|a| {
+            serde_json::json!({ "gid": a.gid, "title": a.title,
+                "created": a.created, "age_days": a.age_days(v.today) })
+        })
         .collect();
+    let asks = serde_json::json!({
+        "unanswered": v.inbox.len(),
+        "oldest_days": crate::addressed::oldest_age_days(v.inbox, v.today),
+    });
     crate::cli::emit_json(
         "prime",
         &serde_json::json!({
@@ -548,7 +576,7 @@ fn emit_prime_json(v: &PrimeJson) {
             "ready_total": v.ready.len(), "ready": ready_rows,
             "rollup": rollup_rows, "rollup_total": v.rollup.len(),
             "weather": v.weather, "next": next_row, "recently_done": done_rows,
-            "addressed": addressed,
+            "addressed": addressed, "asks": asks,
         }),
     );
 }

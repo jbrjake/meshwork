@@ -20,6 +20,45 @@ pub struct Ask {
     pub gid: String,
     /// The ask's title, verbatim.
     pub title: String,
+    /// The ask's `created` stamp, as written; its age derives from this
+    /// plus the absence of an answer (mw-r6g9bhe).
+    pub created: Option<String>,
+}
+
+impl Ask {
+    /// Whole days the ask has waited as of `today`; None when `created`
+    /// is absent or unparseable. Clamped at zero — a future stamp is not
+    /// a negative wait.
+    #[must_use]
+    pub fn age_days(&self, today: &str) -> Option<i64> {
+        let created = self.created.as_deref()?;
+        crate::clock::days_between(created, today).map(|d| d.max(0))
+    }
+}
+
+/// The longest wait in the inbox — the headline's number.
+#[must_use]
+pub fn oldest_age_days(asks: &[Ask], today: &str) -> Option<i64> {
+    asks.iter().filter_map(|a| a.age_days(today)).max()
+}
+
+/// `N ask(s) unanswered, oldest Dd` — the headline tail; None when the
+/// inbox is empty.
+#[must_use]
+pub fn headline_tail(asks: &[Ask], today: &str) -> Option<String> {
+    if asks.is_empty() {
+        return None;
+    }
+    let s = if asks.len() == 1 { "" } else { "s" };
+    let oldest = oldest_age_days(asks, today).map_or(String::new(), |d| format!(", oldest {d}d"));
+    Some(format!("{} ask{s} unanswered{oldest}", asks.len()))
+}
+
+/// ` (Dd)` for an inbox row, or nothing when the age is unknown.
+#[must_use]
+pub fn age_suffix(ask: &Ask, today: &str) -> String {
+    ask.age_days(today)
+        .map_or(String::new(), |d| format!(" ({d}d)"))
 }
 
 /// The asks addressed to `me` that no live task answers, oldest first.
@@ -70,6 +109,7 @@ pub fn inbox(me: &str) -> Vec<Ask> {
                 Ask {
                     gid,
                     title: t.title.clone(),
+                    created: t.created.clone(),
                 },
             ));
         }

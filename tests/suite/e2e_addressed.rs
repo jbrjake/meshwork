@@ -169,3 +169,94 @@ fn addressed_terminal_ask_stops_surfacing() {
     );
     assert!(!out.contains("az-a5k004"), "terminal ask must not surface: {out}");
 }
+
+/// An unanswered ask's silence is a number every session sees: prime's
+/// headline carries the unanswered count and the oldest age, derived
+/// from `created` plus the absence of `answers`; each inbox row carries
+/// its own age, in ready and prime alike.
+#[test]
+fn prime_asks_age_line() {
+    let (dir, portfolio) = portfolio_fixture();
+    let alpha = dir.path().join("alpha");
+    let beta = dir.path().join("beta");
+    for (id, created) in [("az-a5k010", "2026-08-17"), ("az-a5k011", "2026-09-01T09:30Z")] {
+        std::fs::write(
+            alpha.join(format!("docs/meshwork/{id}-ask-{created}.md")),
+            format!(
+                "---\nid: {id}\ntitle: Ask from {created}\nstatus: open\nto: beta\n\
+                 created: {created}\n---\n\n## log\n- {created} created\n"
+            ),
+        )
+        .unwrap();
+    }
+    let prime = |json: bool| {
+        let mut cmd = meshwork(&beta);
+        cmd.env("MESHWORK_PORTFOLIO", &portfolio)
+            .env("MESHWORK_TODAY", "2026-09-07")
+            .arg("prime");
+        if json {
+            cmd.arg("--json");
+        }
+        stdout_of(&cmd.assert().success())
+    };
+
+    let text = prime(false);
+    let headline = text.lines().next().unwrap_or_default();
+    assert!(
+        headline.contains("2 asks unanswered, oldest 21d"),
+        "headline carries the count and the oldest age: {headline}"
+    );
+    assert!(text.contains("alpha#az-a5k010 Ask from 2026-08-17 (21d)"), "{text}");
+    assert!(text.contains("alpha#az-a5k011 Ask from 2026-09-01T09:30Z (6d)"), "{text}");
+
+    let v: serde_json::Value = serde_json::from_str(&prime(true)).unwrap();
+    assert_eq!(v["data"]["asks"]["unanswered"], 2, "{v}");
+    assert_eq!(v["data"]["asks"]["oldest_days"], 21, "{v}");
+    let addressed = v["data"]["addressed"].as_array().unwrap();
+    assert_eq!(addressed[0]["gid"], "alpha#az-a5k010");
+    assert_eq!(addressed[0]["age_days"], 21);
+    assert_eq!(addressed[0]["created"], "2026-08-17");
+
+    // ready carries the age too.
+    let ready = stdout_of(
+        &meshwork(&beta)
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .env("MESHWORK_TODAY", "2026-09-07")
+            .arg("ready")
+            .assert()
+            .success(),
+    );
+    assert!(ready.contains("alpha#az-a5k010  Ask from 2026-08-17  (21d)"), "{ready}");
+
+    // No inbox, no asks tail — the headline stays as it was.
+    let quiet = stdout_of(&meshwork(&beta).arg("prime").assert().success());
+    assert!(!quiet.lines().next().unwrap_or_default().contains("unanswered"), "{quiet}");
+}
+
+/// The cheap half of the same failure class: an ask whose `to:` names no
+/// registered repo can never surface anywhere. add --batch says so at
+/// file time — a warning, not a refusal (the registry may lag the repo).
+#[test]
+fn batch_warns_unresolvable_to() {
+    let (dir, portfolio) = portfolio_fixture();
+    let beta = dir.path().join("beta");
+    let out = meshwork(&beta)
+        .env("MESHWORK_PORTFOLIO", &portfolio)
+        .args(["add", "--batch", "-"])
+        .write_stdin("---\ntitle: Ask nobody\nto: nowhere\nverify: \"true\"\n---\n")
+        .assert()
+        .success();
+    let err = stderr_of(&out);
+    assert!(
+        err.contains("to: nowhere") && err.contains("no registered repo"),
+        "{err}"
+    );
+    // A resolvable addressee is quiet.
+    let out = meshwork(&beta)
+        .env("MESHWORK_PORTFOLIO", &portfolio)
+        .args(["add", "--batch", "-"])
+        .write_stdin("---\ntitle: Ask alpha\nto: alpha#az-x9b2\nverify: \"true\"\n---\n")
+        .assert()
+        .success();
+    assert!(!stderr_of(&out).contains("no registered repo"), "{}", stderr_of(&out));
+}

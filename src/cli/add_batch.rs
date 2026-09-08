@@ -89,6 +89,7 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
             ));
         }
         verifies.push(task.verify.clone());
+        warn_unresolvable_to(&task, n);
         files.push((
             tasks_dir.join(&file_name),
             format!("docs/meshwork/{file_name}"),
@@ -128,6 +129,25 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
     }
     emit(json, &ids, &files, false);
     Ok(())
+}
+
+/// An ask whose `to:` names no registered repo can never surface anywhere
+/// — say so at file time, not never (mw-r6g9bhe). A warning, not a
+/// refusal: the registry may lag the repo. No registry, no verdict.
+fn warn_unresolvable_to(task: &crate::parse::Task, n: usize) {
+    let Some(to) = task.to.as_deref() else {
+        return;
+    };
+    let repo = to.split('#').next().unwrap_or(to);
+    let Ok(Some(registry)) = crate::registry::quiet_load() else {
+        return;
+    };
+    if registry.resolve(repo).is_none() {
+        eprintln!(
+            "warning: batch task {n}: to: {to} — no registered repo named `{repo}`; \
+             the ask will never surface until the registry knows it"
+        );
+    }
 }
 
 fn emit(json: bool, ids: &[String], files: &[(std::path::PathBuf, String, String)], dry: bool) {

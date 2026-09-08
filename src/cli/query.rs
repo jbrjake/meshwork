@@ -169,9 +169,13 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
         // Incoming asks — the read-time join (mw-hfvtx0s). Foreign gids
         // appear ONLY here, labeled; the main list stays local-only.
         if !inbox.is_empty() {
+            let today = crate::clock::today();
             println!("addressed to this repo ({}):", inbox.len());
             for a in inbox.iter().take(ADDRESSED_CAP) {
-                println!("{}  {}", a.gid, crate::cli::sanitize(&a.title));
+                let age = a
+                    .age_days(&today)
+                    .map_or(String::new(), |d| format!("  ({d}d)"));
+                println!("{}  {}{age}", a.gid, crate::cli::sanitize(&a.title));
             }
             if inbox.len() > ADDRESSED_CAP {
                 println!("… and {} more addressed", inbox.len() - ADDRESSED_CAP);
