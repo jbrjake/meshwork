@@ -7,8 +7,9 @@ verify: exists docs/cost-baseline.md
 docs:
   - docs/ASKS-analytics-and-field-study.md#§-3-the-asks
   - docs/PROPOSAL-prioritization.md#§-7-build-ladder
-status: open
+status: doing
 created: 2026-09-07T16:32Z
+claimed-by: claude (8c25d21d-f70c-4d87-a136-dac674b1ca92)
 ---
 One pass over records the scripts already parse: `message.usage` (input, output, cache read,
 cache write) per session, split by `isSidechain`, attributed to tasks by the `start`/`close`
@@ -21,3 +22,4 @@ R-C item C.7 only for the *committed* data; the script itself is read-only and n
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-08T13:49Z open→doing — claimed by claude (8c25d21d-f70c-4d87-a136-dac674b1ca92)
