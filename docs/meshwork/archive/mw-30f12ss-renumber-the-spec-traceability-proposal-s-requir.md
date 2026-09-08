@@ -7,7 +7,7 @@ verify: contains docs/PROPOSAL-spec-traceability.md /MW-T1/
 docs:
   - docs/PROPOSAL-spec-traceability.md#§-a-spec-clauses
   - docs/PROPOSAL-analytics.md#§-10-requirements
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 Both proposals mint `MW-S1`…; the analytics numbering is already cited by the ASKS document and
@@ -17,3 +17,4 @@ the same commit.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-08T00:14Z open→done — verify exit 0 @ f88597e+6

@@ -7,7 +7,7 @@ seq: 230
 verify: contains docs/meshwork/meshwork /CLAUDE_CODE_SESSION_ID/
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-5-defects
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 CLI sessions export `CLAUDE_CODE_SESSION_ID` and not `CLAUDE_CODE_BRIDGE_SESSION_ID`, so the
@@ -18,3 +18,4 @@ no-`]` rule.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-08T00:14Z open→done — verify exit 0 @ f88597e+8
