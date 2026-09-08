@@ -10,6 +10,7 @@
     "ref_status",
     "ref_terminal_at",
     "src_last_activity",
+    "src_handoff_at",
     "moved_since_activity",
     "edge_backed"
   ],
@@ -24,6 +25,7 @@
       "open",
       "",
       "2026-08-01T15:00:00",
+      "",
       "false",
       "true"
     ]

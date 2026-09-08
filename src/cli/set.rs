@@ -7,7 +7,7 @@
 //! Edits are surgical (edit.rs), so union merges stay clean and
 //! hand-written `# …` comments survive.
 
-use crate::edit::{append_block_item, remove_scalar, set_block, set_scalar};
+use crate::edit::{append_block_item, append_section_entry, remove_scalar, set_block, set_scalar};
 use crate::store::find_task_file;
 use crate::write::yaml_scalar;
 
@@ -99,6 +99,15 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
             text = remove_scalar(&text, "handoff")?;
         } else {
             text = set_block(&text, "handoff", &wrap(&payload, HANDOFF_WRAP))?;
+            // MW-S10 (mw-2n6zkx9): the voice gets an author and an age —
+            // a log line prime renders as `[handoff by <author>, Nd]`, so
+            // a previous session's voice never reads as an owner ruling.
+            let mut entry = format!("{} handoff", crate::clock::stamp());
+            if let Some(author) = crate::cli::notes::resolve_author(&root, None)? {
+                entry.push_str(" by ");
+                entry.push_str(&author);
+            }
+            text = append_section_entry(&text, "log", &entry);
         }
         set_fields.push("handoff");
     }

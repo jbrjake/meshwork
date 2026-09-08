@@ -222,6 +222,34 @@ fn weather_lines(tasks: &[&Task], ready_ids: &BTreeSet<&str>) -> Vec<String> {
     out
 }
 
+/// Who wrote the voice, and how long ago (MW-S10): the newest minted
+/// `<stamp> handoff [by <author>]` log line, rendered
+/// `[handoff by <author>, Nd]`; a block with no such line — hand-written,
+/// or older than the minting — renders `[handoff: unstamped]`, so the
+/// reader knows it is looking at prose of unknown age.
+fn handoff_tag(t: &Task) -> String {
+    let minted = t.log.iter().rev().find_map(|entry| {
+        let (stamp, rest) = entry.split_once(' ')?;
+        let rest = rest.trim();
+        if rest == "handoff" {
+            Some((stamp, None))
+        } else {
+            rest.strip_prefix("handoff by ")
+                .map(|a| (stamp, Some(a.trim())))
+        }
+    });
+    let Some((stamp, author)) = minted else {
+        return "  [handoff: unstamped]".to_string();
+    };
+    let age = crate::clock::days_between(stamp, &crate::clock::today())
+        .map(|d| format!(", {}d", d.max(0)))
+        .unwrap_or_default();
+    match author {
+        Some(a) => format!("  [handoff by {a}{age}]"),
+        None => format!("  [handoff{age}]"),
+    }
+}
+
 /// The next-task block: the `handoff:` voice first, mechanics after (§7b).
 fn next_block_lines(tasks: &[&Task], ready: &[Vec<String>]) -> Vec<String> {
     let mut out = Vec::new();
@@ -246,6 +274,7 @@ fn next_block_lines(tasks: &[&Task], ready: &[Vec<String>]) -> Vec<String> {
                 LINE_CLAMP,
             ));
         }
+        out.push(clamp_bytes(&handoff_tag(t), LINE_CLAMP));
     }
     let deps = dependents(tasks, &t.id);
     let mut meta: Vec<String> = Vec::new();

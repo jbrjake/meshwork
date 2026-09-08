@@ -71,9 +71,11 @@ UNION ALL
 SELECT l.gid, t.repo,
        CASE WHEN l.to_status IS NOT NULL THEN 'transition'
             WHEN l.note LIKE 'close attempt%' THEN 'close-attempt'
+            WHEN l.note LIKE 'handoff%' THEN 'handoff'
             ELSE 'note' END AS kind,
        l.date AS stamp, {ts('l.date')} AS at,
-       CASE WHEN l.note LIKE 'claimed by %' THEN substr(l.note, 12) END AS actor,
+       CASE WHEN l.note LIKE 'claimed by %' THEN substr(l.note, 12)
+            WHEN l.note LIKE 'handoff by %' THEN substr(l.note, 12) END AS actor,
        l.from_status, l.to_status, l.note, l.ord
 FROM log l JOIN tasks t ON t.gid = l.gid
 UNION ALL
@@ -299,13 +301,18 @@ WHERE r.gid <> k.gid
 GROUP BY k.gid, k.repo, k.field, r.gid
 """
 V["m_edge"] = "SELECT DISTINCT a, b FROM (SELECT src_gid AS a, dst_gid AS b FROM edges UNION ALL SELECT dst_gid AS a, src_gid AS b FROM edges)"
+# The newest minted handoff line gives a handoff mention an exact bound (MW-S10).
+V["m_hand"] = "SELECT gid, max(at) AS handoff_at FROM events WHERE kind = 'handoff' GROUP BY gid"
 V["mentions"] = """
 SELECT p.src_gid, p.src_repo, p.field, p.ref_gid, p.times, p.first_at,
        r.status AS ref_status, fr.terminal_at AS ref_terminal_at, fs.last_activity AS src_last_activity,
-       coalesce(fr.terminal_at > fs.last_activity, false) AS moved_since_activity,
+       h.handoff_at AS src_handoff_at,
+       coalesce(fr.terminal_at > coalesce(CASE WHEN p.field = 'handoff' THEN h.handoff_at END, fs.last_activity), false)
+         AS moved_since_activity,
        eb.a IS NOT NULL AS edge_backed
 FROM m_pairs p JOIN tasks r ON r.gid = p.ref_gid
 JOIN facts fr ON fr.gid = r.gid JOIN facts fs ON fs.gid = p.src_gid
+LEFT JOIN m_hand h ON h.gid = p.src_gid
 LEFT JOIN m_edge eb ON eb.a = p.src_gid AND eb.b = p.ref_gid
 """
 

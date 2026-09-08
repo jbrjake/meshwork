@@ -138,9 +138,11 @@ fn set_handoff_clear() {
         .success();
     let text = std::fs::read_to_string(&path).unwrap();
     assert!(
-        !text.contains("handoff"),
+        !text.contains("handoff:"),
         "key gone, no dangling block: {text}"
     );
+    // The minted `handoff by` log line is history and stays (MW-S10).
+    assert!(text.contains(" handoff by "), "{text}");
 
     // Clearing an absent key is a quiet no-op — never mints the key.
     meshwork(&repo)
@@ -163,7 +165,7 @@ fn set_handoff_clear() {
         .assert()
         .success();
     let text = std::fs::read_to_string(&path).unwrap();
-    assert!(!text.contains("handoff"), "whitespace clears too: {text}");
+    assert!(!text.contains("handoff:"), "whitespace clears too: {text}");
 }
 
 /// mw-rz4ey2h (§6 ruling 2026-08-10): prose fields get a path that never
@@ -283,4 +285,70 @@ fn set_cat_verify() {
     );
     let v: serde_json::Value = serde_json::from_str(&js).unwrap();
     assert_eq!(v["data"]["set"], serde_json::json!(["category"]), "{js}");
+}
+
+/// mw-2n6zkx9 (R-A item A.5, MW-S10): `set --handoff` mints
+/// `- <stamp> handoff by <author>` in the log so the voice carries an
+/// author and an age; prime renders `[handoff by <author>, Nd]` after the
+/// » lines, and a hand-written block with no line renders
+/// `[handoff: unstamped]` — the next session can tell a session's voice
+/// from an owner ruling, and a fresh one from a stale one.
+#[test]
+fn set_handoff_mints_log_line() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Voice carrier");
+    meshwork(&repo)
+        .env("MESHWORK_TODAY", "2026-09-01T10:00Z")
+        .env("MESHWORK_AUTHOR", "claude (session_x)")
+        .args(["set", &id, "--handoff", "Start here, not at the ask."])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(
+        text.contains("\n- 2026-09-01T10:00Z handoff by claude (session_x)\n"),
+        "{text}"
+    );
+
+    // Three days on, prime names the author and the age after the voice.
+    let prime = stdout_of(
+        &meshwork(&repo)
+            .env("MESHWORK_TODAY", "2026-09-04")
+            .arg("prime")
+            .assert()
+            .success(),
+    );
+    let voice = prime.find("\u{bb} Start here").expect("voice renders");
+    let tag = prime
+        .find("[handoff by claude (session_x), 3d]")
+        .expect("author and age render");
+    assert!(tag > voice, "the tag follows the voice:\n{prime}");
+
+    // Replacing the handoff mints a fresh line; the old one stays history.
+    meshwork(&repo)
+        .env("MESHWORK_TODAY", "2026-09-05T08:00Z")
+        .env("MESHWORK_AUTHOR", "claude (session_y)")
+        .args(["set", &id, "--handoff", "Second voice."])
+        .assert()
+        .success();
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert_eq!(text.matches(" handoff by ").count(), 2, "{text}");
+    let prime = stdout_of(
+        &meshwork(&repo)
+            .env("MESHWORK_TODAY", "2026-09-05T09:00Z")
+            .arg("prime")
+            .assert()
+            .success(),
+    );
+    assert!(prime.contains("[handoff by claude (session_y), 0d]"), "{prime}");
+
+    // A hand-written block with no minted line is honest about it.
+    let id2 = add_id(&repo, &["add", "Hand voice", "--verify", "true", "--seq", "1"]);
+    let path = task_file(&repo, &id2);
+    let text = std::fs::read_to_string(&path).unwrap();
+    let text = text.replacen("---\n", "---\nhandoff: |\n  Typed straight into the file.\n", 1);
+    std::fs::write(&path, text).unwrap();
+    let prime = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(prime.contains("\u{bb} Typed straight into the file."), "{prime}");
+    assert!(prime.contains("[handoff: unstamped]"), "{prime}");
 }
