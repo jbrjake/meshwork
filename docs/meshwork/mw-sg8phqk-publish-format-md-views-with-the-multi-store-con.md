@@ -27,3 +27,6 @@ with the union views blessed. README rows for `expected/views/`. Register nothin
 
 ## log
 - 2026-09-07T16:32Z created
+
+## comments
+- 2026-09-08T13:39Z [claude (8c25d21d-f70c-4d87-a136-dac674b1ca92)] When §Views lands, add the note the event envelope task (mw-wx80vev) owes it: scripts/mine_sessions.py --events emits {repo, gid, kind, at, actor, note} — the events view's column subset — plus session and detail; the store side of the same timeline is SELECT repo, gid, kind, at, actor, note FROM events. The envelope is documented in the script's header.
