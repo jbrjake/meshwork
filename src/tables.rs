@@ -16,6 +16,73 @@ use std::sync::Arc;
 /// `q` error path enumerates (mw-0ssk8dg).
 pub const TABLES: [&str; 6] = ["tasks", "edges", "labels", "comments", "log", "repos"];
 
+/// Every queryable table with its columns in projection order — what
+/// `q --help` prints, so nobody reverse-engineers the graph with
+/// `SELECT *` (mw-myas0dd). Pinned to the registered Arrow schemas by
+/// `schema_listing_matches_registration`.
+pub const SCHEMA: [(&str, &[&str]); 6] = [
+    (
+        "tasks",
+        &[
+            "gid",
+            "repo",
+            "id",
+            "title",
+            "status",
+            "category",
+            "verify",
+            "waived",
+            "seq",
+            "created",
+            "blocked_reason",
+            "claimed_by",
+            "github",
+            "addressed_to",
+            "path",
+            "error",
+            "body",
+            "handoff",
+            "parent",
+        ],
+    ),
+    ("edges", &["src_gid", "dst_gid", "kind", "resolved"]),
+    ("labels", &["gid", "label"]),
+    (
+        "comments",
+        &["gid", "ord", "date", "author", "text", "hash"],
+    ),
+    (
+        "log",
+        &["gid", "ord", "date", "from_status", "to_status", "note"],
+    ),
+    ("repos", &["repo", "path", "remote", "present"]),
+];
+
+#[cfg(test)]
+mod schema_tests {
+    use super::*;
+
+    /// The listing is the schema: every registered table's columns, in
+    /// order, are exactly what `SCHEMA` says.
+    #[test]
+    fn schema_listing_matches_registration() {
+        let ctx = session_for(&[], &[]).unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        for (table, columns) in SCHEMA {
+            let names: Vec<String> = rt
+                .block_on(ctx.table(table))
+                .unwrap()
+                .schema()
+                .fields()
+                .iter()
+                .map(|f| f.name().clone())
+                .collect();
+            assert_eq!(names, columns, "{table}");
+        }
+        assert_eq!(SCHEMA.map(|(t, _)| t), TABLES);
+    }
+}
+
 /// Build a `SessionContext` with the six-table contract registered:
 /// `tasks`, `edges`, `labels`, `comments`, `log`, `repos` (DESIGN §4) —
 /// plus the `category_matches` UDF (MW-B4), so filtering stays plain SQL.

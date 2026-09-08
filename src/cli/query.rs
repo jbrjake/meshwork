@@ -17,9 +17,27 @@ pub(crate) struct ReadyArgs {
 }
 
 #[derive(clap::Args)]
+#[command(after_help = schema_help())]
 pub(crate) struct QArgs {
     /// SQL over tasks / edges / labels / comments / log / repos.
     sql: String,
+}
+
+/// The queryable tables with their columns, and the shape `--json`
+/// wraps rows in — the help text, so the graph is discoverable from
+/// `q --help` rather than from `SELECT *` archaeology (mw-myas0dd).
+fn schema_help() -> String {
+    use std::fmt::Write as _;
+    let mut out = String::from("Tables (columns in projection order):\n");
+    for (table, columns) in crate::tables::SCHEMA {
+        let _ = writeln!(out, "  {table:<9} {}", columns.join(", "));
+    }
+    out.push_str(
+        "\nRows are strings; NULL renders empty. With --json the result is the standard \
+         envelope, rows under data.rows:\n  {\"meshwork\": {\"version\": …, \"schema\": …}, \
+         \"verb\": \"q\", \"data\": {\"columns\": [...], \"rows\": [[...], ...]}}",
+    );
+    out
 }
 
 /// Rows a listing shows by default (MW-D2).
@@ -94,7 +112,7 @@ pub(crate) fn run_query(
     // discoverable from the error, not archaeology (mw-0ssk8dg).
     .map_err(|e: datafusion::error::DataFusionError| {
         format!(
-            "{e}\n  queryable tables: {}",
+            "{e}\n  queryable tables: {} (columns: q --help)",
             crate::tables::TABLES.join(", ")
         )
     })
