@@ -78,6 +78,11 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     if let Some(verify) = &args.verify {
         refuse_malformed(verify)?;
     }
+    let mut targets: Vec<(&str, &str)> = args.needs.iter().map(|n| ("needs", n.as_str())).collect();
+    targets.extend(args.parent.iter().map(|p| ("parent", p.as_str())));
+    targets.extend(args.from.iter().map(|f| ("discovered-from", f.as_str())));
+    check_edge_targets(&tasks_dir, &targets, &[])?;
+    warn_docs(&root, &args.docs);
     let fm = render_frontmatter(args, &id, &title, &today);
 
     // Body above the tail sections (mw-s3905fv, §6 ruling 2026-08-21):
@@ -88,6 +93,9 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
         Some(raw) => {
             let payload = crate::cli::prose_payload(raw)?;
             crate::cli::reject_controls("body", &payload, true)?;
+            if !raw.starts_with('@') && raw != "-" {
+                warn_inline_body(&payload);
+            }
             if payload.trim().is_empty() {
                 String::new()
             } else {
@@ -202,6 +210,77 @@ fn render_frontmatter(args: &AddArgs, id: &str, title: &str, today: &str) -> Str
     }
     let _ = writeln!(fm, "created: {today}");
     fm
+}
+
+/// mw-tkgvsdz: a same-repo edge target that does not exist is refused —
+/// `add --from mw-mjwfxn` (a typo) once minted two dangling edges
+/// silently. `known` carries ids not yet on disk (a batch's own). A
+/// cross-repo target is the registry's business: warned when the
+/// registry knows no such repo, or resolves it and finds no such task.
+pub(crate) fn check_edge_targets(
+    tasks_dir: &std::path::Path,
+    targets: &[(&str, &str)],
+    known: &[String],
+) -> Result<(), String> {
+    for (field, target) in targets {
+        if let Some((repo, id)) = target.split_once('#') {
+            warn_crossrepo_target(field, repo, id);
+            continue;
+        }
+        if known.iter().any(|k| k == target)
+            || crate::store::find_task_file(tasks_dir, target).is_some()
+        {
+            continue;
+        }
+        return Err(format!(
+            "{field} target `{target}` does not exist in this store — check the id \
+             (`meshwork search <words>`), or file the target first"
+        ));
+    }
+    Ok(())
+}
+
+fn warn_crossrepo_target(field: &str, repo: &str, id: &str) {
+    let Ok(Some(registry)) = crate::registry::quiet_load() else {
+        return;
+    };
+    match registry.resolve(repo) {
+        None => eprintln!(
+            "warning: {field} target `{repo}#{id}` names no registered repo — it can never \
+             resolve, and ready will block on it"
+        ),
+        Some((entry, _)) => {
+            let Some(root) = &entry.path else { return };
+            let sibling = root.join("docs").join("meshwork");
+            if sibling.exists() && crate::store::find_task_file(&sibling, id).is_none() {
+                eprintln!(
+                    "warning: {field} target `{repo}#{id}` does not exist in {repo}'s store — \
+                     ready will block on it until it does"
+                );
+            }
+        }
+    }
+}
+
+/// A docs link that dead-ends is said at add, not at the next lint.
+pub(crate) fn warn_docs(root: &std::path::Path, docs: &[String]) {
+    for link in docs {
+        if let Some(err) = crate::docs::resolve(root, link).error {
+            eprintln!("warning: docs: {link} — {err} (show --docs will dead-end)");
+        }
+    }
+}
+
+/// Inline prose that reached us carrying shell syntax may already have
+/// been expanded on the way in — the pilot's backticked handoff was.
+fn warn_inline_body(payload: &str) {
+    if payload.contains('`') || payload.contains("$(") {
+        eprintln!(
+            "warning: --body text carries a backtick or $( — a shell may have expanded it on \
+             the way in; author prose with --body @<file> or --body - (stdin), which never \
+             transit shell quoting"
+        );
+    }
 }
 
 /// Refuse at authoring what close would refuse at the gate (mw-8e769q0):

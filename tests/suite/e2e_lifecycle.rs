@@ -113,6 +113,10 @@ fn init_json_envelope() {
 fn add_show_roundtrip() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
+    // Same-repo edge targets must exist (mw-tkgvsdz) — mint them first.
+    let needed = add_task(&repo, "Needed first");
+    let origin = add_task(&repo, "Discovered from");
+    let umbrella = add_task(&repo, "Umbrella");
     let out = meshwork(&repo)
         .args([
             "add",
@@ -124,13 +128,13 @@ fn add_show_roundtrip() {
             "--label",
             "p0",
             "--needs",
-            "wo-aaaa",
+            &needed,
             "--needs",
             "beta#bz-c0r3",
             "--parent",
-            "wo-cccc",
+            &umbrella,
             "--from",
-            "wo-bbbb",
+            &origin,
             "--verify",
             "cargo test spill::",
         ])
@@ -149,9 +153,9 @@ fn add_show_roundtrip() {
     assert!(text.contains("status: open"));
     assert!(text.contains("category: engine/spill"));
     assert!(text.contains("labels: [perf, p0]"));
-    assert!(text.contains("needs: [wo-aaaa, beta#bz-c0r3]"));
-    assert!(text.contains("parent: wo-cccc"));
-    assert!(text.contains("discovered-from: wo-bbbb"));
+    assert!(text.contains(&format!("needs: [{needed}, beta#bz-c0r3]")), "{text}");
+    assert!(text.contains(&format!("parent: {umbrella}")), "{text}");
+    assert!(text.contains(&format!("discovered-from: {origin}")), "{text}");
     assert!(
         text.contains("verify: \"cargo test spill::\""),
         "trailing :: needs YAML quoting: {text}"

@@ -83,15 +83,8 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
                 return Err(format!("batch task {n}: {} — nothing written", inv.error))
             }
         };
-        if task.parent.as_deref().is_some_and(|p| p.contains('#')) {
-            return Err(format!(
-                "batch task {n}: parent must stay in-repo — hierarchy never crosses repos"
-            ));
-        }
-        if let Some(v) = &task.verify {
-            super::add::refuse_malformed(v)
-                .map_err(|e| format!("batch task {n}: {e} — nothing written"))?;
-        }
+        validate_task(&root, &tasks_dir, &task, &ids)
+            .map_err(|e| format!("batch task {n}: {e} — nothing written"))?;
         verifies.push(task.verify.clone());
         warn_unresolvable_to(&task, n);
         files.push((
@@ -132,6 +125,33 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
         }
     }
     emit(json, &ids, &files, false);
+    Ok(())
+}
+
+/// The per-document checks every batch task passes before any file is
+/// written: parent in-repo, the verify well-formed, every same-repo edge
+/// target on disk or in this batch (mw-tkgvsdz), docs links warned.
+fn validate_task(
+    root: &std::path::Path,
+    tasks_dir: &std::path::Path,
+    task: &crate::parse::Task,
+    batch_ids: &[String],
+) -> Result<(), String> {
+    if task.parent.as_deref().is_some_and(|p| p.contains('#')) {
+        return Err("parent must stay in-repo — hierarchy never crosses repos".to_string());
+    }
+    if let Some(v) = &task.verify {
+        super::add::refuse_malformed(v)?;
+    }
+    let mut targets: Vec<(&str, &str)> = task.needs.iter().map(|n| ("needs", n.as_str())).collect();
+    targets.extend(task.parent.iter().map(|p| ("parent", p.as_str())));
+    targets.extend(
+        task.discovered_from
+            .iter()
+            .map(|f| ("discovered-from", f.as_str())),
+    );
+    super::add::check_edge_targets(tasks_dir, &targets, batch_ids)?;
+    super::add::warn_docs(root, &task.docs);
     Ok(())
 }
 
