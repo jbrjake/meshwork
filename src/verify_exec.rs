@@ -20,6 +20,36 @@ use std::time::{Duration, Instant};
 /// Wall clock for one `run` predicate — generous for a filtered
 /// `cargo test`, fatal for a hang.
 pub const RUN_TIMEOUT: Duration = Duration::from_mins(5);
+
+/// The wall clock in force: `RUN_TIMEOUT`, or `MESHWORK_RUN_TIMEOUT`
+/// (whole seconds) when set — the determinism hook that lets a test
+/// watch a hang die without waiting five minutes for it (DESIGN §15.6).
+#[must_use]
+pub fn run_timeout() -> Duration {
+    std::env::var("MESHWORK_RUN_TIMEOUT")
+        .ok()
+        .and_then(|s| s.trim().parse::<u64>().ok())
+        .filter(|s| *s > 0)
+        .map_or(RUN_TIMEOUT, Duration::from_secs)
+}
+
+/// Why a spawn produced no exit status.
+#[derive(Debug)]
+pub enum SpawnError {
+    /// The wall clock expired; the child was killed.
+    Timeout(Duration),
+    /// The child never started, or waiting on it failed.
+    Other(String),
+}
+
+impl std::fmt::Display for SpawnError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Timeout(t) => write!(f, "timeout after {}s", t.as_secs_f32()),
+            Self::Other(e) => f.write_str(e),
+        }
+    }
+}
 /// Captured-output byte cap per `run`; the child may write more — the
 /// excess is drained and dropped, never buffered.
 pub const OUTPUT_CAP: usize = 262_144;
@@ -55,7 +85,7 @@ pub fn execute(root: &Path, preds: &[Predicate]) -> Result<(), String> {
                 }
             }
             Predicate::Run { argv } => {
-                let out = run_argv(root, argv, RUN_TIMEOUT, OUTPUT_CAP)
+                let out = run_argv(root, argv, run_timeout(), OUTPUT_CAP)
                     .map_err(|e| format!("run {}: {e}", argv.join(" ")))?;
                 require_non_vacuous(argv, &out)?;
             }
@@ -115,7 +145,33 @@ pub fn run_argv(
     timeout: Duration,
     out_cap: usize,
 ) -> Result<String, String> {
-    let (first, rest) = argv.split_first().ok_or("empty argv")?;
+    let (status, out) = spawn_capped(root, argv, timeout, out_cap).map_err(|e| e.to_string())?;
+    if status.success() {
+        Ok(out)
+    } else {
+        let tail = out.chars().rev().take(400).collect::<String>();
+        let tail: String = tail.chars().rev().collect();
+        Err(format!("{status}; output tail: {tail}"))
+    }
+}
+
+/// The spawn under [`run_argv`], exit status and all: the same argv
+/// discipline, env scrub, cwd pin, output cap and wall clock, with the
+/// verdict left to the caller — the start red-check reads the exit code
+/// itself (0 is "already green", 127 is "no such command").
+///
+/// # Errors
+/// Spawn failure or the wall clock expiring — the child is killed on
+/// timeout, never orphaned. A nonzero exit is not an error here.
+pub fn spawn_capped(
+    root: &Path,
+    argv: &[String],
+    timeout: Duration,
+    out_cap: usize,
+) -> Result<(std::process::ExitStatus, String), SpawnError> {
+    let (first, rest) = argv
+        .split_first()
+        .ok_or_else(|| SpawnError::Other("empty argv".into()))?;
     let mut cmd = std::process::Command::new(first);
     cmd.args(rest)
         .current_dir(root)
@@ -128,7 +184,9 @@ pub fn run_argv(
             cmd.env(key, v);
         }
     }
-    let mut child = cmd.spawn().map_err(|e| format!("spawn {first}: {e}"))?;
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| SpawnError::Other(format!("spawn {first}: {e}")))?;
     // Drain pipes on threads: the cap bounds what we keep, while the
     // drain keeps a chatty child from blocking on a full pipe.
     let stdout = drain(child.stdout.take(), out_cap);
@@ -141,10 +199,10 @@ pub fn run_argv(
             Ok(None) if started.elapsed() >= timeout => {
                 let _ = child.kill();
                 let _ = child.wait();
-                return Err(format!("timeout after {}s", timeout.as_secs_f32()));
+                return Err(SpawnError::Timeout(timeout));
             }
             Ok(None) => std::thread::sleep(Duration::from_millis(25)),
-            Err(e) => return Err(format!("wait {first}: {e}")),
+            Err(e) => return Err(SpawnError::Other(format!("wait {first}: {e}"))),
         }
     };
     let mut out = stdout.join().unwrap_or_default();
@@ -153,13 +211,7 @@ pub fn run_argv(
         let spare = out_cap - out.len();
         out.push_str(&err_tail[..err_tail.len().min(spare)]);
     }
-    if status.success() {
-        Ok(out)
-    } else {
-        let tail = out.chars().rev().take(400).collect::<String>();
-        let tail: String = tail.chars().rev().collect();
-        Err(format!("{status}; output tail: {tail}"))
-    }
+    Ok((status, out))
 }
 
 /// Read a pipe to the byte cap, then keep draining into the void so the

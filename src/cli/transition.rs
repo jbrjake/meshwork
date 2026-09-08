@@ -109,12 +109,17 @@ fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, veri
                 );
                 return;
             }
-            if crate::verify_exec::execute(root, &preds).is_ok() {
-                eprintln!(
+            if has_run {
+                announce(id);
+            }
+            match crate::verify_exec::execute(root, &preds) {
+                Ok(()) => eprintln!(
                     "warning: red-check: {id}'s verify is already green — it \
                      cannot detect the work; tighten it, or close if the work \
                      is done"
-                );
+                ),
+                Err(e) if e.contains("timeout after") => timed_out(id),
+                Err(_) => {}
             }
         }
         Classified::LegacyShell => {
@@ -125,28 +130,56 @@ fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, veri
                 );
                 return;
             }
-            let exit = std::process::Command::new("sh")
-                .args(["-c", verify])
-                .current_dir(root)
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status()
-                .map_or(-1, |s| s.code().unwrap_or(-1));
-            match exit {
-                0 => eprintln!(
-                    "warning: red-check: {id}'s verify is already green (exit 0) — \
-                     it cannot detect the work; tighten it, or close if the work is \
-                     done"
-                ),
-                127 => eprintln!(
-                    "warning: red-check: {id}'s verify exits 127 under sh -c — \
-                     close's shell won't have agent-shell functions; recast in \
-                     grep/test/cargo"
-                ),
-                _ => {}
+            // The same wall clock and output cap as a DSL run
+            // (mw-82thxwz): an unscoped `cargo test` compiled for minutes
+            // in silence, and the agent hand-flipped the status.
+            announce(id);
+            let argv = ["sh", "-c", verify].map(String::from);
+            let outcome = crate::verify_exec::spawn_capped(
+                root,
+                &argv,
+                crate::verify_exec::run_timeout(),
+                crate::verify_exec::OUTPUT_CAP,
+            );
+            match outcome {
+                Ok((status, _)) => match status.code().unwrap_or(-1) {
+                    0 => eprintln!(
+                        "warning: red-check: {id}'s verify is already green (exit 0) — \
+                         it cannot detect the work; tighten it, or close if the work is \
+                         done"
+                    ),
+                    127 => eprintln!(
+                        "warning: red-check: {id}'s verify exits 127 under sh -c — \
+                         close's shell won't have agent-shell functions; recast in \
+                         grep/test/cargo"
+                    ),
+                    _ => {}
+                },
+                Err(crate::verify_exec::SpawnError::Timeout(_)) => timed_out(id),
+                Err(e) => eprintln!("warning: red-check: could not run {id}'s verify: {e}"),
             }
         }
     }
+}
+
+/// Said before a verify that may build runs, so a slow compile reads as
+/// work in progress, never a hang.
+fn announce(id: &str) {
+    eprintln!(
+        "note: red-checking {id}'s verify — may build; up to {}s",
+        crate::verify_exec::run_timeout().as_secs()
+    );
+}
+
+/// A red-check that hit the wall clock: a warning, and the start still
+/// transitions — close runs the verify in full.
+fn timed_out(id: &str) {
+    eprintln!(
+        "warning: red-check: {id}'s verify did not finish within {}s — close \
+         will run it in full; scope it (a test filter, a package) so it runs \
+         fast",
+        crate::verify_exec::run_timeout().as_secs()
+    );
 }
 
 /// Advisory-tier provenance: true iff the task's history is store-only

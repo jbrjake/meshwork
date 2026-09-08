@@ -73,8 +73,8 @@ fn verify_red_check() {
     let red = add_id(&repo, &["add", "Red verify", "--verify", "false"]);
     let assert = meshwork(&repo).args(["start", &red]).assert().success();
     assert!(
-        !stderr_of(&assert).contains("red-check"),
-        "armed verify is quiet"
+        !stderr_of(&assert).contains("warning: red-check"),
+        "armed verify draws no warning"
     );
 
     // Exit 127: close's shell can't even run it — say so, proceed.
@@ -102,4 +102,43 @@ fn verify_red_check() {
     let err = stderr_of(&assert);
     assert!(err.contains("red-check skipped"), "{err}");
     assert!(!err.contains("already green"), "did not execute: {err}");
+}
+
+/// An approved legacy-shell verify red-checks under the same wall clock
+/// as a DSL `run`: a notice says the check may build before it starts,
+/// a hang dies at the clock and is reported as a warning, and the start
+/// still transitions — the agent never sees silence, never hand-flips.
+#[test]
+fn start_redcheck_shell_timeout() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let slow = add_id(&repo, &["add", "Slow verify", "--verify", "sleep 30"]);
+    let started = std::time::Instant::now();
+    let assert = meshwork(&repo)
+        .env("MESHWORK_RUN_TIMEOUT", "1")
+        .args(["start", &slow])
+        .assert()
+        .success();
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(20),
+        "the clock must cut the hang, not wait it out"
+    );
+    let err = stderr_of(&assert);
+    assert!(err.contains("note: red-checking"), "notice precedes the run: {err}");
+    assert!(err.contains("may build"), "{err}");
+    assert!(err.contains("did not finish within 1s"), "timeout is a warning: {err}");
+    let text = std::fs::read_to_string(task_file(&repo, &slow)).unwrap();
+    assert!(text.contains("status: doing"), "the start still transitions: {text}");
+
+    // The DSL run path says the same thing before it starts (its wall
+    // clock is the executor's own, pinned by verify_dsl::exec_timeout_kills).
+    let dsl = add_id(&repo, &["add", "DSL run", "--verify", "run cargo fmt"]);
+    let assert = meshwork(&repo)
+        .env("MESHWORK_RUN_TIMEOUT", "1")
+        .args(["start", &dsl])
+        .assert()
+        .success();
+    let err = stderr_of(&assert);
+    assert!(err.contains("note: red-checking"), "{err}");
+    assert!(err.contains("up to 1s"), "{err}");
 }
