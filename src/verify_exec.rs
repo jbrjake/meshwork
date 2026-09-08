@@ -123,10 +123,16 @@ fn safe_join(root: &Path, rel: &str) -> Result<std::path::PathBuf, String> {
     crate::paths::confine(root, rel)
 }
 
+/// `contains` over a file: a literal is a substring; a regex is grep-like —
+/// `^` and `$` anchor lines, never the whole file — because every author
+/// writes `/^## Heading/` and `/^- 2026-…/` meaning "a line", and the
+/// owner-gated marker idiom depends on exactly that.
 fn matches(text: &str, pattern: &Pattern) -> Result<bool, String> {
     match pattern {
         Pattern::Literal(lit) => Ok(text.contains(lit)),
-        Pattern::Regex(re) => regex::Regex::new(re)
+        Pattern::Regex(re) => regex::RegexBuilder::new(re)
+            .multi_line(true)
+            .build()
             .map(|re| re.is_match(text))
             .map_err(|e| format!("bad regex /{re}/: {e}")),
     }

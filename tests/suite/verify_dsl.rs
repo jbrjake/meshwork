@@ -169,6 +169,34 @@ fn exec_native_predicates() {
     }
 }
 
+/// A `contains` regex is grep-like: `^`/`$` anchor lines, so a heading
+/// on line three and the owner-gated `/^- <date> …/` marker both match,
+/// while a mid-line occurrence of the anchored text does not.
+#[test]
+fn exec_contains_regex_anchors_lines() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::write(
+        root.join("FORMAT.md"),
+        "# Format\n\n## Views\nsee ## Views above\n- 2026-09-01 owner approved\n",
+    )
+    .unwrap();
+    for pass in [
+        "contains FORMAT.md /^## Views/",
+        "contains FORMAT.md /^- 2026-09-01 owner approved$/",
+        "contains FORMAT.md /^# Format$/",
+    ] {
+        assert!(execute(root, &dsl(pass)).is_ok(), "{pass} should pass");
+    }
+    for fail in [
+        "contains FORMAT.md /^Views above$/",
+        "contains FORMAT.md /^Views/",
+        "contains FORMAT.md /^owner approved/",
+    ] {
+        assert!(execute(root, &dsl(fail)).is_err(), "{fail} should fail");
+    }
+}
+
 /// run spawns argv-style: metacharacters reach the child verbatim —
 /// there is no shell to give them meaning.
 #[test]
