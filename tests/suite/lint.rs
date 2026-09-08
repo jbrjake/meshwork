@@ -626,3 +626,50 @@ fn verify_changed_since_approval() {
         "terminal tasks stay silent: {done:?}"
     );
 }
+
+/// A live task whose `contains <path>` (or plain legacy `grep … <path>`)
+/// names a file absent from the tree can never close and looks like
+/// unfinished work — doc-missing's twin on the field that decides
+/// closability. `exists` is excluded by definition (an absent artifact is
+/// that verify's red state); terminal tasks are history.
+#[test]
+fn verify_path_missing() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("repo");
+    let mw = root.join("docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    std::fs::write(root.join("docs/HERE.md"), "present\n").unwrap();
+    let task = |id: &str, status: &str, verify: &str| {
+        std::fs::write(
+            mw.join(format!("{id}-t.md")),
+            format!("---\nid: {id}\ntitle: {id}\nstatus: {status}\nverify: \"{verify}\"\n---\n"),
+        )
+        .unwrap();
+    };
+    task("zz-vpm1", "open", "contains docs/GONE.md shipped");
+    task("zz-vpm2", "open", "grep -q shipped docs/GONE.md");
+    task("zz-vpm3", "open", "exists docs/GONE.md");
+    task("zz-vpm4", "done", "contains docs/GONE.md shipped");
+    task("zz-vpm5", "open", "contains docs/HERE.md present");
+    task("zz-vpm6", "open", "grep -q x docs/GONE.md | wc -l");
+    let f = lint_store(&load_repo(&root).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "verify-path-missing", "zz-vpm1"),
+        "{f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "verify-path-missing", "docs/GONE.md"),
+        "names the path: {f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "verify-path-missing", "zz-vpm2"),
+        "plain legacy grep too: {f:?}"
+    );
+    for quiet in ["zz-vpm3", "zz-vpm4", "zz-vpm5", "zz-vpm6"] {
+        assert!(
+            !has(&f, Severity::Warning, "verify-path-missing", quiet),
+            "{quiet} must stay quiet: {f:?}"
+        );
+    }
+}

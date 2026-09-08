@@ -13,7 +13,7 @@
 use crate::lint::{finding, Finding, Severity};
 use crate::parse::{Status, Task};
 use crate::store::RepoStore;
-use crate::verify_dsl::{classify, Classified};
+use crate::verify_dsl::{classify, Classified, Predicate};
 
 /// All verify-shaped checks over the live tasks.
 pub(crate) fn check(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
@@ -45,7 +45,19 @@ pub(crate) fn check(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) 
                 format!("verify `{v}` {why} — it cannot detect the work"),
             ));
         }
-        match classify(v) {
+        let classified = classify(v);
+        if let Some(path) = missing_read_path(&store.root, v, &classified) {
+            out.push(finding(
+                Severity::Warning,
+                "verify-path-missing",
+                &t.id,
+                format!(
+                    "verify reads `{path}`, which does not exist — the task can never \
+                     close until it appears; if the file moved, re-point the verify"
+                ),
+            ));
+        }
+        match classified {
             Classified::LegacyShell => out.push(finding(
                 Severity::Warning,
                 "verify-shell",
@@ -66,6 +78,51 @@ pub(crate) fn check(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) 
             Classified::Dsl(_) => {}
         }
     }
+}
+
+/// mw-c3s9209: the first path a verify *reads* that is absent from the
+/// tree — a `contains <path>` predicate, or a plain legacy `grep … <path>`
+/// with no shell plumbing. Such a task can never close and looks like
+/// unfinished work. `exists` is excluded by definition (an absent
+/// artifact is that verify's red state); a path that escapes the repo is
+/// `path-escape`'s finding, not this one.
+fn missing_read_path(root: &std::path::Path, v: &str, classified: &Classified) -> Option<String> {
+    let paths: Vec<String> = match classified {
+        Classified::Dsl(preds) => preds
+            .iter()
+            .filter_map(|p| match p {
+                Predicate::Contains { path, .. } => Some(path.clone()),
+                _ => None,
+            })
+            .collect(),
+        Classified::LegacyShell => legacy_grep_path(v).into_iter().collect(),
+        Classified::Malformed(_) => Vec::new(),
+    };
+    paths.into_iter().find(|p| {
+        crate::paths::confine(root, p)
+            .ok()
+            .is_some_and(|abs| !abs.exists())
+    })
+}
+
+/// The file a bare `grep [flags] <pattern> <path>` reads, when the text
+/// is exactly that shape — any pipe, chain, redirect or expansion makes
+/// it someone's real gate, unjudged.
+fn legacy_grep_path(v: &str) -> Option<String> {
+    if v.contains(['|', ';', '&', '<', '>', '$', '`', '(', ')']) {
+        return None;
+    }
+    let toks: Vec<&str> = v.split_whitespace().collect();
+    let (&"grep", rest) = toks.split_first()? else {
+        return None;
+    };
+    let args: Vec<&str> = rest
+        .iter()
+        .copied()
+        .filter(|t| !t.starts_with('-'))
+        .collect();
+    let path = (args.len() >= 2).then(|| args[args.len() - 1])?;
+    Some(path.trim_matches(['"', '\'']).to_string())
 }
 
 /// mw-yyf1bab: live tasks whose current verify differs from the newest
