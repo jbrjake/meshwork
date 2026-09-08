@@ -53,7 +53,7 @@ Filename: `<id>-<slug>.md`. The slug is cosmetic and never load-bearing; the ID 
 | `to` | string | addressee of an ask: a repo name or `repo#id` — see *Addressed tasks* below |
 | `answers` | id | the ask gid this task answers; projects as an `answers` edge, never gates readiness |
 | `verify` | string | close-gate command — DSL predicates (preferred, DESIGN §12b) or legacy shell; untrusted input (MW-E5); readers treat it as opaque text and never execute it |
-| `docs` | list | repo-relative paths, optional `#§-anchor` |
+| `docs` | list | repo-relative paths, optional `#§-anchor`; or `repo#path[#§-anchor]` for a doc in a registered sibling repo — the `needs:` spelling, resolved through the portfolio registry and confined to that repo, never a `../` path (mw-8q0srvb). A head with no `/` and no `.` is a repo name when the registry says so and a local path when that file exists; an unregistered name is reported, never read |
 | `attachments` | list | store-relative `attachments/<id>/<file>` paths |
 | `seq` | integer | per-repo order weight; lower = sooner; gaps of 10 by convention |
 | `github` | integer | mirror issue number; set once, never changes |
