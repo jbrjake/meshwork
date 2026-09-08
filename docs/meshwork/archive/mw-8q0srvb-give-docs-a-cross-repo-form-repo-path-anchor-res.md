@@ -8,7 +8,7 @@ verify: run cargo test docs_crossrepo_ref
 docs:
   - FORMAT.md#§-task-file
   - docs/PROPOSAL-spec-traceability.md#§-b-a-covers-edge
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 `needs:`/`relates:` cross repos as `repo#id`; `docs:` has no such form, so every cross-repo doc
@@ -21,3 +21,4 @@ spelling.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-08T00:20Z open→done — verify exit 0 @ f697f65+6
