@@ -211,6 +211,16 @@ pub(crate) fn q(args: &QArgs, json: bool) -> Result<(), String> {
         crate::cli::emit_json("q", &q_payload(&columns, &batches));
     } else {
         print_q_text(&columns, &batches);
+        // mw-48mzck9: a local `addressed_to` query that finds nothing was
+        // usually looking for the inbox — which lives in the union.
+        let rows: usize = batches.iter().map(RecordBatch::num_rows).sum();
+        if rows == 0 && args.sql.to_ascii_lowercase().contains("addressed_to") {
+            eprintln!(
+                "note: addressed_to in this store is outbound — the asks this repo sends; \
+                 the inbox is `meshwork prime` / `meshwork ready`, or `meshwork portfolio q` \
+                 over the union"
+            );
+        }
     }
     Ok(())
 }

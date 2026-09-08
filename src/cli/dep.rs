@@ -27,13 +27,34 @@ struct EdgeArgs {
     a: String,
     /// The dependency target (`repo#id` crosses repos).
     #[arg(long, value_name = "ID")]
-    needs: String,
+    needs: Option<String>,
+    /// A target typed positionally (`dep add A B`) — caught so the
+    /// refusal can model the flag (mw-48mzck9).
+    #[arg(hide = true)]
+    positional: Vec<String>,
 }
 
 pub(crate) fn run(args: &DepArgs, json: bool) -> Result<(), String> {
     let (edge, adding) = match &args.action {
         DepAction::Add(e) => (e, true),
         DepAction::Rm(e) => (e, false),
+    };
+    let verb_word = if adding { "add" } else { "rm" };
+    let target = match (&edge.needs, edge.positional.first()) {
+        (Some(t), None) => t,
+        (_, Some(p)) => {
+            return Err(format!(
+                "dep {verb_word} takes the target as a flag — did you mean: \
+                 meshwork dep {verb_word} {} --needs {p}",
+                edge.a
+            ))
+        }
+        (None, None) => {
+            return Err(format!(
+                "dep {verb_word} needs a target: meshwork dep {verb_word} {} --needs <id>",
+                edge.a
+            ))
+        }
     };
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
@@ -50,7 +71,6 @@ pub(crate) fn run(args: &DepArgs, json: bool) -> Result<(), String> {
         }
     };
 
-    let target = &edge.needs;
     let mut needs = task.needs.clone();
     if adding {
         if target == &edge.a {
@@ -84,7 +104,6 @@ pub(crate) fn run(args: &DepArgs, json: bool) -> Result<(), String> {
     };
     std::fs::write(&path, text).map_err(|e| e.to_string())?;
 
-    let verb_word = if adding { "add" } else { "rm" };
     if json {
         crate::cli::emit_json(
             "dep",
@@ -94,8 +113,10 @@ pub(crate) fn run(args: &DepArgs, json: bool) -> Result<(), String> {
             }),
         );
     } else {
+        // The success line models the flag, so the next call is a copy.
+        let did = if adding { "added" } else { "removed" };
         println!(
-            "{} {verb_word} needs {target} (now: [{}])",
+            "{} --needs {target} {did} (now: [{}])",
             edge.a,
             needs.join(", ")
         );

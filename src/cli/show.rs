@@ -50,7 +50,7 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
     let Some(path) = find_task_file(&tasks_dir, &args.id) else {
-        return Err(format!("{} not found in {}", args.id, tasks_dir.display()));
+        return Err(not_found(&root, &tasks_dir, &args.id));
     };
     // The path the store actually holds — archive/ included once close
     // has moved the file (mw-7ywrxf1: a root path for an archived task
@@ -213,6 +213,41 @@ fn render_text(
 }
 
 /// The drill-through tail (MW-F2): one header line per link, then the
+/// mw-48mzck9: an id with a sibling's prefix (or a `repo#id`) is not
+/// "not found" — it is elsewhere. When the registry resolves the
+/// prefix, the refusal says where and gives the one-liner; without a
+/// registry, nothing is invented.
+fn not_found(root: &std::path::Path, tasks_dir: &std::path::Path, id: &str) -> String {
+    let plain = format!("{id} not found in {}", tasks_dir.display());
+    let (repo_part, bare) = match id.split_once('#') {
+        Some((r, i)) => (Some(r), i),
+        None => (None, id),
+    };
+    let prefix = bare.split('-').next().unwrap_or(bare);
+    let local_alias = crate::store::load_config(root).ok().map(|c| c.alias);
+    if repo_part.is_none() && local_alias.as_deref() == Some(prefix) {
+        return plain;
+    }
+    let Ok(Some(registry)) = crate::registry::quiet_load() else {
+        return plain;
+    };
+    let Ok((stores, _)) = crate::registry::load_stores(&registry) else {
+        return plain;
+    };
+    let home = stores
+        .iter()
+        .find(|s| repo_part.map_or(s.config.alias == prefix, |r| s.repo == r));
+    match home {
+        Some(s) => format!(
+            "{plain}\n  `{bare}` belongs to {} (prefix `{prefix}`) — show it there:\n  \
+             (cd {} && ./docs/meshwork/meshwork show {bare})",
+            s.repo,
+            s.root.display()
+        ),
+        None => plain,
+    }
+}
+
 /// anchored excerpt. Dead links render loud, the view never dies on them.
 fn render_excerpts(t: &Task, docs: bool, excerpts: &[crate::docs::Excerpt]) {
     if !docs {

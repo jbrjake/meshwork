@@ -101,13 +101,28 @@ enum Cmd {
 /// clap's own similarity tip already covers them.
 fn forgiveness(e: &clap::Error) -> Option<String> {
     use clap::error::{ContextKind, ContextValue, ErrorKind};
-    if e.kind() != ErrorKind::InvalidSubcommand {
-        return None;
+    match e.kind() {
+        ErrorKind::InvalidSubcommand => {
+            let ContextValue::String(verb) = e.get(ContextKind::InvalidSubcommand)? else {
+                return None;
+            };
+            verb_forgiveness(verb)
+        }
+        ErrorKind::UnknownArgument => {
+            let ContextValue::String(arg) = e.get(ContextKind::InvalidArg)? else {
+                return None;
+            };
+            flag_forgiveness(arg)
+        }
+        _ => None,
     }
-    let ContextValue::String(verb) = e.get(ContextKind::InvalidSubcommand)? else {
-        return None;
-    };
-    let (near, hint) = match verb.as_str() {
+}
+
+/// The verbs sessions reach for and the reading verbs they meant. The
+/// inbox guesses (mw-48mzck9: `inbox`/`addressed`/`next`/`list` typed 22
+/// times) point at prime, ready and --help — never at a writing verb.
+fn verb_forgiveness(verb: &str) -> Option<String> {
+    let (near, hint) = match verb {
         "log" | "note" | "notes" => (
             "comment",
             "notes append via `meshwork comment <id> --as <author> \"text\"`",
@@ -120,12 +135,63 @@ fn forgiveness(e: &clap::Error) -> Option<String> {
             "drop",
             "tasks are dropped (recorded forever), never deleted: `meshwork drop <id>`",
         ),
+        "next" => (
+            "prime",
+            "`meshwork prime` names the next task; `meshwork ready` lists what is actionable",
+        ),
+        "inbox" | "addressed" | "asks" => (
+            "prime",
+            "incoming asks render under `addressed to this repo` in `meshwork prime` and `meshwork ready`",
+        ),
+        "help" => (
+            "--help",
+            "`meshwork --help` lists every verb; `meshwork <verb> --help` its flags",
+        ),
+        "list" | "ls" | "tasks" => (
+            "ready",
+            "`meshwork ready --all` lists actionable tasks; anything else is `meshwork q \"SELECT …\"`",
+        ),
+        // Only reachable under `portfolio`: show is single-repo.
+        "show" => {
+            return Some(
+                "error: `portfolio show` does not exist — show is single-repo: cd into the \
+                 task's repo (its id prefix names it) and `meshwork show <id>` there; the union \
+                 is `meshwork portfolio q \"SELECT …\"`\n\
+                 (the verb set is fixed; `meshwork portfolio --help` lists its verbs)"
+                    .to_string(),
+            )
+        }
         _ => return None,
     };
     Some(format!(
         "error: no verb `{verb}` — did you mean `{near}`? {hint}\n\
          (the verb set is fixed; `meshwork --help` lists all of it)"
     ))
+}
+
+/// Flags that name real frontmatter keys with no flag on this verb: say
+/// which door is open instead of clap's `-- --to` tip (mw-48mzck9).
+fn flag_forgiveness(arg: &str) -> Option<String> {
+    let field = arg.trim_start_matches('-');
+    match field {
+        "to" | "answers" | "relates" => Some(format!(
+            "error: `--{field}` is frontmatter-only — write `{field}: …` in the task file \
+             (hand-edits are legal), or file the task with `meshwork add --batch -` carrying it\n\
+             (nothing is sent: the key is data in this store, read by the other side)"
+        )),
+        "needs" => Some(
+            "error: `--needs` is not a flag on this verb — edges are edited with \
+             `meshwork dep add <id> --needs <id>`, or set at creation with `meshwork add … --needs`\n\
+             (`meshwork <verb> --help` lists a verb's flags)"
+                .to_string(),
+        ),
+        "body" | "from" | "parent" | "label" | "labels" => Some(format!(
+            "error: `--{field}` is not a flag on this verb — it is set at creation \
+             (`meshwork add … --{field}`) or by hand-edit in the task file\n\
+             (`meshwork <verb> --help` lists a verb's flags)"
+        )),
+        _ => None,
+    }
 }
 
 /// mw-rz4ey2h (§6 ruling 2026-08-10): prose fields are what agents write
