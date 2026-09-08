@@ -44,8 +44,11 @@ migration.
 Non-negotiable either way: the shim's `MESHWORK_AUTHOR` block. It is the
 only thing tagging agent actions with the session's author — a deploy
 without it silently stamps every agent comment and claim as the repo owner
-(`default_author`). Diff the migrated shim against install.md's before
-committing.
+(`default_author`). The block must read `CLAUDE_CODE_SESSION_ID` as well as
+`CLAUDE_CODE_BRIDGE_SESSION_ID`: CLI sessions export only the first, and a
+shim keyed on the bridge variable alone falls back to the owner in every
+CLI session. Diff the migrated shim against install.md's before committing;
+a shim that names only the bridge variable is re-copied, not kept.
 
 ## 4. Repoint every hook at the shim
 

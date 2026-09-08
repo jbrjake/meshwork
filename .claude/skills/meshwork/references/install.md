@@ -33,9 +33,13 @@ ruling 2026-08-14, mw-raty5mm). Every invocation is
 mkdir -p docs/meshwork
 printf '%s\n' \
   '#!/bin/sh' \
-  '# agent sessions get a session-tagged author; explicit --as still wins' \
-  'if [ -z "$MESHWORK_AUTHOR" ] && [ -n "$CLAUDE_CODE_BRIDGE_SESSION_ID" ]; then' \
-  '  export MESHWORK_AUTHOR="claude ($CLAUDE_CODE_BRIDGE_SESSION_ID)"' \
+  '# agent sessions get a session-tagged author; explicit --as still wins.' \
+  '# CLI sessions export CLAUDE_CODE_SESSION_ID, bridge sessions the BRIDGE one.' \
+  'if [ -z "$MESHWORK_AUTHOR" ]; then' \
+  '  _mw_sid="${CLAUDE_CODE_SESSION_ID:-$CLAUDE_CODE_BRIDGE_SESSION_ID}"' \
+  '  if [ -n "$_mw_sid" ]; then' \
+  '    export MESHWORK_AUTHOR="claude ($_mw_sid)"' \
+  '  fi' \
   'fi' \
   'exec ~/.meshwork/versions/"$(cat "$(dirname "$0")/../../.meshwork-version")"/meshwork "$@"' \
   > docs/meshwork/meshwork
