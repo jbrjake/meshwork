@@ -7,7 +7,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-out=$(cargo test --release -- --ignored --nocapture perf:: 2>&1) || {
+# Serial: the timed tests must not contend with each other for the CPU.
+out=$(cargo test --release -- --ignored --nocapture --test-threads=1 perf:: 2>&1) || {
   echo "$out" | tail -5
   echo "check-perf: perf tests FAILED (gate §7 budget)"
   exit 1

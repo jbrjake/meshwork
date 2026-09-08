@@ -30,6 +30,45 @@ async fn memtable_no_disk() {
     assert_eq!(before, file_inventory(&repo), "no files created or removed");
 }
 
+/// MW-S1/S5: the derived projection registers over any session — `clock`
+/// plus the thirteen views, every one queryable — with the window taken
+/// from the clock, not from the SQL text.
+#[tokio::test]
+async fn views_registered() {
+    use meshwork::views::{register, Clock, VIEWS};
+    let ctx = session(&["alpha"]);
+    let clock = Clock {
+        now_secs: 1_786_000_000, // 2026-08-06T02:26:40Z, well after the fixture's stamps
+        source: "override",
+        window_days: 3,
+    };
+    register(&ctx, &clock, None).await.unwrap();
+    for view in VIEWS {
+        let rows = sql_rows(&ctx, &format!("SELECT count(*) FROM {view}")).await;
+        assert_eq!(rows.len(), 1, "{view} answers");
+    }
+    let clock_row = sql_rows(
+        &ctx,
+        "SELECT source, window_days, CAST(today AS VARCHAR) FROM clock",
+    )
+    .await;
+    assert_eq!(clock_row[0], ["override", "3", "2026-08-06"]);
+    // The window is the clock's: seven days would be the default, three is what we set.
+    let since = sql_rows(
+        &ctx,
+        "SELECT CAST(to_unixtime(now) - to_unixtime(since) AS BIGINT) FROM p_win",
+    )
+    .await;
+    assert_eq!(since[0][0], "259200");
+    let pulse = sql_rows(
+        &ctx,
+        "SELECT repo, open_n + doing_n + blocked_n + done_n + dropped_n FROM pulse",
+    )
+    .await;
+    let all = sql_rows(&ctx, "SELECT count(*) FROM tasks WHERE status <> 'invalid'").await;
+    assert_eq!(pulse[0], ["alpha".to_string(), all[0][0].clone()]);
+}
+
 /// MW-B1: all four edge kinds ingest; parent edges are stored child→parent.
 #[tokio::test]
 async fn edge_kinds() {

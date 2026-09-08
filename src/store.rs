@@ -56,6 +56,28 @@ pub struct Config {
     /// knobs (mw-pvfrpd4). Absent = off.
     #[serde(default)]
     pub mirror: Option<MirrorConfig>,
+    /// `[stats]` — the derived projection's one parameter (MW-S5).
+    #[serde(default)]
+    pub stats: Option<StatsConfig>,
+}
+
+/// `[stats]` table (FORMAT.md §config.toml).
+#[derive(Debug, Clone, Default, Deserialize)]
+pub struct StatsConfig {
+    /// Width of every `_w` window in days; absent = 7.
+    #[serde(default)]
+    pub window_days: Option<i64>,
+}
+
+impl Config {
+    /// `[stats] window_days`, or the default.
+    #[must_use]
+    pub fn window_days(&self) -> i64 {
+        self.stats
+            .as_ref()
+            .and_then(|s| s.window_days)
+            .unwrap_or(crate::views::DEFAULT_WINDOW_DAYS)
+    }
 }
 
 /// `mirror = <bool>` or `[mirror]` — both spellings legal.

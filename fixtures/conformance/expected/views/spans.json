@@ -1,0 +1,79 @@
+{
+  "clock": "2026-08-10T12:00Z",
+  "columns": [
+    "gid",
+    "repo",
+    "state",
+    "entered",
+    "left_at",
+    "next_state",
+    "hours"
+  ],
+  "rows": [
+    [
+      "conformance#cf-42",
+      "conformance",
+      "done",
+      "2026-08-01T15:00:00",
+      "",
+      "",
+      "213.0000"
+    ],
+    [
+      "conformance#cf-a1b2c3d",
+      "conformance",
+      "doing",
+      "2026-08-02T10:00:00",
+      "2026-08-03T08:00:00",
+      "open",
+      "22.0000"
+    ],
+    [
+      "conformance#cf-a1b2c3d",
+      "conformance",
+      "open",
+      "2026-08-03T08:00:00",
+      "2026-08-03T09:00:00",
+      "doing",
+      "1.0000"
+    ],
+    [
+      "conformance#cf-a1b2c3d",
+      "conformance",
+      "doing",
+      "2026-08-03T09:00:00",
+      "",
+      "",
+      "171.0000"
+    ],
+    [
+      "conformance#cf-bl0cked",
+      "conformance",
+      "blocked",
+      "2026-08-03T16:20:00",
+      "",
+      "",
+      "163.6667"
+    ],
+    [
+      "conformance#cf-dr0pped",
+      "conformance",
+      "dropped",
+      "2026-08-04T12:00:00",
+      "",
+      "",
+      "144.0000"
+    ],
+    [
+      "conformance#cf-h4nd0ff",
+      "conformance",
+      "doing",
+      "2026-08-02T14:00:00",
+      "",
+      "",
+      "190.0000"
+    ]
+  ],
+  "view": "spans",
+  "window_days": 7
+}

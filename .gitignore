@@ -2,3 +2,4 @@
 # The tool's own dogfood store cache (arrives at M1 self-host)
 /meshwork/.cache/
 .DS_Store
+scripts/__pycache__/

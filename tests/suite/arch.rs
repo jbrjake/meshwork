@@ -27,6 +27,7 @@ const MODEL_MODULES: &[&str] = &[
     "trust.rs",
     "verify_dsl.rs",
     "verify_exec.rs",
+    "views.rs",
     "write.rs",
 ];
 

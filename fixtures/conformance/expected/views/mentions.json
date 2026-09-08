@@ -1,0 +1,33 @@
+{
+  "clock": "2026-08-10T12:00Z",
+  "columns": [
+    "src_gid",
+    "src_repo",
+    "field",
+    "ref_gid",
+    "times",
+    "first_at",
+    "ref_status",
+    "ref_terminal_at",
+    "src_last_activity",
+    "moved_since_activity",
+    "edge_backed"
+  ],
+  "rows": [
+    [
+      "conformance#cf-42",
+      "conformance",
+      "log",
+      "conformance#cf-a1b2c3d",
+      "1",
+      "2026-08-01T15:00:00",
+      "open",
+      "",
+      "2026-08-01T15:00:00",
+      "false",
+      "true"
+    ]
+  ],
+  "view": "mentions",
+  "window_days": 7
+}

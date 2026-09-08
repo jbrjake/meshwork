@@ -628,8 +628,20 @@ SQL_HEADER = """\
 """
 
 
+# The views that name themselves: as CTEs the chain's WITH RECURSIVE covers them; as
+# standalone views each carries its own, the CTE shadowing the view's name.
+RECURSIVE = {"g_up", "g_lab", "li_sp", "li_um"}
+
+
+def view_body(name, body):
+    body = textwrap.dedent(body).strip()
+    if name in RECURSIVE:
+        return f"WITH RECURSIVE {name} AS (\n{body}\n) SELECT * FROM {name}"
+    return body
+
+
 def sql_text():
-    return SQL_HEADER + "\n".join(f"CREATE VIEW {n} AS\n{textwrap.dedent(b).strip()};\n"
+    return SQL_HEADER + "\n".join(f"CREATE VIEW {n} AS\n{view_body(n, b)};\n"
                                   for n, b in V.items() if n != "clock")
 
 

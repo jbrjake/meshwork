@@ -115,7 +115,7 @@ Keywords MUST / SHOULD / MAY per RFC 2119. IDs are stable; cite as `MW-A1`.
 - **MW-S2 (MUST)** Every view is a pure function of the six tables and `clock`. Nothing is persisted; nothing is authored; no view executes text.
 - **MW-S3 (MUST)** Stamps parse only in FORMAT.md's two conforming forms; nonconforming stamps project `NULL` and are invisible to every duration. Views scope task rows to loaded stores via `repos`.
 - **MW-S4 (MUST)** Recursive derivations carry a depth bound of 64; component labelling stops on convergence. A bound reached is a lint finding (`discovered-cycle`), never a silent cap.
-- **MW-S5 (MUST)** `[stats] window_days` (default 7) is the only parameter; the binary substitutes it into the published SQL at registration and `stats --window` overrides per call.
+- **MW-S5 (MUST)** `[stats] window_days` (default 7) is the only parameter; it travels as `clock.window_days`, so the published SQL is registered unchanged, and `stats --window` overrides it per call.
 - **MW-S6 (MUST)** `prime` renders the repo's `pulse` row at the top of `weather` (before the doing/blocked lines) as ≤ 5 lines, ≤ 800 bytes, zero-valued lines omitted, every count with its denominator, cut loud under the existing budget; and a `cites N closed tasks` tail on the next block when `mentions` reports one.
 - **MW-S7 (MUST)** The pulse rendered by `prime` equals `SELECT * FROM pulse` for the same store and `MESHWORK_TODAY`, enforced by a differential test in the gate.
 - **MW-S8 (SHOULD)** A `stats [--window] [--json]` verb and `portfolio stats` print the proposal's §5.3 tables as canned `SELECT`s over the views. **§6 ruling required** (R-D, mw-xg67266).

@@ -89,7 +89,8 @@ if PATH="$TEST_PATH" cargo test -- --list 2>/dev/null | grep -q '^perf::'; then
   # stream with a blank line, so `tail -1` sees "" and a grep for the ok
   # line can never match (found the day §7 went live, mw-ncfg). Same
   # pattern as §3; --nocapture keeps the perf-median evidence in the log.
-  PERF_OUT=$(PATH="$TEST_PATH" cargo test --release -- --ignored --nocapture perf:: 2>&1); PERF_RC=$?
+  # Serial: the timed tests must not contend with each other for the CPU.
+  PERF_OUT=$(PATH="$TEST_PATH" cargo test --release -- --ignored --nocapture --test-threads=1 perf:: 2>&1); PERF_RC=$?
   if [[ $PERF_RC -eq 0 ]]; then
     pass "$(printf '%s' "$PERF_OUT" | grep '^perf-median ' | tr '\n' ' ')"
   else

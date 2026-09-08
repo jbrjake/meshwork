@@ -58,7 +58,7 @@ pub fn days_between(from: &str, to: &str) -> Option<i64> {
 
 /// Civil date prefix → days-since-epoch (inverse of `civil_from_days`,
 /// same Hinnant construction).
-fn days_from_civil(date: &str) -> Option<i64> {
+pub(crate) fn days_from_civil(date: &str) -> Option<i64> {
     let date = date.get(..10)?;
     let mut parts = date.split('-');
     let y: i64 = parts.next()?.parse().ok()?;

@@ -1,0 +1,19 @@
+{
+  "clock": "2026-08-10T12:00Z",
+  "columns": [
+    "now",
+    "today",
+    "source",
+    "window_days"
+  ],
+  "rows": [
+    [
+      "2026-08-10T12:00:00",
+      "2026-08-10",
+      "override",
+      "7"
+    ]
+  ],
+  "view": "clock",
+  "window_days": 7
+}

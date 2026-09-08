@@ -107,9 +107,11 @@ JOIN g_live a ON a.gid = e.src_gid JOIN g_live b ON b.gid = e.dst_gid
 WHERE e.kind = 'needs';
 
 CREATE VIEW g_up AS
+WITH RECURSIVE g_up AS (
 SELECT dst_gid AS pre, src_gid AS dep, 1 AS d FROM g_ln
 UNION ALL
-SELECT g_up.pre, g_ln.src_gid, g_up.d + 1 FROM g_up JOIN g_ln ON g_ln.dst_gid = g_up.dep WHERE g_up.d < 64;
+SELECT g_up.pre, g_ln.src_gid, g_up.d + 1 FROM g_up JOIN g_ln ON g_ln.dst_gid = g_up.dep WHERE g_up.d < 64
+) SELECT * FROM g_up;
 
 CREATE VIEW g_unl AS
 SELECT pre AS gid, count(DISTINCT dep) AS unlock, max(d) AS depth FROM g_up GROUP BY pre;
@@ -128,6 +130,7 @@ UNION ALL SELECT dst_gid AS a, src_gid AS b FROM g_ln
 UNION ALL SELECT n AS a, n AS b FROM g_nodes;
 
 CREATE VIEW g_lab AS
+WITH RECURSIVE g_lab AS (
 SELECT n AS node, n AS lane, 0 AS i, true AS changed FROM g_nodes
 UNION ALL
 SELECT node, lane, i, changed FROM (
@@ -136,7 +139,8 @@ SELECT node, lane, i, changed FROM (
                min(g_lab.lane) < min(CASE WHEN g_und.a = g_und.b THEN g_lab.lane END) AS changed
         FROM g_lab JOIN g_und ON g_und.b = g_lab.node WHERE g_lab.i < 64
         GROUP BY g_und.a, g_lab.i) step) marked
-WHERE n_changed > 0;
+WHERE n_changed > 0
+) SELECT * FROM g_lab;
 
 CREATE VIEW g_lanes AS
 SELECT node AS gid, min(lane) AS lane FROM g_lab GROUP BY node;
@@ -259,9 +263,11 @@ CREATE VIEW li_df AS
 SELECT src_gid AS child, dst_gid AS origin FROM edges WHERE kind = 'discovered-from';
 
 CREATE VIEW li_sp AS
+WITH RECURSIVE li_sp AS (
 SELECT origin, child, 1 AS d FROM li_df
 UNION ALL
-SELECT li_sp.origin, li_df.child, li_sp.d + 1 FROM li_sp JOIN li_df ON li_df.origin = li_sp.child WHERE li_sp.d < 64;
+SELECT li_sp.origin, li_df.child, li_sp.d + 1 FROM li_sp JOIN li_df ON li_df.origin = li_sp.child WHERE li_sp.d < 64
+) SELECT * FROM li_sp;
 
 CREATE VIEW li_spawn AS
 SELECT s.origin AS gid,
@@ -279,9 +285,11 @@ CREATE VIEW li_pa AS
 SELECT src_gid AS child, dst_gid AS parent FROM edges WHERE kind = 'parent';
 
 CREATE VIEW li_um AS
+WITH RECURSIVE li_um AS (
 SELECT parent AS root, child, 1 AS d FROM li_pa
 UNION ALL
-SELECT li_um.root, li_pa.child, li_um.d + 1 FROM li_um JOIN li_pa ON li_pa.parent = li_um.child WHERE li_um.d < 64;
+SELECT li_um.root, li_pa.child, li_um.d + 1 FROM li_um JOIN li_pa ON li_pa.parent = li_um.child WHERE li_um.d < 64
+) SELECT * FROM li_um;
 
 CREATE VIEW li_umbrella AS
 SELECT u.root AS gid,

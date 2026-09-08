@@ -1,0 +1,49 @@
+{
+  "clock": "2026-09-01",
+  "columns": [
+    "gid",
+    "from_repo",
+    "to_repo",
+    "to_ref",
+    "title",
+    "status",
+    "created_at",
+    "age_h",
+    "idle_h",
+    "seq",
+    "answer_gid",
+    "answer_status",
+    "answer_open",
+    "answer_done",
+    "answered_at",
+    "answer_done_at",
+    "response_h",
+    "answered",
+    "unanswered"
+  ],
+  "rows": [
+    [
+      "conformance#cf-a5k0001",
+      "conformance",
+      "wyndam",
+      "wyndam",
+      "Ask — addressed to another repo",
+      "open",
+      "2026-08-05T09:00:00",
+      "639.0000",
+      "639.0000",
+      "",
+      "conformance#cf-an5wer1",
+      "open",
+      "1",
+      "0",
+      "2026-08-05T10:00:00",
+      "",
+      "1.0000",
+      "false",
+      "true"
+    ]
+  ],
+  "view": "asks",
+  "window_days": 7
+}

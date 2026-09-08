@@ -93,6 +93,40 @@ fn prime_1k() {
     );
 }
 
+/// The derived projection's budget (PROPOSAL-analytics §7, the MW-C4
+/// portfolio number): `q` over `pulse` cold at 1K tasks ≤ 1 s — every
+/// view registered and the whole tree planned and run, process start
+/// included. `q` over the six tables alone never registers a view and
+/// stays on the `ready` budget.
+#[test]
+#[ignore = "gate §7 runs perf:: on release builds (MW-C4)"]
+fn q_pulse_1k_cold() {
+    if cfg!(debug_assertions) {
+        eprintln!("perf::q_pulse_1k_cold: budgets are release-only; skipping in debug");
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path().join("synth1k");
+    synth_store(&repo, "pf", 1000, &mut Lcg(11));
+    git_init(&repo);
+
+    let mut samples = Vec::new();
+    for _ in 0..REPS {
+        let t = Instant::now();
+        meshwork_at(&repo)
+            .args(["q", "SELECT * FROM pulse"])
+            .assert()
+            .success();
+        samples.push(t.elapsed().as_millis());
+    }
+    let med = median_ms(samples);
+    println!("perf-median q_pulse_1k_cold {med}");
+    assert!(
+        med < 1000,
+        "the derived projection: cold q over pulse at 1K tasks — {med}ms >= 1000ms"
+    );
+}
+
 /// MW-C4: `portfolio ready` over 20 registered repos (50 tasks each).
 #[test]
 #[ignore = "gate §7 runs perf:: on release builds (MW-C4)"]

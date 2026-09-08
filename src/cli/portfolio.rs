@@ -344,6 +344,11 @@ fn ready(json: bool) -> Result<(), String> {
 
 fn q(sql: &str, json: bool) -> Result<(), String> {
     let (ctx, p) = union_session()?;
+    if crate::views::mentioned(sql) {
+        // The union has no config of its own: the default window (MW-S5).
+        let clock = crate::views::Clock::resolve(crate::views::DEFAULT_WINDOW_DAYS)?;
+        crate::views::register_blocking(&ctx, &clock, sql)?;
+    }
     let (columns, batches) = run_query(&ctx, sql)?;
     if json {
         let mut payload = q_payload(&columns, &batches);

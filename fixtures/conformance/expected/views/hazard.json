@@ -1,0 +1,77 @@
+{
+  "clock": "2026-08-10T12:00Z",
+  "columns": [
+    "repo",
+    "age_d",
+    "at_risk",
+    "done_in",
+    "dropped_in"
+  ],
+  "rows": [
+    [
+      "conformance",
+      "0",
+      "9",
+      "0",
+      "0"
+    ],
+    [
+      "conformance",
+      "1",
+      "9",
+      "0",
+      "0"
+    ],
+    [
+      "conformance",
+      "2",
+      "9",
+      "1",
+      "0"
+    ],
+    [
+      "conformance",
+      "3",
+      "8",
+      "0",
+      "1"
+    ],
+    [
+      "conformance",
+      "4",
+      "6",
+      "0",
+      "0"
+    ],
+    [
+      "conformance",
+      "5",
+      "4",
+      "0",
+      "0"
+    ],
+    [
+      "conformance",
+      "6",
+      "3",
+      "0",
+      "0"
+    ],
+    [
+      "conformance",
+      "7",
+      "2",
+      "0",
+      "0"
+    ],
+    [
+      "conformance",
+      "8",
+      "1",
+      "0",
+      "0"
+    ]
+  ],
+  "view": "hazard",
+  "window_days": 7
+}

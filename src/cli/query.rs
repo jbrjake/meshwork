@@ -32,6 +32,11 @@ fn schema_help() -> String {
     for (table, columns) in crate::tables::SCHEMA {
         let _ = writeln!(out, "  {table:<9} {}", columns.join(", "));
     }
+    let _ = writeln!(
+        out,
+        "\nViews (the derived projection, columns and derivations in FORMAT.md §Views):\n  {}",
+        crate::views::VIEWS.join(", ")
+    );
     out.push_str(
         "\nRows are strings; NULL renders empty. With --json the result is the standard \
          envelope, rows under data.rows:\n  {\"meshwork\": {\"version\": …, \"schema\": …}, \
@@ -69,9 +74,28 @@ ORDER BY coalesce(t.seq, 999999), t.created";
 /// predicate needs; anything else already blocks conservatively as NULL,
 /// and an injected open task would leak into listings).
 pub(crate) fn local_session() -> Result<(SessionContext, String), String> {
+    let (ctx, repo, _) = local_session_inner()?;
+    Ok((ctx, repo))
+}
+
+/// The `q` session: the six tables plus, when the query names one, `clock`
+/// and the thirteen views (MW-S1), the window from `[stats] window_days`
+/// (MW-S5). Registration plans every view body, so a query over the six
+/// tables alone never pays for it.
+fn query_session(sql: &str) -> Result<(SessionContext, String), String> {
+    let (ctx, repo, window_days) = local_session_inner()?;
+    if crate::views::mentioned(sql) {
+        let clock = crate::views::Clock::resolve(window_days)?;
+        crate::views::register_blocking(&ctx, &clock, sql)?;
+    }
+    Ok((ctx, repo))
+}
+
+fn local_session_inner() -> Result<(SessionContext, String, i64), String> {
     let root = crate::cli::require_store_root()?;
     let store = crate::store::load_repo(&root).map_err(|e| e.to_string())?;
     let repo = store.repo.clone();
+    let window_days = store.config.window_days();
     let refs = crate::registry::foreign_refs(&[&store]);
     let mut foreign = Vec::new();
     if !refs.is_empty() {
@@ -84,7 +108,7 @@ pub(crate) fn local_session() -> Result<(SessionContext, String), String> {
         }
     }
     let ctx = crate::tables::session_for(&[store], &foreign).map_err(|e| e.to_string())?;
-    Ok((ctx, repo))
+    Ok((ctx, repo, window_days))
 }
 
 /// Execute SQL, returning column names + batches (schema survives empty
@@ -112,8 +136,9 @@ pub(crate) fn run_query(
     // discoverable from the error, not archaeology (mw-0ssk8dg).
     .map_err(|e: datafusion::error::DataFusionError| {
         format!(
-            "{e}\n  queryable tables: {} (columns: q --help)",
-            crate::tables::TABLES.join(", ")
+            "{e}\n  queryable tables: {} (columns: q --help)\n  views: {} (FORMAT.md §Views)",
+            crate::tables::TABLES.join(", "),
+            crate::views::VIEWS.join(", ")
         )
     })
 }
@@ -204,7 +229,7 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
 }
 
 pub(crate) fn q(args: &QArgs, json: bool) -> Result<(), String> {
-    let (ctx, _) = local_session()?;
+    let (ctx, _) = query_session(&args.sql)?;
     let (columns, batches) = run_query(&ctx, &args.sql)?;
 
     if json {
