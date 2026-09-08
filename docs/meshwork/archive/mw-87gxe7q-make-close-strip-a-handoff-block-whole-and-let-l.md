@@ -7,7 +7,7 @@ seq: 190
 verify: run cargo test close_strips_handoff_block_with_blank_line
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-5-defects
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 `close`/`drop` remove the `handoff:` key but leave a block scalar's continuation lines when the
@@ -19,3 +19,4 @@ row; the lab's ask doc carries the incident.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-08T00:04Z open→done — verify exit 0 @ 644b16f+11
