@@ -8,7 +8,7 @@ verify: run cargo test start_redcheck_shell_timeout
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-5-defects
   - docs/DESIGN-meshwork.md#§-12b-trust-boundary
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 `red_check` in `src/cli/transition.rs` runs an approved shell verify via `sh -c` with no timeout
@@ -19,3 +19,4 @@ timeout as a warning that still transitions. The leras hang report is answered f
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-08T00:10Z open→done — verify exit 0 @ 244bd0b+6

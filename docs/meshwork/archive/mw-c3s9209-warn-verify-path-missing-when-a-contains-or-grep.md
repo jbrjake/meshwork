@@ -7,7 +7,7 @@ seq: 210
 verify: run cargo test lint::verify_path_missing
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-6-the-verify-economy
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 `doc-missing`'s twin on the field that decides closability: a live task whose `contains <path>`
@@ -19,3 +19,4 @@ dated `verify-path-missing SHIPPED and running here` line in its own file.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-08T00:10Z open→done — verify exit 0 @ 244bd0b+8
