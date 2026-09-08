@@ -40,6 +40,7 @@ verb: those autoprune `sequence.md`). Method and script in the evidence doc §F.
 | closes with a `→doing` line (service time measurable) | 264 (57%) | 464 dated closes — sazed 42/167 |
 | **recorded service time** (`doing→done`) | **median 0.20 h, p90 2.8 h; 80% ≤ 1 h** | 264 |
 | category service medians, categories with n ≥ 7 | 0.03 h … 1.27 h | 9 categories |
+| **tokens per task by category** (transcripts, `scripts/mine_cost.py`: main-chain `start`→`close` attribution, fresh tokens = input + cache-creation + output) | **medians span 24×** — `skill` 9k → `kwaan` 227k per task | 266 attributed tasks, 8 categories with n ≥ 7; the rung-0 gate on rungs 5–6 (≥ 3×) is met — `docs/cost-baseline.md` |
 | queue time (`created→doing`) | median 18.1 h, p90 285 h | 264 |
 | per-task queue : service | **median 38×; median share of lifetime spent waiting 0.98** | 264 |
 | **daily close rate by age** (discrete Kaplan–Meier: share of tasks open at age *a* and observable through *a*+1 d that closed `done` in that day; `dropped` tracked separately) | day 0 **27%** (17% inside 4 h) · day 1 **8%** · days 2–3 ≈ 4% · **days 4–15 ≈ 2–4%, flat** · days 16+ < 1% (n small) | at risk: 834 / 583 / 517 / 464 … 233 at day 14 |

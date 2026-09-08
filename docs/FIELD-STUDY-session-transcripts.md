@@ -717,7 +717,8 @@ change and can ship in one commit.
   Human prompts are the main chain's string-content user records plus `queue-operation/enqueue`
   records (prompts typed while the agent was mid-turn — 430 transcripts carry them and they hold
   most of the eruptions); hook wrappers and `<system-reminder>` blocks are stripped. Tool calls
-  are counted on every chain, subagents included. Prime is read from the SessionStart
+  are counted on the session's transcript; subagent transcripts are separate files beside it
+  (`<session>/subagents/agent-*.jsonl`) and only `mine_cost.py` reads them. Prime is read from the SessionStart
   `attachment` record.
 - **Scoring** (`scripts/mine_sessions.py`). Weighted sum of: prompts after the first that say
   "meshwork" or cite a task id (×4; ×6 if they also carry correction language), emphatic prompts
