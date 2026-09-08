@@ -39,53 +39,53 @@ passing test. This proposal generalizes that discipline from *requirements → t
 Same materials as everything else in meshwork: markdown, frontmatter, git, SQL. No spec
 database, no new file format — spec docs stay ordinary markdown that humans read.
 
-### A. Spec clauses become addressable (MW-S1..S3)
+### A. Spec clauses become addressable (MW-T1..T3)
 
-- **MW-S1 (MUST)** A spec doc opts in by carrying clause anchors: a stable ID on a
+- **MW-T1 (MUST)** A spec doc opts in by carrying clause anchors: a stable ID on a
   heading or block, `{#sp-<slug>}` style (the same move as `TENSOON-ANCHOR` comments —
   the ID travels with the content through edits and renames, where a section number or
   line rots). Clause IDs are never renumbered or reused.
-- **MW-S2 (MUST)** Spec docs live in a **registered repo** — their own, or the portfolio
+- **MW-T2 (MUST)** Spec docs live in a **registered repo** — their own, or the portfolio
   repo. An unregistered/loose spec path is lint-visible (`spec-untracked`), because an
   unversioned spec can drift with no diff to point at. (This makes `gestalt/` a repo or
   moves it into one; observation 4 is not fixable by tooling alone.)
-- **MW-S3 (SHOULD)** `meshwork spec list <doc>` enumerates a doc's clause IDs with their
+- **MW-T3 (SHOULD)** `meshwork spec list <doc>` enumerates a doc's clause IDs with their
   content hashes — the spec-side mirror of `q` over tasks.
 
-### B. A `covers:` edge with a pinned hash (MW-S4..S7)
+### B. A `covers:` edge with a pinned hash (MW-T4..T7)
 
-- **MW-S4 (MUST)** New frontmatter edge on tasks: `covers: [repo#doc.md#sp-x, …]` — this
+- **MW-T4 (MUST)** New frontmatter edge on tasks: `covers: [repo#doc.md#sp-x, …]` — this
   task implements (part of) that clause. Cross-repo by the same `repo#` addressing as
   `needs` (MW-B3); resolution through the same registry; unresolved = reported, never
   corrupted (MW-G5's posture).
-- **MW-S5 (MUST)** At link time the tool records the clause's **content hash** beside
+- **MW-T5 (MUST)** At link time the tool records the clause's **content hash** beside
   the edge (`covers: [{ref: …, sha: …}]`, written by `meshwork cover <task> <ref>`, not
   by hand). This is the fixture-pinning move (tensoon `docs/corpus.md`, oreseur
   `MANIFEST.toml`) applied to prose: the claim is not "I implement §2", it is "I
   implement §2 *as it read when I said so*".
-- **MW-S6 (MUST)** `lint` gains `spec-drift`: a live task whose covered clause no longer
+- **MW-T6 (MUST)** `lint` gains `spec-drift`: a live task whose covered clause no longer
   hashes to the pinned value. Fix is explicit re-pin (`cover --repin`, the human
   re-reads the clause) — never silent. A **done** task with drifted coverage is surfaced
   by `spec audit` (below) as a re-open candidate, not auto-reopened.
-- **MW-S7 (SHOULD)** `discovered-from` may target a clause ref, so work found while
+- **MW-T7 (SHOULD)** `discovered-from` may target a clause ref, so work found while
   reading spec records where in the spec it came from — provenance for the moment a gap
   becomes a task, which this review did a dozen times with no way to say so.
 
-### C. Coverage and rulings become queryable (MW-S8..S10)
+### C. Coverage and rulings become queryable (MW-T8..T10)
 
-- **MW-S8 (MUST)** `meshwork spec audit <doc>` answers, in one report: clauses with no
+- **MW-T8 (MUST)** `meshwork spec audit <doc>` answers, in one report: clauses with no
   covering task (*unclaimed*), clauses covered only by dropped/superseded tasks
   (*orphaned*), live tasks with drifted pins (*stale*), done tasks with drifted pins
   (*re-open candidates*), and `covers:` refs whose clause no longer exists (*dangling*).
   Portfolio variant unions it cross-repo. This is MW-J5's traceability matrix
   ("every MUST → a named passing test") turned from a release ritual into a query.
-- **MW-S9 (SHOULD)** Rulings are clauses, not prose echoes: a ruling lands **once** as a
+- **MW-T9 (SHOULD)** Rulings are clauses, not prose echoes: a ruling lands **once** as a
   small anchored block in the governing spec doc (or a dedicated `rulings.md` in the
   portfolio repo), and every task that obeys it says `covers:` (or `relates:`) to that
   one anchor. The bits() ruling would have been one clause with four inbound edges
   instead of four paraphrases; the drift *between the paraphrases* becomes structurally
   impossible, and drift between ruling and spec becomes a `spec-drift` finding.
-- **MW-S10 (MAY)** `prime` names spec-drift counts in the weather line — a session
+- **MW-T10 (MAY)** `prime` names spec-drift counts in the weather line — a session
   should learn "the spec moved under 3 of your live tasks" before it starts, at the same
   moment it learns what's ready.
 
@@ -101,7 +101,7 @@ database, no new file format — spec docs stay ordinary markdown that humans re
 
 ## Smallest honest slice
 
-MW-S1 + MW-S4 + MW-S5 + the `spec-drift` lint (S6). That alone would have caught both
+MW-T1 + MW-T4 + MW-T5 + the `spec-drift` lint (T6). That alone would have caught both
 halves of this week's incident: the version ruling changing the ground truth under ten
 linked tasks (drift fires on every pinned consumer), and the ruling/spec disagreement on
 `bits()` (the reconciling edit to the spec doc fires drift on whichever task pinned the
