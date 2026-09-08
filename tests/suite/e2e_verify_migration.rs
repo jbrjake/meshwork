@@ -5,6 +5,72 @@
 // shell keeps the MW-E5 gate — and `run cargo test` demands an observed
 // pass (owner ruling 2026-08-14: a filter matching nothing exits 0).
 
+/// A keyword-led verify that does not parse is refused where it is
+/// authored — add, set, add --batch — and start refuses to open work
+/// behind it, with the grammar in the message; the help screens carry
+/// the grammar and add's --verify line no longer describes a shell.
+#[test]
+fn add_refuses_malformed_dsl() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let bad = "run cargo test -p leras topn";
+
+    let err = stderr_of(
+        &meshwork(&repo)
+            .args(["add", "Malformed at add", "--verify", bad])
+            .assert()
+            .failure(),
+    );
+    assert!(err.contains("does not parse"), "{err}");
+    assert!(err.contains("grammar:") && err.contains("exists|absent"), "{err}");
+    let listing = stdout_of(&meshwork(&repo).args(["ready", "--all"]).assert().success());
+    assert!(!listing.contains("Malformed at add"), "nothing minted: {listing}");
+
+    let id = add_task(&repo, "Well-formed first");
+    let err = stderr_of(
+        &meshwork(&repo)
+            .args(["set", &id, "--verify", bad])
+            .assert()
+            .failure(),
+    );
+    assert!(err.contains("does not parse"), "{err}");
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("verify: \"true\""), "file untouched: {text}");
+
+    let err = stderr_of(
+        &meshwork(&repo)
+            .args(["add", "--batch", "-"])
+            .write_stdin(format!(
+                "---\ntitle: Fine\nverify: \"exists README.md\"\n---\n---\ntitle: Broken\nverify: \"{bad}\"\n---\n"
+            ))
+            .assert()
+            .failure(),
+    );
+    assert!(err.contains("batch task 2") && err.contains("nothing written"), "{err}");
+    let listing = stdout_of(&meshwork(&repo).args(["ready", "--all"]).assert().success());
+    assert!(!listing.contains("Fine"), "atomic: {listing}");
+
+    // A hand-edited malformed verify cannot be started — close would
+    // refuse it, so start says so instead of warning and transitioning.
+    let path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, text.replace("verify: \"true\"", &format!("verify: \"{bad}\""))).unwrap();
+    let err = stderr_of(&meshwork(&repo).args(["start", &id]).assert().failure());
+    assert!(err.contains("cannot start") && err.contains("does not parse"), "{err}");
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.contains("status: open"), "no transition: {text}");
+
+    // Help: the grammar lives in verify --help and close --help; add's
+    // --verify line no longer promises a shell.
+    for verb in ["verify", "close"] {
+        let help = stdout_of(&meshwork(&repo).args([verb, "--help"]).assert().success());
+        assert!(help.contains("exists <path>") && help.contains("all(<pred>"), "{verb}:\n{help}");
+    }
+    let help = stdout_of(&meshwork(&repo).args(["add", "--help"]).assert().success());
+    assert!(!help.contains("sh -c"), "{help}");
+    assert!(help.contains("verify --help"), "{help}");
+}
+
 /// A fake `cargo` on PATH: prints the given summary line, exits 0. The
 /// real cargo would drag a workspace into a tempdir e2e; routing and the
 /// vacuity rule are what's under test, not cargo itself.
@@ -145,7 +211,16 @@ fn verify_migration_run_rode_along_gates() {
 fn verify_migration_malformed_refuses() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
-    let id = add_id(&repo, &["add", "malformed", "--verify", "exists /etc/passwd"]);
+    // Authoring refuses malformed text, so it arrives the way it does in
+    // practice: by hand-edit or merge.
+    let id = add_task(&repo, "malformed");
+    let path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(
+        &path,
+        text.replace("verify: \"true\"", "verify: \"exists /etc/passwd\""),
+    )
+    .unwrap();
 
     for extra in [None, Some("--approve")] {
         let mut cmd = meshwork(&repo);
@@ -185,7 +260,15 @@ fn verify_migration_lint_pressure() {
     let (_g, repo) = git_repo("work");
     init_store(&repo);
     let shell = add_id(&repo, &["add", "legacy", "--verify", "grep -q foo README.md"]);
-    let broken = add_id(&repo, &["add", "broken", "--verify", "contains"]);
+    // Malformed text is refused at add; it arrives by hand-edit or merge.
+    let broken = add_task(&repo, "broken");
+    let broken_path = task_file(&repo, &broken);
+    let text = std::fs::read_to_string(&broken_path).unwrap();
+    std::fs::write(
+        &broken_path,
+        text.replace("verify: \"true\"", "verify: \"contains\""),
+    )
+    .unwrap();
     let dsl = add_id(&repo, &["add", "clean", "--verify", "run cargo test t"]);
 
     let js = stdout_of(&meshwork(&repo).args(["lint", "--json"]).assert().success());

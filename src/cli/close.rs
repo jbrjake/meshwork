@@ -12,6 +12,7 @@ use crate::store::find_task_file;
 use crate::write::yaml_scalar;
 
 #[derive(clap::Args)]
+#[command(after_help = crate::verify_dsl::GRAMMAR_HELP)]
 pub(crate) struct CloseArgs {
     /// Task id (e.g. az-k7f3).
     id: String,

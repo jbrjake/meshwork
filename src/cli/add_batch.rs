@@ -88,6 +88,10 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
                 "batch task {n}: parent must stay in-repo — hierarchy never crosses repos"
             ));
         }
+        if let Some(v) = &task.verify {
+            super::add::refuse_malformed(v)
+                .map_err(|e| format!("batch task {n}: {e} — nothing written"))?;
+        }
         verifies.push(task.verify.clone());
         warn_unresolvable_to(&task, n);
         files.push((

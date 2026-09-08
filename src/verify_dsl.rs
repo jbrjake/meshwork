@@ -21,6 +21,35 @@
 //! character class with no leading dash. Regex patterns are stored raw,
 //! delimiter-checked only; they may not contain `,` inside `all(…)`.
 
+/// The grammar as help text — printed by `verify --help` and
+/// `close --help`, so the shapes that close accepts are one `--help`
+/// away instead of a defect report (mw-8e769q0).
+pub const GRAMMAR_HELP: &str = "Verify grammar (the close gate; one predicate, or all(p, p, ...)):
+  exists <path>                the repo-relative path exists
+  absent <path>                the path does not exist
+  contains <path> <token>      the file contains the literal token
+  contains <path> /<regex>/    the file matches the regex
+  run cargo test|build|fmt <args...>   spawned argv-style, never a shell; args carry
+                               no leading dash (letters, digits, _ . : / = -)
+  all(<pred>, <pred>, ...)     every predicate must hold
+Paths: no leading / or -, no .. segment. run cargo test must observe `ok. N passed`, N >= 1.
+Anything not keyword-led is legacy shell: it runs only behind the per-clone approval gate.";
+
+/// One line naming the grammar — for refusals at authoring time.
+pub const GRAMMAR_LINE: &str = "exists|absent <path> · contains <path> <token|/regex/> · \
+                                run cargo test|build|fmt <args> · all(p, p)";
+
+/// The refusal for a keyword-led verify that does not parse — the same
+/// words at `add`, `set`, `add --batch` and `start`, so a verify close
+/// would refuse is never minted (mw-8e769q0).
+#[must_use]
+pub fn malformed_refusal(verify: &str, why: &str) -> String {
+    format!(
+        "verify `{verify}` is keyword-led but does not parse ({why}) — close would refuse it; \
+         grammar: {GRAMMAR_LINE} (verify --help)"
+    )
+}
+
 /// What a `verify:` string turned out to be.
 pub enum Classified {
     /// Parsed predicates — safe by construction, no shell involved.

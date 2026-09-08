@@ -34,8 +34,10 @@ pub(crate) struct AddArgs {
     /// Provenance: the task this one was discovered from.
     #[arg(long = "from", value_name = "ID")]
     from: Option<String>,
-    /// Verify command `close` runs via `sh -c`.
-    #[arg(long, value_name = "CMD")]
+    /// The close gate: a verify predicate — `exists`/`absent`/`contains`/
+    /// `run cargo …`, or `all(…)`; `verify --help` has the grammar. Text
+    /// that is not keyword-led is legacy shell behind the approval gate.
+    #[arg(long, value_name = "PREDICATE")]
     verify: Option<String>,
     /// Per-repo order weight, lower sooner; gaps of 10.
     #[arg(long, value_name = "N")]
@@ -73,38 +75,10 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
         .unwrap_or_default()
         .replace(['\n', '\r'], " ");
     reject_control_fields(args, &title)?;
-    let mut fm = String::new();
-    let _ = writeln!(fm, "id: {id}");
-    let _ = writeln!(fm, "title: {}", yaml_scalar(&title));
-    fm.push_str("status: open\n");
-    if let Some(cat) = &args.cat {
-        let _ = writeln!(fm, "category: {}", yaml_scalar(cat));
-    }
-    if !args.label.is_empty() {
-        let _ = writeln!(fm, "labels: [{}]", scalar_list(&args.label));
-    }
-    if !args.needs.is_empty() {
-        let _ = writeln!(fm, "needs: [{}]", scalar_list(&args.needs));
-    }
-    if let Some(parent) = &args.parent {
-        let _ = writeln!(fm, "parent: {}", yaml_scalar(parent));
-    }
-    if let Some(from) = &args.from {
-        let _ = writeln!(fm, "discovered-from: {}", yaml_scalar(from));
-    }
     if let Some(verify) = &args.verify {
-        let _ = writeln!(fm, "verify: {}", yaml_scalar(verify));
+        refuse_malformed(verify)?;
     }
-    if !args.docs.is_empty() {
-        fm.push_str("docs:\n");
-        for link in &args.docs {
-            let _ = writeln!(fm, "  - {link}");
-        }
-    }
-    if let Some(seq) = args.seq {
-        let _ = writeln!(fm, "seq: {seq}");
-    }
-    let _ = writeln!(fm, "created: {today}");
+    let fm = render_frontmatter(args, &id, &title, &today);
 
     // Body above the tail sections (mw-s3905fv, §6 ruling 2026-08-21):
     // the description finally has a CLI path at creation — before this,
@@ -191,6 +165,55 @@ fn reject_control_fields(args: &AddArgs, title: &str) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// The frontmatter body, key by key in the §2 order.
+fn render_frontmatter(args: &AddArgs, id: &str, title: &str, today: &str) -> String {
+    let mut fm = String::new();
+    let _ = writeln!(fm, "id: {id}");
+    let _ = writeln!(fm, "title: {}", yaml_scalar(title));
+    fm.push_str("status: open\n");
+    if let Some(cat) = &args.cat {
+        let _ = writeln!(fm, "category: {}", yaml_scalar(cat));
+    }
+    if !args.label.is_empty() {
+        let _ = writeln!(fm, "labels: [{}]", scalar_list(&args.label));
+    }
+    if !args.needs.is_empty() {
+        let _ = writeln!(fm, "needs: [{}]", scalar_list(&args.needs));
+    }
+    if let Some(parent) = &args.parent {
+        let _ = writeln!(fm, "parent: {}", yaml_scalar(parent));
+    }
+    if let Some(from) = &args.from {
+        let _ = writeln!(fm, "discovered-from: {}", yaml_scalar(from));
+    }
+    if let Some(verify) = &args.verify {
+        let _ = writeln!(fm, "verify: {}", yaml_scalar(verify));
+    }
+    if !args.docs.is_empty() {
+        fm.push_str("docs:\n");
+        for link in &args.docs {
+            let _ = writeln!(fm, "  - {link}");
+        }
+    }
+    if let Some(seq) = args.seq {
+        let _ = writeln!(fm, "seq: {seq}");
+    }
+    let _ = writeln!(fm, "created: {today}");
+    fm
+}
+
+/// Refuse at authoring what close would refuse at the gate (mw-8e769q0):
+/// a keyword-led verify that does not parse never reaches a file.
+/// Legacy shell and well-formed DSL pass untouched.
+pub(crate) fn refuse_malformed(verify: &str) -> Result<(), String> {
+    match crate::verify_dsl::classify(verify) {
+        crate::verify_dsl::Classified::Malformed(why) => {
+            Err(crate::verify_dsl::malformed_refusal(verify, &why))
+        }
+        _ => Ok(()),
+    }
 }
 
 fn scalar_list(items: &[String]) -> String {

@@ -11,6 +11,7 @@ use crate::parse::{parse_task_file, ParsedTask};
 use crate::store::find_task_file;
 
 #[derive(clap::Args)]
+#[command(after_help = crate::verify_dsl::GRAMMAR_HELP)]
 pub(crate) struct VerifyArgs {
     /// Task id (e.g. az-k7f3).
     id: String,

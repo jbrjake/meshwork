@@ -64,7 +64,7 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
                         id = args.id
                     ));
                 }
-                Some(verify) => red_check(&root, &path, &args.id, verify),
+                Some(verify) => red_check(&root, &path, &args.id, verify)?,
             }
         }
     }
@@ -92,14 +92,24 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
 /// native DSL runs untrusted (pure reads), DSL `run` needs trust or
 /// store-only provenance, legacy shell needs the MW-E5 gate — every
 /// skip is loud instead of silent.
-fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, verify: &str) {
+fn red_check(
+    root: &std::path::Path,
+    task_path: &std::path::Path,
+    id: &str,
+    verify: &str,
+) -> Result<(), String> {
     use crate::verify_dsl::{classify, Classified, Predicate};
     let trusted = || crate::trust::env_trusted() || crate::trust::is_approved(root, id, verify);
     match classify(verify) {
-        Classified::Malformed(why) => eprintln!(
-            "warning: red-check: {id}'s verify is malformed and close will \
-             refuse it: {why}"
-        ),
+        // A verify close would refuse is refused here too (mw-8e769q0):
+        // starting work behind a gate that can never open is the
+        // hand-flip's first step.
+        Classified::Malformed(why) => {
+            return Err(format!(
+                "cannot start {id}: {} — fix it: meshwork set {id} --verify '<predicate>'",
+                crate::verify_dsl::malformed_refusal(verify, &why)
+            ));
+        }
         Classified::Dsl(preds) => {
             let has_run = preds.iter().any(|p| matches!(p, Predicate::Run { .. }));
             if has_run && !trusted() && !store_only(root, task_path) {
@@ -107,7 +117,7 @@ fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, veri
                     "note: red-check skipped for {id} — run verify gated for \
                      this clone (approve at close, or MESHWORK_TRUST=1)"
                 );
-                return;
+                return Ok(());
             }
             if has_run {
                 announce(id);
@@ -128,7 +138,7 @@ fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, veri
                     "note: red-check skipped for {id} — verify unapproved for this \
                      clone (approve at close, or MESHWORK_TRUST=1)"
                 );
-                return;
+                return Ok(());
             }
             // The same wall clock and output cap as a DSL run
             // (mw-82thxwz): an unscoped `cargo test` compiled for minutes
@@ -160,6 +170,7 @@ fn red_check(root: &std::path::Path, task_path: &std::path::Path, id: &str, veri
             }
         }
     }
+    Ok(())
 }
 
 /// Said before a verify that may build runs, so a slow compile reads as

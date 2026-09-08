@@ -70,6 +70,9 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
     if let Some(title) = &args.title {
         crate::cli::reject_controls("title", &title.replace(['\n', '\r'], " "), false)?;
     }
+    if let Some(verify) = &args.verify {
+        super::add::refuse_malformed(verify)?;
+    }
     for link in &args.docs {
         crate::cli::reject_controls("docs link", link, false)?;
     }
