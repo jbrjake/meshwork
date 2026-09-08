@@ -42,9 +42,25 @@ Event stream (--events, JSONL) — the event envelope
     session  the transcript uuid
     detail   kind-specific payload: call → turn, verbs, ids, sidechain, help, hop, waive,
              set_verify, err, err_line, denied, out_bytes; hand-edit → turn, tool, ids,
-             sidechain; shell-read → turn, sidechain; prompt → turn, heated, mentions, queued
+             sidechain; shell-read → turn, sidechain; prompt → turn, heated, mentions, queued;
+             stop → turn, wait_min, until, queued, live_at_stop, live_min, owner_min
   Filter on `kind`, never on the payload's shape. The store side of the same timeline is
   `SELECT repo, gid, kind, at, actor, note FROM events` once the view is registered.
+
+Waits — what the owner costs the agents
+  A `stop` event is a main-chain assistant message whose stop_reason is end_turn: the agent
+  finished its turn and had nothing to do until a human typed. Its wait is the time from that
+  stop to the next human prompt on the same chain, measured from when the prompt was TYPED —
+  a prompt queued mid-turn (queue-operation/enqueue) and delivered at the stop is a zero wait.
+  The scan stops at the next assistant message: a turn the agent continued on its own (a hook,
+  a task notification) is not a wait. A stop with no prompt after it at all is counted per
+  session as unanswered_stops and emitted with wait_min null; one the agent went past on its
+  own is continued_stops. Every transcript on the machine (all projects) indexes the minutes
+  it carries records in, so each wait also reports whether another session was live within
+  five minutes of the stop (live_at_stop), how many minutes of the wait carried a record in
+  another transcript (live_min — the machine busy, which includes other agents working alone),
+  and how many fell while the owner was ATTENDING another transcript (owner_min): within five
+  minutes after a human prompt there, or between two prompts there under fifteen minutes apart.
 """
 import argparse
 import glob
@@ -178,7 +194,56 @@ def new_stats(path):
             "end": "", "version": "", "verbs": Counter(), "guessed": Counter(), "err_kinds": Counter(),
             "heated_samples": [], "corr_samples": [], "err_samples": [], "user_mw_samples": [],
             "guess_samples": [], "events": [], "prime_next": "", "prime_addressed": -1,
-            "prime_bytes": 0, "prime_count": 0, "bridge": ""}
+            "prime_bytes": 0, "prime_count": 0, "bridge": "", "waits": [], "stops": Counter(),
+            "unanswered_stops": 0, "continued_stops": 0, "minutes": set(), "prompt_minutes": set(),
+            "attended": set(), "prompt_after": Counter(), "tool_uses": 0, "orphan_tool_uses": 0,
+            "denials_all": 0}
+
+
+ATTEND_AFTER, ATTEND_BRIDGE = 5, 15
+
+
+def attended_minutes(prompt_minutes):
+    """Minutes the owner was attending a transcript: five after each prompt, and the whole gap
+    between two prompts under fifteen minutes apart."""
+    out, prev = set(), None
+    for p in sorted(m for m in prompt_minutes if m is not None):
+        if prev is not None and p - prev <= ATTEND_BRIDGE:
+            out.update(range(prev, p + 1))
+        out.update(range(p, p + ATTEND_AFTER + 1))
+        prev = p
+    return out
+
+
+_MINUTE = {}
+
+
+def minute_of(ts):
+    """Epoch minute of an ISO stamp (memoised on the minute prefix); None when unparseable."""
+    key = ts[:16]
+    if key not in _MINUTE:
+        try:
+            _MINUTE[key] = int(datetime.fromisoformat(key + ":00+00:00").timestamp() // 60)
+        except ValueError:
+            _MINUTE[key] = None
+    return _MINUTE[key]
+
+
+def minutes_between(a, b):
+    try:
+        return (datetime.fromisoformat(b.replace("Z", "+00:00"))
+                - datetime.fromisoformat(a.replace("Z", "+00:00"))).total_seconds() / 60.0
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
+def record_wait(st, stop, typed_at, queued):
+    w = minutes_between(stop["at"], typed_at)
+    if w is None:
+        return
+    emit(st, "stop", stop["at"], "end_turn", turn=stop["turn"], wait_min=round(max(0.0, w), 2),
+         until=typed_at, queued=queued)
+    st["waits"].append(st["events"][-1])
 
 
 def gid_of(task_id):
@@ -197,7 +262,11 @@ def emit(st, kind, ts, note, ids=(), **detail):
 def score_file(path):
     st = new_stats(path)
     tool_by_id = {}
-    queued = set()
+    queued = {}                 # prompt text → when it was typed (enqueue stamp)
+    unconsumed = []             # queued prompts not yet seen delivered as a user record
+    stop, last_mid = None, None # the pending end_turn; the last main-chain message id
+    last_reason = "none"        # stop_reason of the last main-chain message: what a prompt interrupted
+    open_calls = set()          # tool_use ids (every chain) with no tool_result yet
     pending_heat = heat_credited = first_seen = False
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -210,6 +279,7 @@ def score_file(path):
             if ts:
                 st["start"] = st["start"] or ts
                 st["end"] = ts
+                st["minutes"].add(minute_of(ts))
             if typ == "ai-title":
                 st["title"] = rec.get("aiTitle") or st["title"]
                 continue
@@ -238,14 +308,29 @@ def score_file(path):
                 # as a user record later, so count it once by text
                 t = (rec.get("content") or "").strip()
                 if t and t not in queued:
-                    queued.add(t)
-                    typ, rec = "user", {"type": "user", "message": {"content": t}, "queued": True}
+                    queued[t] = ts
+                    typ, rec = "user", {"type": "user", "message": {"content": t}, "queued": True,
+                                        "timestamp": ts}
             if typ == "user":
                 t = human_text(rec)
                 if t is not None and t in queued and rec.get("uuid"):
+                    # the queued prompt delivered: it answers a pending stop from when it was typed
+                    unconsumed[:] = [u for u in unconsumed if u[0] != t]
+                    if stop:
+                        record_wait(st, stop, queued[t] or ts, True)
+                        stop = None
                     t = None          # already counted from its enqueue record
                 if t is not None:
                     st["n_user"] += 1
+                    if st["n_user"] > 1:
+                        st["prompt_after"][last_reason] += 1
+                    if ts:
+                        st["prompt_minutes"].add(minute_of(ts))
+                    if stop and ts:
+                        record_wait(st, stop, ts, bool(rec.get("queued")))
+                        stop = None
+                    elif rec.get("queued"):
+                        unconsumed.append((t, ts))
                     mentions = bool(MW_WORD.search(t) or TASK_ID.search(t))
                     heated = is_heated(t)
                     emit(st, "prompt", ts, t, TASK_ID.findall(t), turn=st["n_user"], heated=heated,
@@ -275,6 +360,9 @@ def score_file(path):
                     for b in content:
                         if not isinstance(b, dict) or b.get("type") != "tool_result":
                             continue
+                        open_calls.discard(b.get("tool_use_id"))
+                        if rec.get("toolDenialKind") or "user doesn't want to proceed" in result_text(b.get("content"))[:400]:
+                            st["denials_all"] += 1
                         kind = tool_by_id.get(b.get("tool_use_id"))
                         if not kind or kind[0] != "mw":
                             continue
@@ -306,11 +394,32 @@ def score_file(path):
             if typ == "assistant":
                 if not rec.get("isSidechain"):
                     st["n_assistant"] += 1
+                    msg = rec.get("message") or {}
+                    mid, reason = msg.get("id"), msg.get("stop_reason")
+                    if mid and not rec.get("isApiErrorMessage"):
+                        if mid != last_mid:
+                            st["stops"][reason or "none"] += 1
+                            last_mid = mid
+                        last_reason = reason or "none"
+                        if stop and mid == stop["mid"]:
+                            stop["at"] = ts or stop["at"]        # the message's last streamed block
+                        else:
+                            if stop:                             # a new message, no prompt between
+                                if unconsumed:                   # …a mid-turn prompt delivered at the stop
+                                    record_wait(st, stop, unconsumed.pop(0)[1] or stop["at"], True)
+                                else:                            # else the agent went on by itself
+                                    st["continued_stops"] += 1
+                                stop = None
+                            if reason == "end_turn" and ts:
+                                stop = {"mid": mid, "at": ts, "turn": st["n_user"]}
                 for b in (rec.get("message") or {}).get("content") or []:
                     if not isinstance(b, dict) or b.get("type") != "tool_use":
                         continue
                     st["n_tool"] += 1
                     name, inp, tid = b.get("name", ""), b.get("input") or {}, b.get("id")
+                    if tid and tid not in tool_by_id:
+                        st["tool_uses"] += 1
+                        open_calls.add(tid)
                     if name in ("Agent", "Task"):
                         st["subagents"] += 1
                     if name == "Bash":
@@ -368,6 +477,11 @@ def score_file(path):
                         tool_by_id[tid] = ("other", "Skill " + sk, False, None)
                     else:
                         tool_by_id[tid] = ("other", name, False, None)
+    if stop:
+        st["unanswered_stops"] += 1
+        emit(st, "stop", stop["at"], "end_turn", turn=stop["turn"], wait_min=None, until=None, queued=False)
+    st["attended"] = attended_minutes(st["prompt_minutes"])
+    st["orphan_tool_uses"] = len(open_calls)
     try:
         a = datetime.fromisoformat(st["start"].replace("Z", "+00:00"))
         b = datetime.fromisoformat(st["end"].replace("Z", "+00:00"))
@@ -390,6 +504,30 @@ def repo_of(slug):
     return slug.rsplit(CODE_PREFIX + "-", 1)[-1] if slug.startswith(CODE_PREFIX + "-") else slug
 
 
+def annotate_waits(st, any_idx, attended_idx):
+    """Cross-transcript context for each of a session's stops: was the machine live elsewhere
+    within five minutes of the stop; how many minutes of the wait carried a record in another
+    transcript; how many fell while the owner was attending another transcript. A session's
+    own minutes are subtracted from the index."""
+    mine, my_prompts = st["minutes"], st["attended"]
+
+    def elsewhere(idx, own, m):
+        return idx.get(m, 0) - (1 if m in own else 0) > 0
+
+    for ev in st["events"]:
+        if ev["kind"] != "stop":
+            continue
+        d = ev["detail"]
+        a = minute_of(ev["at"])
+        b = minute_of(d["until"]) if d["until"] else a
+        if a is None or b is None or b < a:
+            d["live_at_stop"], d["live_min"], d["owner_min"] = None, None, None
+            continue
+        d["live_at_stop"] = any(elsewhere(any_idx, mine, m) for m in range(a, min(a + 5, b) + 1))
+        d["live_min"] = sum(1 for m in range(a, b + 1) if elsewhere(any_idx, mine, m))
+        d["owner_min"] = sum(1 for m in range(a, b + 1) if elsewhere(attended_idx, my_prompts, m))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--json")
@@ -400,14 +538,18 @@ def main():
                                      "(input to mine_telemetry.py)")
     args = ap.parse_args()
     rows = []
+    any_idx, attended_idx = Counter(), Counter()   # every transcript on the machine feeds the index
     for d in sorted(glob.glob(os.path.join(PROJECTS_DIR, "*"))):
         repo = repo_of(os.path.basename(d))
-        if not args.all_projects and repo not in MW_REPOS:
-            continue
         for p in glob.glob(os.path.join(d, "*.jsonl")):
             st = score_file(p)
-            st["repo"], st["path"] = repo, p
-            rows.append(st)
+            any_idx.update(st["minutes"])
+            attended_idx.update(st["attended"])
+            if args.all_projects or repo in MW_REPOS:
+                st["repo"], st["path"] = repo, p
+                rows.append(st)
+    for st in rows:
+        annotate_waits(st, any_idx, attended_idx)
     rows.sort(key=lambda r: -r["score"])
     if args.events:
         with open(args.events, "w") as f:
@@ -419,8 +561,12 @@ def main():
                                         "detail": e["detail"]}) + "\n")
     if args.json:
         with open(args.json, "w") as f:
-            json.dump([{**r, "verbs": dict(r["verbs"]), "guessed": dict(r["guessed"]),
-                        "err_kinds": dict(r["err_kinds"]), "events": len(r["events"])} for r in rows], f, indent=1)
+            skip = {"minutes", "prompt_minutes", "attended", "events", "waits"}
+            json.dump([{**{k: v for k, v in r.items() if k not in skip},
+                        "verbs": dict(r["verbs"]), "guessed": dict(r["guessed"]), "stops": dict(r["stops"]),
+                        "prompt_after": dict(r["prompt_after"]),
+                        "err_kinds": dict(r["err_kinds"]), "events": len(r["events"]),
+                        "waits": [{"at": e["at"], **e["detail"]} for e in r["waits"]]} for r in rows], f, indent=1)
     per = defaultdict(Counter)
     for r in rows:
         c = per[r["repo"]]

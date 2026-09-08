@@ -129,6 +129,76 @@ the vacuous verify first (§2.6).
   `@file` or stdin (long prose). Five meshwork calls were denied by the owner; two were a `set
   --handoff` or `--body` carrying a 🔴 banner.
 
+### 1.6 What the owner costs the agents — waits, and a session-state primitive
+
+Everything above measures what agents cost the owner. The inverse is in the same records and
+neither the scoring in §5 nor any finding in §2 can see it: a session that finished its turn
+and sat produces no prompt, no call, no error and no edit, so it scores zero. This cut adds
+`stop_reason` to the event stream (`mine_sessions.py`, whose header states the algorithm) and
+measures the wait after every `end_turn` — from the stop to the moment the next prompt was
+*typed*, so a prompt queued mid-turn is a zero wait, and a turn the agent continued on its own
+(a hook, a task notification) is not a wait at all. Same corpus as §1.1, re-cut 2026-09-08; every
+transcript on the machine (590) feeds the "elsewhere" index.
+
+| measure | value | denominator / note |
+|---|---|---|
+| corpus | **484 transcripts, 2026-07-31 → 09-08 (40 d)** | the nine registered repos + the code root |
+| main-chain messages by stop reason | **end_turn 1,476 · tool_use 60,382** | one message counted once, however many records it spans (up to seven) |
+| `end_turn` answered by a prompt | **731**, in 258 sessions | 260 of them typed mid-turn and delivered at the stop: zero waits |
+| `end_turn` the agent went past on its own | 314 | woken by a hook or a task notification; not a wait |
+| `end_turn` with no following prompt | **431** | the transcript ends there — 431 of 484 sessions; a deliberate close and a walk-away look the same in the record |
+| median wait | **1.6 min** (2.4 over the 471 typed after the stop) | the median says nothing about the problem |
+| p75 / p90 / p99 / max | 4.9 min / **19.2 min** / 14.6 h / 166.7 h | |
+| **total agent idle waiting on the owner** | **545 h** | 91% of it in waits > 1 h; **four waits over 24 h — sessions resumed days later — hold 287 h of it** |
+| waits ≥ 15 min | **85**, 521 h idle | **65 (76%) began while another session on this machine was live**; on **29 of 40 days** |
+| waits ≥ 1 h | **41**, 499 h idle | 31 (76%) began while another session was live; on 23 of 40 days |
+| minutes *another transcript was live* inside those waits | 152 h (≥ 15 min) · 142 h (≥ 1 h) | any record elsewhere — which includes other agents working unattended |
+| **owner-active minutes** inside those waits | **81 h** (≥ 15 min) · **76 h** (≥ 1 h) | the owner attending another transcript: within five minutes after a prompt there, or between two prompts there under fifteen minutes apart |
+| median owner-active minutes per long wait | 7 min (≥ 15 min) · **18 min** (≥ 1 h) | |
+| long waits holding ≥ 30 min of owner activity elsewhere | 17 of 85 (20%) · **16 of 41 (39%)** | |
+| what a prompt after the first followed | **end_turn 649 · tool_use 1,015** · none 49 | the agent had stopped, or was stopped: 260 of the 1,015 were queued for the next stop; the rest answered a permission hold or interrupted a call |
+| idle hours by repo | marasi 182 · code root 92 · portfolio 92 · leras 82 · sazed 75 · meshwork 13 · lab 8 · tensoon 2 | the marasi figure is one 167-hour resumption |
+
+**Three readings.** First, the number that is recoverable is not the 545 h. Idle is latency, not
+spend — a stopped session burns nothing — and more than half of it is four sessions the owner
+came back to days later. The recoverable part is the **76 h** inside hour-plus waits during
+which the owner was demonstrably working in another session, and the sharpest line is the last
+column of the ≥ 1 h row: **sixteen of forty-one hour-plus waits held half an hour or more of the
+owner's attention elsewhere.** Second, "live elsewhere" and "owner active" are different numbers
+and the ask that requested this measurement (`ASKS-analytics-and-field-study.md` §1) conflated
+them: its 153 h reproduces here as 152 h, but it counts any record in another transcript, and
+half of those minutes are other agents working with nobody at the keyboard. Its 1,233 waits and
+1,594 unanswered turn-ends are consistent with counting records rather than messages. Third,
+**the owner is stopped-by more often than stopped-for**: 1,015 prompts arrived while the agent
+was mid-call against 649 after it had stopped, and a quarter of those were queued for the next
+stop. The owner already uses the queue; what the queue cannot reach is a session that stopped in
+a repo nobody is looking at.
+
+None of this is an argument for aging in the store. It is a latency defect in the session layer
+(the ask's §5 says the same), and it lands in this study because prime is read once, at the
+start, and the most expensive state in the corpus is created after that read — by an agent that
+has finished, in a repo the owner has moved on from.
+
+**A session-state primitive, checked against the records.** The transcript supports five states,
+and the two observations that make them safe to build on both hold on this corpus:
+
+| state | signature | resolved by |
+|---|---|---|
+| working | records appending; last main-chain message `stop_reason: tool_use` | the file |
+| waiting — turn ended | last main-chain message `stop_reason: end_turn`, process alive | the file |
+| waiting — permission held | a `tool_use` block with no matching `tool_result`, no child process on CPU | the file + `ps` |
+| silent — long call | the same unresolved `tool_use`, but a child process *is* running | `ps` |
+| ended | process gone | `ps` |
+
+`stop_reason` cleanly separates working from stopped (1,476 `end_turn` against 60,382 `tool_use`
+messages). And **in 68,822 `tool_use` blocks across every transcript not touched today, every
+one received a `tool_result` — zero orphans** — so an unresolved call in a live transcript is
+never a lost record; it is a call that has not come back, and whether anything is working on it
+is a `ps` question and nothing else. Denials are verbatim in the result text: 181 declined tool
+calls across all tools, the five meshwork ones of §1.5 among them. The one ambiguous pair is
+*permission held* against *long call*; where the process walk cannot attribute a child, the
+honest report is "silent, N min", not a guessed "waiting".
+
 ---
 
 ## 2. Findings
@@ -664,6 +734,12 @@ change and can ship in one commit.
   asked to confirm, refute or extend the first wave's findings; it refuted none, corrected one
   (the steering artifact is the opened task's handoff, not prime as such) and extended most. The
   lead re-checked every claim about the binary against v0.4.0 (§6) and against the source.
+- **Waits (§1.6).** `mine_sessions.py` scans every transcript on the machine; a wait is the
+  interval from a main-chain `end_turn` to the moment the next human prompt on that chain was
+  typed (the `queue-operation/enqueue` stamp when it was queued), the scan stopping at the next
+  assistant message. Cross-transcript minutes come from an index of every file's record minutes
+  and prompt minutes; the session's own minutes are subtracted. The table is `mine_telemetry.py`'s
+  last section. The corpus is live while it runs — a re-run drifts by units.
 - **Rerun.**
   ```
   python3 scripts/mine_sessions.py --json /tmp/scores.json --events /tmp/events.jsonl --top 40

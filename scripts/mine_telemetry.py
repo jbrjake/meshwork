@@ -43,6 +43,79 @@ def load_event(line):
     return {**e, **d, "id": ids[0] if ids else "", "verbs": d.get("verbs") or []}
 
 
+def wait_table(rows):
+    """What the owner costs the agents: the waits after end_turn, with denominators. Reads the
+    per-session `waits` and `unanswered_stops` mine_sessions.py computes (its header defines both)."""
+    waits = [(r, w) for r in rows for w in r.get("waits", [])]
+    stops = Counter()
+    for r in rows:
+        stops.update(r.get("stops", {}))
+    prompts = sum(r["n_user"] for r in rows)
+    unanswered = sum(r.get("unanswered_stops", 0) for r in rows)
+    continued = sum(r.get("continued_stops", 0) for r in rows)
+    days = sorted({r["start"][:10] for r in rows if r["start"]} | {r["end"][:10] for r in rows if r["end"]})
+    span = (datetime.fromisoformat(days[-1]) - datetime.fromisoformat(days[0])).days + 1 if days else 0
+    o = {"sessions": len(rows), "with_waits": len({r["session"] for r, _ in waits}), "waits": len(waits),
+         "unanswered_stops": unanswered, "continued_stops": continued, "end_turn_stops": stops.get("end_turn", 0),
+         "tool_use_stops": stops.get("tool_use", 0), "prompts": prompts, "span_days": span,
+         "first_day": days[0] if days else None, "last_day": days[-1] if days else None}
+    print(f"\nwaits after end_turn — {len(waits)} in {o['with_waits']} of {len(rows)} sessions, "
+          f"{days[0] if days else '?'} → {days[-1] if days else '?'} ({span} d); stops: end_turn {o['end_turn_stops']} "
+          f"(answered by a prompt {len(waits)}, the agent went on by itself {continued}, no following prompt "
+          f"{unanswered}), tool_use {o['tool_use_stops']}; human prompts {prompts}")
+    if not waits:
+        return o
+    mins = sorted(w["wait_min"] for _, w in waits)
+    typed = sorted(w["wait_min"] for _, w in waits if not w["queued"])
+    total = sum(mins)
+    pq = lambda xs, p: xs[min(len(xs) - 1, int(p * len(xs)))]
+    queued = sum(1 for _, w in waits if w["queued"])
+    over_day = [m for m in mins if m > 24 * 60]
+    o.update({"queued_zero": queued, "p50": pq(mins, .5), "p75": pq(mins, .75), "p90": pq(mins, .9),
+              "p99": pq(mins, .99), "max": mins[-1], "typed_p50": pq(typed, .5) if typed else None,
+              "total_h": total / 60, "share_over_1h": sum(m for m in mins if m > 60) / total if total else 0,
+              "over_24h": len(over_day), "over_24h_h": sum(over_day) / 60})
+    print(f"  queued (typed mid-turn, zero wait): {queued}; median {o['p50']:.1f} min ({o['typed_p50']:.1f} over the "
+          f"{len(typed)} typed after the stop), p75 {o['p75']:.1f}, p90 {o['p90']:.1f}, p99 {o['p99'] / 60:.1f} h, "
+          f"max {o['max'] / 60:.1f} h; total idle {o['total_h']:.0f} h, {100 * o['share_over_1h']:.0f}% of it in "
+          f"waits > 1 h; waits > 24 h (a session resumed days later): {len(over_day)}, {o['over_24h_h']:.0f} h")
+    for label, floor in (("ge15", 15), ("ge60", 60)):
+        ws = [w for _, w in waits if w["wait_min"] >= floor]
+        idle = sum(w["wait_min"] for w in ws) / 60
+        known = [w for w in ws if w.get("live_at_stop") is not None]
+        live = sum(1 for w in known if w["live_at_stop"])
+        live_h = sum(w.get("live_min") or 0 for w in ws) / 60
+        owner = [w.get("owner_min") or 0 for w in ws]
+        owner_h = sum(owner) / 60
+        med_owner = statistics.median(owner) if owner else 0
+        over30 = sum(1 for m in owner if m >= 30)
+        wdays = {w["at"][:10] for w in ws}
+        o[label] = {"n": len(ws), "idle_h": idle, "live_at_stop": live, "live_h": live_h, "owner_h": owner_h,
+                    "owner_min_median": med_owner, "owner_ge30": over30, "days": len(wdays)}
+        print(f"  waits ≥ {floor} min: {len(ws)}, {idle:.0f} h idle; began while another session was live: "
+              f"{pct(live, len(known))}; minutes another transcript was live inside them {live_h:.0f} h; minutes the "
+              f"owner was attending another transcript {owner_h:.0f} h (median {med_owner:.0f} min per wait; "
+              f"≥ 30 min in {over30}); on {len(wdays)} of {span} days")
+    per_repo = Counter()
+    for r, w in waits:
+        per_repo[r["repo"]] += w["wait_min"] / 60
+    o["idle_h_by_repo"] = dict(per_repo)
+    print("  idle hours by repo:", ", ".join(f"{k} {v:.0f}" for k, v in per_repo.most_common()))
+    after = Counter()
+    for r in rows:
+        after.update(r.get("prompt_after", {}))
+    o["prompt_after"] = dict(after)
+    print("  what a prompt after the first followed — the agent had stopped (end_turn) or was interrupted "
+          "mid-call (tool_use):", after.most_common())
+    settled = [r for r in rows if r["end"] and r["end"][:10] < (days[-1] if days else "")]
+    o["tool_uses"] = sum(r.get("tool_uses", 0) for r in settled)
+    o["orphan_tool_uses"] = sum(r.get("orphan_tool_uses", 0) for r in settled)
+    o["denials_all_tools"] = sum(r.get("denials_all", 0) for r in rows)
+    print(f"  tool_use blocks in transcripts not touched today: {o['tool_uses']}, never answered by a tool_result: "
+          f"{o['orphan_tool_uses']}; tool calls the owner declined, all tools: {o['denials_all_tools']}")
+    return o
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("scores")
@@ -235,6 +308,8 @@ def main():
     print(f"\ndenied meshwork calls: {len(denied)}")
     for e in denied[:12]:
         print(f"  [{e['repo']}/{e['session'][:8]} t{e['turn']}] {e['note'][:160]}")
+
+    out["waits"] = wait_table(rows)
     if args.json:
         json.dump(out, open(args.json, "w"), indent=1)
 
