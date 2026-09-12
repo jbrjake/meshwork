@@ -80,6 +80,7 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
                 .and_then(|text| crate::lint_tail::relocate_stray(&text))
                 .map(|(_, moved)| moved);
             let commits = commits_for(&root, &args.id);
+            let (repo, lineage, cites) = derived(&task.id)?;
             let excerpts = if args.docs {
                 task.docs
                     .iter()
@@ -88,12 +89,17 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
             } else {
                 Vec::new()
             };
+            let views = Derived {
+                repo: &repo,
+                lineage: &lineage,
+                cites: &cites,
+            };
             if json {
                 emit_json(
-                    &task, &rel, shown_from, &commits, args.docs, &excerpts, stray,
+                    &task, &rel, shown_from, &commits, args.docs, &excerpts, stray, &views,
                 );
             } else {
-                render_text(&task, &rel, shown_from, &commits, stray);
+                render_text(&task, &rel, shown_from, &commits, stray, &views);
                 render_excerpts(&task, args.docs, &excerpts);
             }
             Ok(())
@@ -116,12 +122,117 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
     }
 }
 
+/// The lineage row's columns `show` renders (FORMAT.md §Views).
+#[derive(Debug, Default)]
+struct Lineage {
+    spawned_total: i64,
+    spawned_live: i64,
+    spawn_depth: i64,
+    children_direct: i64,
+    descendants_total: i64,
+    mentioned_by: i64,
+}
+
+/// What the views say about one task: its lineage row and the closed
+/// tasks it still names anywhere (mw-9x1g9r1). `show` has no perf gate,
+/// so it reads the views themselves rather than a Rust twin.
+struct Derived<'a> {
+    repo: &'a str,
+    lineage: &'a Lineage,
+    cites: &'a [String],
+}
+
+/// The two derived rows for `id`: one query session with `lineage` and
+/// `mentions` registered, the id quoted as a SQL literal.
+fn derived(id: &str) -> Result<(String, Lineage, Vec<String>), String> {
+    use super::query::{query_session, run_query, string_rows};
+    let (ctx, repo) = query_session("lineage mentions")?;
+    let gid = format!("{repo}#{}", id.replace('\'', "''"));
+    let (_, batches) = run_query(
+        &ctx,
+        &format!(
+            "SELECT spawned_total, spawned_live, spawn_depth, children_direct, \
+             descendants_total, mentioned_by FROM lineage WHERE gid = '{gid}'"
+        ),
+    )?;
+    let cell = |row: &[String], i: usize| row.get(i).and_then(|c| c.parse().ok()).unwrap_or(0);
+    let lineage = string_rows(&batches)
+        .first()
+        .map(|r| Lineage {
+            spawned_total: cell(r, 0),
+            spawned_live: cell(r, 1),
+            spawn_depth: cell(r, 2),
+            children_direct: cell(r, 3),
+            descendants_total: cell(r, 4),
+            mentioned_by: cell(r, 5),
+        })
+        .unwrap_or_default();
+    let (_, batches) = run_query(
+        &ctx,
+        &format!(
+            "SELECT DISTINCT ref_gid FROM mentions WHERE src_gid = '{gid}' \
+             AND ref_status IN ('done','dropped') ORDER BY ref_gid"
+        ),
+    )?;
+    let cites = string_rows(&batches)
+        .into_iter()
+        .filter_map(|r| r.into_iter().next())
+        .collect();
+    Ok((repo, lineage, cites))
+}
+
+/// `lineage: spawned N (L live, depth D) · children C (T descendants) ·
+/// mentioned by M` — each part only when its count is non-zero, the line
+/// only when any is.
+fn lineage_line(l: &Lineage) -> Option<String> {
+    let mut parts = Vec::new();
+    if l.spawned_total > 0 {
+        parts.push(format!(
+            "spawned {} ({} live, depth {})",
+            l.spawned_total, l.spawned_live, l.spawn_depth
+        ));
+    }
+    if l.children_direct > 0 {
+        parts.push(format!(
+            "children {} ({} descendants)",
+            l.children_direct, l.descendants_total
+        ));
+    }
+    if l.mentioned_by > 0 {
+        parts.push(format!("mentioned by {}", l.mentioned_by));
+    }
+    (!parts.is_empty()).then(|| format!("lineage: {}", parts.join(" \u{b7} ")))
+}
+
+/// `cites: N closed (ids…)` — local ids bare, foreign as written, three
+/// named then `+N`; nothing when nothing closed is named.
+fn cites_line(cites: &[String], repo: &str) -> Option<String> {
+    if cites.is_empty() {
+        return None;
+    }
+    let prefix = format!("{repo}#");
+    let mut named: Vec<String> = cites
+        .iter()
+        .take(3)
+        .map(|g| g.strip_prefix(&prefix).unwrap_or(g).to_string())
+        .collect();
+    if cites.len() > 3 {
+        named.push(format!("+{}", cites.len() - 3));
+    }
+    Some(format!(
+        "cites: {} closed ({})",
+        cites.len(),
+        named.join(", ")
+    ))
+}
+
 fn render_text(
     t: &Task,
     rel: &str,
     shown_from: usize,
     commits: &[(String, String)],
     stray: Option<usize>,
+    views: &Derived,
 ) {
     // Every task-derived string passes through sanitize (mw-8fmsws3) —
     // render-time only, the file keeps its bytes.
@@ -207,6 +318,19 @@ fn render_text(
             );
         }
     }
+    let derived: Vec<String> = [
+        lineage_line(views.lineage),
+        cites_line(views.cites, views.repo),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    if !derived.is_empty() {
+        println!();
+        for line in derived {
+            println!("{}", clean(&line));
+        }
+    }
     for w in &t.warnings {
         eprintln!("warning: {}", clean(w));
     }
@@ -283,6 +407,7 @@ fn emit_json(
     docs: bool,
     excerpts: &[crate::docs::Excerpt],
     stray: Option<usize>,
+    views: &Derived,
 ) {
     let shown: Vec<_> = t.comments[shown_from..]
         .iter()
@@ -304,6 +429,15 @@ fn emit_json(
                 .collect::<Vec<_>>(),
             "commits_total": commits.len(),
             "ignored_tail_lines": stray,
+            "lineage": {
+                "spawned_total": views.lineage.spawned_total,
+                "spawned_live": views.lineage.spawned_live,
+                "spawn_depth": views.lineage.spawn_depth,
+                "children_direct": views.lineage.children_direct,
+                "descendants_total": views.lineage.descendants_total,
+                "mentioned_by": views.lineage.mentioned_by,
+            },
+            "cites": views.cites,
             "path": rel, "warnings": t.warnings,
     });
     if docs {

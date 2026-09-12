@@ -64,7 +64,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-S5 | `tables::views_registered` (the window rides on `clock`) | done |
 | MW-S6 | `e2e::prime_pulse_matches_view`, `e2e::prime_pulse_asks_match_union`, `e2e::prime_next_cites_closed` | done |
 | MW-S7 | `e2e::prime_pulse_matches_view` | done |
-| MW-S10 | `e2e::set_handoff_mints_log_line` | done |
+| MW-S10 | `e2e::set_handoff_mints_log_line`, `e2e::show_lineage_line` | done |
 | MW-S11 | `arch::analytics_fences` | planned |
 | MW-S12 | `e2e::ready_unchanged_by_views` | planned |
 | MW-S13 | `arch::analytics_fences` | planned |

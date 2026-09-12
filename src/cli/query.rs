@@ -82,7 +82,7 @@ pub(crate) fn local_session() -> Result<(SessionContext, String), String> {
 /// and the thirteen views (MW-S1), the window from `[stats] window_days`
 /// (MW-S5). Registration plans every view body, so a query over the six
 /// tables alone never pays for it.
-fn query_session(sql: &str) -> Result<(SessionContext, String), String> {
+pub(crate) fn query_session(sql: &str) -> Result<(SessionContext, String), String> {
     let (ctx, repo, window_days) = local_session_inner()?;
     if crate::views::mentioned(sql) {
         let clock = crate::views::Clock::resolve(window_days)?;

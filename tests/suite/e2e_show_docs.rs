@@ -121,3 +121,73 @@ fn show_flags_ignored_tail_content() {
     let v: serde_json::Value = serde_json::from_str(&js).unwrap();
     assert!(v["data"]["ignored_tail_lines"].is_null(), "{v}");
 }
+
+/// mw-9x1g9r1: two derived lines at the end of `show` — what the task
+/// spawned and gathers (the lineage view) and which closed tasks it still
+/// names (the mentions view) — both capped, both omitted at zero.
+#[test]
+fn show_lineage_line() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let origin = add_task(&repo, "Origin of a chain");
+    let child = add_id(
+        &repo,
+        &["add", "Spawned from the origin", "--verify", "true", "--from", &origin],
+    );
+    let grandchild = add_id(
+        &repo,
+        &["add", "Spawned from the child", "--verify", "true", "--from", &child],
+    );
+    meshwork(&repo)
+        .args(["close", &grandchild, "--waive", "fixture"])
+        .assert()
+        .success();
+    let under = add_id(
+        &repo,
+        &["add", "Under the origin", "--verify", "true", "--parent", &origin],
+    );
+    let talker = add_id(
+        &repo,
+        &[
+            "add",
+            "Talks about the origin",
+            "--verify",
+            "true",
+            "--body",
+            &format!("Start from {origin}."),
+        ],
+    );
+    meshwork(&repo)
+        .args([
+            "set",
+            &origin,
+            "--handoff",
+            &format!("Reuse what {grandchild} landed; then ping {talker}."),
+        ])
+        .assert()
+        .success();
+
+    let out = stdout_of(&meshwork(&repo).args(["show", &origin]).assert().success());
+    assert!(out.contains("lineage: spawned 2 (1 live, depth 2)"), "{out}");
+    assert!(out.contains("children 1"), "{out}");
+    assert!(out.contains("mentioned by 1"), "{out}");
+    assert!(out.contains(&format!("cites: 1 closed ({grandchild})")), "{out}");
+
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["show", &origin, "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["data"]["lineage"]["spawned_total"], 2, "{v}");
+    assert_eq!(v["data"]["lineage"]["spawned_live"], 1, "{v}");
+    assert_eq!(v["data"]["lineage"]["spawn_depth"], 2, "{v}");
+    assert_eq!(v["data"]["lineage"]["children_direct"], 1, "{v}");
+    assert_eq!(v["data"]["lineage"]["mentioned_by"], 1, "{v}");
+    assert_eq!(v["data"]["cites"], serde_json::json!([format!("work#{grandchild}")]), "{v}");
+
+    // Nothing spawned, gathered or cited: neither line.
+    let out = stdout_of(&meshwork(&repo).args(["show", &under]).assert().success());
+    assert!(!out.contains("lineage:") && !out.contains("cites:"), "{out}");
+}

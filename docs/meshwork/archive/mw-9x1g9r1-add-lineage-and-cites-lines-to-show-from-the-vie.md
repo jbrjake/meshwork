@@ -8,7 +8,7 @@ verify: run cargo test show_lineage_line
 docs:
   - docs/PROPOSAL-analytics.md#§-5-5-show
   - docs/PROPOSAL-analytics.md#§-4-8-lineage
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 After `commits:`: `lineage: spawned 25 (1 live, depth 4) · children 0 · mentioned by 7` and
@@ -17,3 +17,5 @@ views. MW-S10's second half.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-12T16:58Z open→doing — claimed by claude (a4b15620-cf77-4910-ac26-1c233b1b0c38)
+- 2026-09-12T17:01Z doing→done — verify exit 0 @ a5f6873+6
