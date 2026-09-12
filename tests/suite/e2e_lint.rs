@@ -292,3 +292,47 @@ fn fenced_heading_stays_body() {
     let out = stdout_of(&meshwork(&repo).arg("lint").assert().success());
     assert!(!out.contains("stray-tail-content"), "{out}");
 }
+
+/// mw-4n00yte: the migration-pressure rows fold — N legacy shell verifies
+/// become one line naming `lint --explain verify-shell`, which lists them;
+/// the counts and the JSON keep every finding.
+#[test]
+fn lint_verify_shell_folded() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let ids: Vec<String> = (0..3)
+        .map(|i| add_id(&repo, &["add", &format!("Legacy {i}"), "--verify", "cargo test --lib"]))
+        .collect();
+
+    let out = stdout_of(&meshwork(&repo).arg("lint").assert().success());
+    assert!(
+        out.contains("3 legacy shell verifies \u{2014} lint --explain verify-shell"),
+        "{out}"
+    );
+    assert!(!out.contains("[verify-shell]"), "per-id rows folded: {out}");
+    assert!(out.contains("0 error(s), 3 warning(s)"), "the count keeps them: {out}");
+
+    let explained = stdout_of(
+        &meshwork(&repo)
+            .args(["lint", "--explain", "verify-shell"])
+            .assert()
+            .success(),
+    );
+    for id in &ids {
+        assert!(
+            explained.contains(&format!("[verify-shell] {id}")),
+            "{id} explained:\n{explained}"
+        );
+    }
+    assert!(!explained.contains("legacy shell verifies \u{2014}"), "{explained}");
+
+    let js = stdout_of(&meshwork(&repo).args(["lint", "--json"]).assert().success());
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    let shell = v["data"]["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|f| f["code"] == "verify-shell")
+        .count();
+    assert_eq!(shell, 3, "JSON keeps every finding: {v}");
+}

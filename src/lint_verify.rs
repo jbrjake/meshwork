@@ -17,7 +17,7 @@ use crate::verify_dsl::{classify, Classified, Predicate};
 
 /// All verify-shaped checks over the live tasks.
 pub(crate) fn check(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
-    for (t, approved) in changed_since_approval(&store.root, valid) {
+    for (t, approved) in changed_since_approval(store, valid) {
         let now = t.verify.as_deref().map(str::trim).unwrap_or_default();
         out.push(finding(
             Severity::Warning,
@@ -127,23 +127,60 @@ fn legacy_grep_path(v: &str) -> Option<String> {
 
 /// mw-yyf1bab: live tasks whose current verify differs from the newest
 /// text this clone approved, with that approved text. Empty when no
-/// approvals are recorded (fresh clone, hash-era file, CI). Shared with
-/// prime, which surfaces the ids as a session-start nudge.
+/// approvals are recorded (fresh clone, hash-era file, CI). A task whose
+/// file is dirty in the working tree is skipped (mw-4n00yte): an
+/// uncommitted edit was made on this clone, not arrived from elsewhere —
+/// the finding waits for the commit; the close gate is untouched. Shared
+/// with prime, which surfaces the ids as a session-start nudge.
 pub(crate) fn changed_since_approval<'a>(
-    root: &std::path::Path,
+    store: &RepoStore,
     tasks: &[&'a Task],
 ) -> Vec<(&'a Task, String)> {
-    let approved = crate::trust::approved_texts(root);
+    let approved = crate::trust::approved_texts(&store.root);
     if approved.is_empty() {
         return Vec::new();
     }
+    let dirty = dirty_ids(store);
     tasks
         .iter()
         .filter(|t| !matches!(t.status, Status::Done | Status::Dropped))
+        .filter(|t| !dirty.contains(&t.id))
         .filter_map(|t| {
             let now = t.verify.as_deref()?.trim();
             let then = approved.get(&t.id)?;
             (then.trim() != now).then(|| (*t, then.clone()))
+        })
+        .collect()
+}
+
+/// Ids whose task file has uncommitted changes — `git status --porcelain`
+/// over the store dir, mapped through the loaded entries. Any git failure
+/// (no repo, no git) reads as nothing dirty.
+fn dirty_ids(store: &RepoStore) -> std::collections::BTreeSet<String> {
+    let Ok(out) = std::process::Command::new("git")
+        .args(["status", "--porcelain", "--", "docs/meshwork"])
+        .current_dir(&store.root)
+        .output()
+    else {
+        return std::collections::BTreeSet::new();
+    };
+    if !out.status.success() {
+        return std::collections::BTreeSet::new();
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    let files: std::collections::BTreeSet<&str> = text
+        .lines()
+        .filter_map(|l| l.get(3..))
+        .map(|p| p.rsplit(" -> ").next().unwrap_or(p).trim_matches('"'))
+        .filter_map(|p| p.strip_prefix("docs/meshwork/"))
+        .collect();
+    store
+        .entries
+        .iter()
+        .filter(|e| files.contains(e.file_name.as_str()))
+        .filter_map(|e| match &e.parsed {
+            crate::parse::ParsedTask::Valid(t) => Some(t.id.clone()),
+            crate::parse::ParsedTask::Invalid(_) => None,
         })
         .collect()
 }

@@ -17,7 +17,14 @@ pub(crate) struct LintArgs {
     /// Repair union-poisoned duplicate keys and re-slug duplicate IDs.
     #[arg(long)]
     fix: bool,
+    /// Print every row of a finding the text report folds (verify-shell).
+    #[arg(long, value_name = "code")]
+    explain: Option<String>,
 }
+
+/// Findings the text report folds into one line — noise by volume, not
+/// by nature: the ids are a `--explain` away, the JSON keeps every row.
+const FOLDED: &str = "verify-shell";
 
 pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
@@ -91,7 +98,11 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
             &serde_json::json!({ "errors": errors, "warnings": warnings, "findings": list }),
         );
     } else {
-        for f in &findings {
+        // The legacy-shell rows fold (mw-4n00yte): 274 identical lines
+        // on the busiest store buried every other signal.
+        let fold = args.explain.as_deref() != Some(FOLDED);
+        let folded = findings.iter().filter(|f| f.code == FOLDED).count();
+        for f in findings.iter().filter(|f| !(fold && f.code == FOLDED)) {
             println!(
                 "{}[{}] {}: {}",
                 f.severity.as_str(),
@@ -99,6 +110,10 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
                 crate::cli::sanitize(&f.subject),
                 crate::cli::sanitize(&f.message)
             );
+        }
+        if fold && folded > 0 {
+            let s = if folded == 1 { "y" } else { "ies" };
+            println!("{folded} legacy shell verif{s} \u{2014} lint --explain {FOLDED}");
         }
         println!("{errors} error(s), {warnings} warning(s)");
     }

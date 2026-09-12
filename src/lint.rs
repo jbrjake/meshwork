@@ -102,11 +102,29 @@ fn check_docs(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
         if matches!(t.status, Status::Done | Status::Dropped) {
             continue;
         }
+        // A link naming the task's own `exists` deliverable is the work,
+        // not a dead link (mw-4n00yte): silent until the file appears.
+        let deliverables: Vec<String> = match t.verify.as_deref().map(crate::verify_dsl::classify) {
+            Some(crate::verify_dsl::Classified::Dsl(preds)) => preds
+                .into_iter()
+                .filter_map(|p| match p {
+                    crate::verify_dsl::Predicate::Exists { path } => Some(path),
+                    _ => None,
+                })
+                .collect(),
+            _ => Vec::new(),
+        };
         for link in &t.docs {
             let Some(err) = crate::docs::resolve(&store.root, link).error else {
                 continue;
             };
+            let own = link.split('#').next().unwrap_or(link);
             let code = match err {
+                crate::docs::LinkError::Unreadable { .. }
+                    if deliverables.iter().any(|d| d == own) =>
+                {
+                    continue;
+                }
                 crate::docs::LinkError::Unreadable { .. } => "doc-missing",
                 crate::docs::LinkError::AnchorMissing { .. } => "anchor-missing",
                 crate::docs::LinkError::Escapes { .. } => "path-escape",
@@ -586,7 +604,10 @@ fn check_budgets(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
         }
     }
     for t in valid {
-        if t.description.len() > DESCRIPTION_BUDGET {
+        // A terminal task's description is history nobody will trim
+        // (mw-4n00yte): the budget is pressure on live work only.
+        let terminal = matches!(t.status, Status::Done | Status::Dropped);
+        if !terminal && t.description.len() > DESCRIPTION_BUDGET {
             out.push(finding(
                 Severity::Warning,
                 "description-size",

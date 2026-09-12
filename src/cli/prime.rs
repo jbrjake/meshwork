@@ -422,7 +422,11 @@ fn counts_line(counts: &BTreeMap<&str, usize>, invalid: usize, repo: &str) -> St
 /// from ready), plus verifies edited after this clone approved them
 /// (mw-yyf1bab) — surfaced before the session commits to a task; lint
 /// carries the detail.
-fn advisory_lines(root: &std::path::Path, tasks: &[&Task], invalid: &[&str]) -> Vec<String> {
+fn advisory_lines(
+    store: &crate::store::RepoStore,
+    tasks: &[&Task],
+    invalid: &[&str],
+) -> Vec<String> {
     let mut out = Vec::new();
     if !invalid.is_empty() {
         out.push(clamp_bytes(
@@ -434,7 +438,7 @@ fn advisory_lines(root: &std::path::Path, tasks: &[&Task], invalid: &[&str]) -> 
             LINE_CLAMP,
         ));
     }
-    let changed = crate::lint_verify::changed_since_approval(root, tasks);
+    let changed = crate::lint_verify::changed_since_approval(store, tasks);
     if !changed.is_empty() {
         let ids: Vec<&str> = changed.iter().map(|(t, _)| t.id.as_str()).collect();
         out.push(clamp_bytes(
@@ -558,7 +562,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         also_ready: &also_ready,
         ready_total: ready.len(),
         dones: &dones,
-        advisories: advisory_lines(&root, &tasks, &invalid_ids),
+        advisories: advisory_lines(&store, &tasks, &invalid_ids),
     };
     // The tail and the footer are reserved off the top: the footer is the
     // one line that must outlive every cut (mw-d539ppk).
