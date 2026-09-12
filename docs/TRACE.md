@@ -62,8 +62,8 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-S3 | `conformance::views_golden` (nonconforming stamps in the fixture project NULL) | done |
 | MW-S4 | `lint::discovered_cycle`, `conformance::views_golden` | planned |
 | MW-S5 | `tables::views_registered` (the window rides on `clock`) | done |
-| MW-S6 | `e2e::prime_pulse_matches_view` | planned |
-| MW-S7 | `e2e::prime_pulse_matches_view` | planned |
+| MW-S6 | `e2e::prime_pulse_matches_view`, `e2e::prime_pulse_asks_match_union`, `e2e::prime_next_cites_closed` | done |
+| MW-S7 | `e2e::prime_pulse_matches_view` | done |
 | MW-S10 | `e2e::set_handoff_mints_log_line` | done |
 | MW-S11 | `arch::analytics_fences` | planned |
 | MW-S12 | `e2e::ready_unchanged_by_views` | planned |

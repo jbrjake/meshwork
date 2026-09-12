@@ -76,8 +76,10 @@ impl Clock {
     }
 }
 
-/// Epoch seconds of a conforming stamp; `None` for any other text.
-fn stamp_secs(stamp: &str) -> Option<i64> {
+/// Epoch seconds of a conforming stamp; `None` for any other text — the
+/// guard every view applies, shared with the Rust-side facts.
+#[must_use]
+pub fn stamp_secs(stamp: &str) -> Option<i64> {
     let (date, minutes) = match stamp.len() {
         10 => (stamp, 0),
         17 => {

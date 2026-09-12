@@ -77,10 +77,7 @@ fn provenance_line(root: &std::path::Path) -> Option<String> {
 /// A category's first two segments — `engine/spill/budget` rolls up into
 /// `engine/spill` (§7b: display grain, not a model change).
 fn group_of(category: &str) -> &str {
-    match category.match_indices('/').nth(1) {
-        Some((i, _)) => &category[..i],
-        None => category,
-    }
+    crate::pulse::category_group(category)
 }
 
 fn is_live(status: Status) -> bool {
@@ -250,8 +247,14 @@ fn handoff_tag(t: &Task) -> String {
     }
 }
 
-/// The next-task block: the `handoff:` voice first, mechanics after (§7b).
-fn next_block_lines(tasks: &[&Task], ready: &[Vec<String>]) -> Vec<String> {
+/// The next-task block: the `handoff:` voice first, mechanics after (§7b);
+/// `cited` names the closed tasks the voice still refers to (MW-S6).
+fn next_block_lines(
+    tasks: &[&Task],
+    ready: &[Vec<String>],
+    cited: &[String],
+    repo: &str,
+) -> Vec<String> {
     let mut out = Vec::new();
     let Some(row) = ready.first() else {
         return out;
@@ -275,6 +278,7 @@ fn next_block_lines(tasks: &[&Task], ready: &[Vec<String>]) -> Vec<String> {
             ));
         }
         out.push(clamp_bytes(&handoff_tag(t), LINE_CLAMP));
+        out.extend(super::pulse::cites_line(cited, repo));
     }
     let deps = dependents(tasks, &t.id);
     let mut meta: Vec<String> = Vec::new();
@@ -446,9 +450,16 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let store = load_repo(&root).map_err(|e| e.to_string())?;
 
-    // Ready via the normative SQL (single source of queue truth).
-    let ready = super::query::sql_rows_local(super::query::READY_SQL)?;
+    // Ready via the normative SQL (single source of queue truth), over the
+    // session a query would see: this store plus its terminal foreign
+    // rows — the same inputs the Rust-side pulse reads (MW-S7).
+    let foreign = super::query::terminal_foreign(&store)?;
+    let ctx = crate::tables::session_for(std::slice::from_ref(&store), &foreign)
+        .map_err(|e| e.to_string())?;
+    let (_, batches) = super::query::run_query(&ctx, super::query::READY_SQL)?;
+    let ready = super::query::string_rows(&batches);
     let ready_ids: BTreeSet<&str> = ready.iter().map(|r| r[0].as_str()).collect();
+    let clock = crate::views::Clock::resolve(store.config.window_days())?;
 
     let tasks: Vec<&Task> = store
         .entries
@@ -467,23 +478,41 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     }
 
     let (ranked, rollup_line) = rollup(&tasks);
-    let mut weather = weather_lines(&tasks, &ready_ids);
-    let mut next_block = next_block_lines(&tasks, &ready);
-    let mut also_ready = also_ready_lines(&tasks, &ready);
+    let weather = weather_lines(&tasks, &ready_ids);
     let dones = recent_dones(&tasks);
-    let inbox = crate::addressed::inbox(&store.repo);
     let today = crate::clock::today();
 
+    // One union read serves the inbox and the asks line (MW-S6); with no
+    // registry the store answers for itself, as its own query would.
+    let union = crate::addressed::union();
+    let inbox = union
+        .as_deref()
+        .map_or_else(Vec::new, |s| crate::addressed::inbox_of(s, &store.repo));
+    let mut pulse =
+        crate::pulse::compute(std::slice::from_ref(&store), &foreign, &clock, &store.repo);
+    if let Some(stores) = &union {
+        let (a, b, c, d) = crate::pulse::asks(stores, &clock, &store.repo);
+        pulse.asks_in_open = a;
+        pulse.asks_in_oldest_d = b;
+        pulse.asks_out_open = c;
+        pulse.asks_out_oldest_d = d;
+    }
+    let next_task = ready
+        .first()
+        .and_then(|r| tasks.iter().find(|t| t.id == r[0]).copied());
+    let cited = cited_by_next(&store, &foreign, next_task);
+    let next_block = next_block_lines(&tasks, &ready, &cited, &store.repo);
+    let also_ready = also_ready_lines(&tasks, &ready);
+
     if json {
-        let next_task = ready
-            .first()
-            .and_then(|r| tasks.iter().find(|t| t.id == r[0]).copied());
         emit_prime_json(&PrimeJson {
             counts: &counts,
             ready: &ready,
             rollup: &ranked,
             weather: &weather,
+            pulse: &pulse,
             next: next_task,
+            cites: &cited,
             dones: &dones,
             inbox: &inbox,
             today: &today,
@@ -492,47 +521,31 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         return Ok(());
     }
 
-    // Assemble lines, then enforce the byte budget with a loud tail. The
-    // headline carries the inbox's silence as a number (mw-r6g9bhe): an
-    // ask nobody answers ages in every session's first line.
+    // Assemble lines under the byte budget — the pulse's cuts first, the
+    // loud tail last. The headline carries the inbox's silence as a
+    // number (mw-r6g9bhe): an ask nobody answers ages in every session's
+    // first line.
     let mut headline = counts_line(&counts, invalid, &store.repo);
     if let Some(tail) = crate::addressed::headline_tail(&inbox, &today) {
         let _ = write!(headline, " \u{b7} {tail}");
     }
-    let mut lines: Vec<String> = vec![headline];
-    if let Some(p) = provenance_line(&root) {
-        lines.push(clamp_bytes(&p, LINE_CLAMP));
-    }
-    if let Some(r) = rollup_line {
-        lines.push(clamp_bytes(&r, LINE_CLAMP));
-    }
-    if !weather.is_empty() {
-        lines.push("weather:".to_string());
-        lines.append(&mut weather);
-    }
-    lines.append(&mut inbox_lines(&inbox, &today));
-    lines.append(&mut next_block);
-    if !also_ready.is_empty() {
-        lines.push(format!(
-            "also ready ({} more, top {}):",
-            ready.len().saturating_sub(1),
-            also_ready.len()
-        ));
-        lines.append(&mut also_ready);
-    }
-    if ready.len() > READY_ROWS {
-        lines.push(format!(
-            "\u{2026} and {} more (ready --all)",
-            ready.len() - READY_ROWS
-        ));
-    }
-    if !dones.is_empty() {
-        lines.push("recently done:".to_string());
-        for (date, id, title) in &dones {
-            lines.push(clamp_bytes(&format!("- {date} {id} {title}"), LINE_CLAMP));
-        }
-    }
-    lines.append(&mut advisory_lines(&root, &tasks, &invalid_ids));
+    let digest = Digest {
+        headline,
+        provenance: provenance_line(&root).map(|p| clamp_bytes(&p, LINE_CLAMP)),
+        rollup: rollup_line.map(|r| clamp_bytes(&r, LINE_CLAMP)),
+        pulse: &pulse,
+        window_days: store.config.window_days(),
+        weather: &weather,
+        inbox: inbox_lines(&inbox, &today),
+        next_block: &next_block,
+        also_ready: &also_ready,
+        ready_total: ready.len(),
+        dones: &dones,
+        advisories: advisory_lines(&root, &tasks, &invalid_ids),
+    };
+    let lines = super::pulse::fit(BUDGET - (TAIL.len() + 1), also_ready.len(), |cuts| {
+        assemble(&digest, cuts)
+    });
 
     let mut out = String::new();
     for line in &lines {
@@ -548,13 +561,89 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     Ok(())
 }
 
+/// The closed tasks the next task's handoff still names (MW-S6) — the
+/// mention pass over one block, resolved against every row the query
+/// session would carry.
+fn cited_by_next(
+    store: &crate::store::RepoStore,
+    foreign: &[crate::registry::ForeignTask],
+    next: Option<&Task>,
+) -> Vec<String> {
+    let Some((t, voice)) = next.and_then(|t| t.handoff.as_deref().map(|h| (t, h))) else {
+        return Vec::new();
+    };
+    let statuses = crate::pulse::statuses(std::slice::from_ref(store), foreign);
+    crate::pulse::cited_closed(voice, &store.repo, &store.gid(&t.id), &statuses)
+}
+
+/// The digest's rendered pieces, assembled once per budget cut.
+struct Digest<'a> {
+    headline: String,
+    provenance: Option<String>,
+    rollup: Option<String>,
+    pulse: &'a crate::pulse::Pulse,
+    window_days: i64,
+    weather: &'a [String],
+    inbox: Vec<String>,
+    next_block: &'a [String],
+    also_ready: &'a [String],
+    ready_total: usize,
+    dones: &'a [(String, &'a str, &'a str)],
+    advisories: Vec<String>,
+}
+
+/// Every line of the digest in order, under the given cuts: the pulse
+/// leads the weather; also-ready shows what the cut allows and says so.
+fn assemble(d: &Digest, cuts: &super::pulse::Cuts) -> Vec<String> {
+    let mut lines: Vec<String> = vec![d.headline.clone()];
+    lines.extend(d.provenance.clone());
+    lines.extend(d.rollup.clone());
+    let mut pulse_lines = super::pulse::lines(d.pulse, d.window_days, cuts);
+    if !pulse_lines.is_empty() || !d.weather.is_empty() {
+        lines.push("weather:".to_string());
+        lines.append(&mut pulse_lines);
+        lines.extend(d.weather.iter().cloned());
+    }
+    lines.extend(d.inbox.iter().cloned());
+    lines.extend(d.next_block.iter().cloned());
+    let shown = d.also_ready.len().min(cuts.also_ready);
+    if shown > 0 {
+        let budgeted = if shown < d.also_ready.len() {
+            " \u{2014} 6KB budget"
+        } else {
+            ""
+        };
+        lines.push(format!(
+            "also ready ({} more, top {shown}{budgeted}):",
+            d.ready_total.saturating_sub(1)
+        ));
+        lines.extend(d.also_ready.iter().take(shown).cloned());
+    }
+    if d.ready_total > shown + 1 {
+        lines.push(format!(
+            "\u{2026} and {} more (ready --all)",
+            d.ready_total - shown - 1
+        ));
+    }
+    if !d.dones.is_empty() {
+        lines.push("recently done:".to_string());
+        for (date, id, title) in d.dones {
+            lines.push(clamp_bytes(&format!("- {date} {id} {title}"), LINE_CLAMP));
+        }
+    }
+    lines.extend(d.advisories.iter().cloned());
+    lines
+}
+
 /// The digest's sections, bundled for the JSON emitter — one view, one arg.
 struct PrimeJson<'a> {
     counts: &'a BTreeMap<&'a str, usize>,
     ready: &'a [Vec<String>],
     rollup: &'a [(&'a str, i64, usize)],
     weather: &'a [String],
+    pulse: &'a crate::pulse::Pulse,
     next: Option<&'a Task>,
+    cites: &'a [String],
     dones: &'a [(String, &'a str, &'a str)],
     inbox: &'a [crate::addressed::Ask],
     today: &'a str,
@@ -579,7 +668,8 @@ fn emit_prime_json(v: &PrimeJson) {
         .collect();
     let next_row = v.next.map(|t| {
         serde_json::json!({ "id": t.id, "title": t.title, "handoff": t.handoff,
-            "verify": t.verify, "docs": t.docs, "category": t.category })
+            "verify": t.verify, "docs": t.docs, "category": t.category,
+            "cites": v.cites })
     });
     let done_rows: Vec<_> = v
         .dones
@@ -604,7 +694,8 @@ fn emit_prime_json(v: &PrimeJson) {
             "counts": v.counts, "provenance": v.provenance,
             "ready_total": v.ready.len(), "ready": ready_rows,
             "rollup": rollup_rows, "rollup_total": v.rollup.len(),
-            "weather": v.weather, "next": next_row, "recently_done": done_rows,
+            "weather": v.weather, "pulse": super::pulse::json(v.pulse),
+            "next": next_row, "recently_done": done_rows,
             "addressed": addressed, "asks": asks,
         }),
     );

@@ -110,6 +110,7 @@ include!("e2e_path_confinement.rs");
 include!("e2e_portfolio.rs");
 include!("e2e_prime.rs");
 include!("e2e_prime_provenance.rs");
+include!("e2e_pulse.rs");
 include!("e2e_query.rs");
 include!("e2e_registry.rs");
 include!("e2e_render_sanitized.rs");

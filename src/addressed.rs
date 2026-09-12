@@ -61,17 +61,27 @@ pub fn age_suffix(ask: &Ask, today: &str) -> String {
         .map_or(String::new(), |d| format!(" ({d}d)"))
 }
 
+/// The portfolio union as the read-time join sees it: every store the
+/// registry resolves, or `None` when there is no registry to resolve
+/// (quiet by rule — absent repos simply contribute nothing).
+#[must_use]
+pub fn union() -> Option<Vec<crate::store::RepoStore>> {
+    let registry = crate::registry::quiet_load().ok()??;
+    let (stores, _skipped) = crate::registry::load_stores(&registry).ok()?;
+    Some(stores)
+}
+
 /// The asks addressed to `me` that no live task answers, oldest first.
 /// Best-effort by design: absent repos simply contribute nothing.
 #[must_use]
 pub fn inbox(me: &str) -> Vec<Ask> {
-    let Ok(Some(registry)) = crate::registry::quiet_load() else {
-        return Vec::new();
-    };
-    let Ok((stores, _skipped)) = crate::registry::load_stores(&registry) else {
-        return Vec::new();
-    };
+    union().map_or_else(Vec::new, |stores| inbox_of(&stores, me))
+}
 
+/// [`inbox`] over an already-loaded union — one read serves every
+/// consumer in a digest.
+#[must_use]
+pub fn inbox_of(stores: &[crate::store::RepoStore], me: &str) -> Vec<Ask> {
     // Every ask gid answered by a non-dropped task, anywhere in the union.
     let answered: std::collections::BTreeSet<String> = stores
         .iter()
@@ -87,7 +97,7 @@ pub fn inbox(me: &str) -> Vec<Ask> {
         .collect();
 
     let mut asks: Vec<(String, Ask)> = Vec::new();
-    for store in &stores {
+    for store in stores {
         for entry in &store.entries {
             let ParsedTask::Valid(t) = &entry.parsed else {
                 continue;
