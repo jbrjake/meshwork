@@ -28,8 +28,9 @@ const BODY_HEAD_LINES: usize = 3;
 const VOICE_LINES: usize = 6;
 /// Recently-done rows (§7b: last ~5, dated from log lines).
 const DONE_ROWS: usize = 5;
-/// Incoming asks shown in prime — a nudge, never a second worklist.
-const ADDRESSED_ROWS: usize = 3;
+/// The last line, always: what to do next with the digest itself.
+const FOOTER: &str =
+    "re-run meshwork prime when the question changes; load the meshwork skill before filing";
 /// Dependents named on a blocks-line before collapsing to +N.
 const BLOCKS_NAMED: usize = 3;
 /// Visible marker when the budget forces a cut.
@@ -334,23 +335,37 @@ fn next_block_lines(
 /// Incoming asks (mw-hfvtx0s) — between weather and next: they inform
 /// the session before it commits to a task, but never displace next.
 /// Each row carries its age; the headline carries the oldest.
-fn inbox_lines(inbox: &[crate::addressed::Ask], today: &str) -> Vec<String> {
+fn inbox_lines(
+    inbox: &[crate::addressed::Ask],
+    today: &str,
+    repo: &str,
+    collapsed: bool,
+) -> Vec<String> {
     let mut out = Vec::new();
     if inbox.is_empty() {
         return out;
     }
+    // Whole, or a pointer (mw-0a084qy): every ask while it fits; when it
+    // cannot, the count, the oldest age and the exact statement that
+    // lists them — never a `… and N more` with nothing to run. The
+    // statement is not clamped: cut, it would run nothing.
+    if collapsed {
+        let s = if inbox.len() == 1 { "" } else { "s" };
+        let oldest = crate::addressed::oldest_age_days(inbox, today)
+            .map_or(String::new(), |d| format!(", oldest {d}d"));
+        out.push(format!(
+            "addressed to this repo: {} ask{s}{oldest} \u{2014} {}",
+            inbox.len(),
+            crate::addressed::list_statement(repo)
+        ));
+        return out;
+    }
     out.push(format!("addressed to this repo ({}):", inbox.len()));
-    for a in inbox.iter().take(ADDRESSED_ROWS) {
+    for a in inbox {
         let age = crate::addressed::age_suffix(a, today);
         out.push(clamp_bytes(
             &format!("- {} {}{age}", a.gid, a.title),
             LINE_CLAMP,
-        ));
-    }
-    if inbox.len() > ADDRESSED_ROWS {
-        out.push(format!(
-            "… and {} more addressed",
-            inbox.len() - ADDRESSED_ROWS
         ));
     }
     out
@@ -536,25 +551,31 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         pulse: &pulse,
         window_days: store.config.window_days(),
         weather: &weather,
-        inbox: inbox_lines(&inbox, &today),
+        inbox: &inbox,
+        today: &today,
+        repo: &store.repo,
         next_block: &next_block,
         also_ready: &also_ready,
         ready_total: ready.len(),
         dones: &dones,
         advisories: advisory_lines(&root, &tasks, &invalid_ids),
     };
-    let lines = super::pulse::fit(BUDGET - (TAIL.len() + 1), also_ready.len(), |cuts| {
+    // The tail and the footer are reserved off the top: the footer is the
+    // one line that must outlive every cut (mw-d539ppk).
+    let reserved = TAIL.len() + 1 + FOOTER.len() + 1;
+    let lines = super::pulse::fit(BUDGET - reserved, also_ready.len(), |cuts| {
         assemble(&digest, cuts)
     });
 
     let mut out = String::new();
     for line in &lines {
-        if out.len() + line.len() + 1 > BUDGET - (TAIL.len() + 1) {
+        if out.len() + line.len() + 1 > BUDGET - reserved {
             let _ = writeln!(out, "{TAIL}");
             break;
         }
         let _ = writeln!(out, "{line}");
     }
+    let _ = writeln!(out, "{FOOTER}");
     // One choke point for the whole digest — this text also lands in
     // hook-injected agent context (mw-8fmsws3).
     print!("{}", crate::cli::sanitize(&out));
@@ -584,7 +605,9 @@ struct Digest<'a> {
     pulse: &'a crate::pulse::Pulse,
     window_days: i64,
     weather: &'a [String],
-    inbox: Vec<String>,
+    inbox: &'a [crate::addressed::Ask],
+    today: &'a str,
+    repo: &'a str,
     next_block: &'a [String],
     also_ready: &'a [String],
     ready_total: usize,
@@ -604,7 +627,7 @@ fn assemble(d: &Digest, cuts: &super::pulse::Cuts) -> Vec<String> {
         lines.append(&mut pulse_lines);
         lines.extend(d.weather.iter().cloned());
     }
-    lines.extend(d.inbox.iter().cloned());
+    lines.append(&mut inbox_lines(d.inbox, d.today, d.repo, cuts.inbox));
     lines.extend(d.next_block.iter().cloned());
     let shown = d.also_ready.len().min(cuts.also_ready);
     if shown > 0 {

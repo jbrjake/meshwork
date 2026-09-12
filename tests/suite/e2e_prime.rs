@@ -217,3 +217,111 @@ fn prime_names_invalid() {
     );
     assert!(out.contains("run lint"), "names the next step:\n{out}");
 }
+
+/// Write `n` open asks from alpha to beta, `created` on successive days
+/// from `day` (a `YYYY-MM-` prefix); titles padded to `pad` bytes.
+fn write_asks(alpha: &Path, n: usize, day: &str, pad: usize) -> Vec<String> {
+    (0..n)
+        .map(|i| {
+            let id = format!("az-ask{i:04}");
+            let created = format!("{day}{:02}", i % 28 + 1);
+            let title = format!("Ask {i:02} {}", "x".repeat(pad));
+            std::fs::write(
+                alpha.join(format!("docs/meshwork/{id}-ask.md")),
+                format!(
+                    "---\nid: {id}\ntitle: {title}\nstatus: open\nto: beta\n\
+                     created: {created}\n---\n\n## log\n- {created} created\n"
+                ),
+            )
+            .unwrap();
+            format!("alpha#{id}")
+        })
+        .collect()
+}
+
+/// mw-0a084qy: the inbox is either whole or a pointer. Every inbound ask
+/// prints while it fits the budget; when it cannot, one line carries the
+/// count, the oldest age and the exact `portfolio q` that lists them —
+/// never a `… and N more` with nothing to run. `ready` names the verb in
+/// its footnote and lifts the cap under `--all`.
+#[test]
+fn prime_inbox_lists_all_or_names_the_verb() {
+    let (dir, portfolio) = portfolio_fixture();
+    let alpha = dir.path().join("alpha");
+    let beta = dir.path().join("beta");
+    let at = |verb: &[&str]| {
+        let mut c = meshwork(&beta);
+        c.env("MESHWORK_PORTFOLIO", &portfolio)
+            .env("MESHWORK_TODAY", "2026-09-07")
+            .args(verb);
+        stdout_of(&c.assert().success())
+    };
+
+    // Seven asks fit: every one is listed, nothing is elided.
+    let gids = write_asks(&alpha, 7, "2026-08-", 0);
+    let out = at(&["prime"]);
+    for gid in &gids {
+        assert!(out.contains(gid), "{gid} listed:\n{out}");
+    }
+    assert!(!out.contains("more addressed"), "{out}");
+    assert!(out.contains("addressed to this repo (7):"), "{out}");
+
+    // ready: the cap holds, the footnote names the verb; --all lifts it.
+    let ready = at(&["ready"]);
+    assert!(ready.contains("… and 2 more addressed"), "{ready}");
+    assert!(ready.contains("portfolio q"), "{ready}");
+    let all = at(&["ready", "--all"]);
+    for gid in &gids {
+        assert!(all.contains(gid), "{gid} under --all:\n{all}");
+    }
+    assert!(!all.contains("more addressed"), "{all}");
+
+    // Forty long-titled asks cannot fit: the list collapses to one line
+    // with the count, the oldest age and the statement to run.
+    for gid in &gids {
+        std::fs::remove_file(alpha.join(format!(
+            "docs/meshwork/{}-ask.md",
+            gid.trim_start_matches("alpha#")
+        )))
+        .unwrap();
+    }
+    let gids = write_asks(&alpha, 40, "2026-08-", 120);
+    let out = at(&["prime"]);
+    assert!(out.len() <= 6144, "budget: {} bytes", out.len());
+    assert!(
+        out.contains("addressed to this repo: 40 asks, oldest 37d"),
+        "{out}"
+    );
+    assert!(
+        out.contains("portfolio q \"SELECT gid, title FROM asks WHERE to_repo = 'beta' AND unanswered ORDER BY age_h DESC\""),
+        "{out}"
+    );
+    assert!(
+        gids.iter().all(|g| !out.contains(g.as_str())),
+        "the collapsed inbox lists no ask: {out}"
+    );
+}
+
+/// mw-d539ppk: the digest ends on the line that says what to do next
+/// with it — re-run it when the question changes, load the skill before
+/// filing — and that line survives the budget's truncation.
+#[test]
+fn prime_footer_names_skill() {
+    const FOOTER: &str =
+        "re-run meshwork prime when the question changes; load the meshwork skill before filing";
+    let (_g, repo) = fixture_repo("alpha");
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert_eq!(out.lines().last(), Some(FOOTER), "{out}");
+
+    let (_g2, big) = git_repo("bulk");
+    init_store(&big);
+    let long = "very long title segment that pads the line ".repeat(4);
+    for i in 0..60 {
+        let id = add_task(&big, &format!("Doing {i:02} {long}"));
+        meshwork(&big).args(["start", &id]).assert().success();
+    }
+    let out = stdout_of(&meshwork(&big).arg("prime").assert().success());
+    assert!(out.len() <= 6144, "budget: {} bytes", out.len());
+    assert!(out.contains("truncated"), "{out}");
+    assert_eq!(out.lines().last(), Some(FOOTER), "the footer outlives the cut:\n{out}");
+}

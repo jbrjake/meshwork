@@ -21,6 +21,8 @@ const CUT: &str = "cut (6KB budget)";
 /// What the budget dance has given up so far.
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct Cuts {
+    /// The inbox collapsed to its count, oldest age and the listing verb.
+    pub inbox: bool,
     /// Also-ready rows shown.
     pub also_ready: usize,
     /// The friction line replaced by its cut marker.
@@ -219,9 +221,10 @@ fn size(lines: &[String]) -> usize {
     lines.iter().map(|l| l.len() + 1).sum()
 }
 
-/// Build the digest under `budget` bytes, giving up the least first:
-/// also-ready down to the floor, then friction, then graph. What still
-/// overflows after that is the caller's truncation tail.
+/// Build the digest under `budget` bytes, giving up the least first: the
+/// inbox list collapses to a pointer that still carries its count, age
+/// and verb; then also-ready down to the floor, then friction, then
+/// graph. What still overflows after that is the caller's truncation tail.
 pub(crate) fn fit(
     budget: usize,
     also_ready: usize,
@@ -231,7 +234,8 @@ pub(crate) fn fit(
         also_ready,
         ..Cuts::default()
     };
-    let steps: [fn(&mut Cuts); 3] = [
+    let steps: [fn(&mut Cuts); 4] = [
+        |c| c.inbox = true,
         |c| c.also_ready = c.also_ready.min(ALSO_READY_FLOOR),
         |c| c.friction = true,
         |c| c.graph = true,

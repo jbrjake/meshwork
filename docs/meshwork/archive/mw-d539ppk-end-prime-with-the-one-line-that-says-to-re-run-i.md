@@ -6,7 +6,7 @@ seq: 510
 verify: run cargo test prime_footer_names_skill
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-3-recommendations
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 The skill loaded in 39% of meshwork-using sessions; the sharpest behaviour change in the corpus
@@ -17,3 +17,5 @@ question changes; load the meshwork skill before filing`. No ruling; the hook ch
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-12T16:41Z open→doing — claimed by claude (a4b15620-cf77-4910-ac26-1c233b1b0c38)
+- 2026-09-12T16:45Z doing→done — verify exit 0 @ 3df54d6+9
