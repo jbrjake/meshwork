@@ -17,6 +17,7 @@ pub mod id;
 pub mod lint;
 pub mod lint_tail;
 pub mod lint_verify;
+pub mod lint_views;
 pub mod parse;
 pub mod paths;
 pub mod provenance;

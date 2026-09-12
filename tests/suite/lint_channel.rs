@@ -113,3 +113,139 @@ fn verify_changed_since_approval_quiet_when_dirty() {
         "{committed:?}"
     );
 }
+
+/// A task file under the store dir: frontmatter lines, then a body.
+fn write_task(root: &std::path::Path, id: &str, front: &str, body: &str) {
+    std::fs::write(
+        root.join(format!("docs/meshwork/{id}-t.md")),
+        format!("---\nid: {id}\ntitle: {id}\n{front}---\n{body}"),
+    )
+    .unwrap();
+}
+
+/// mw-axhze9m: a live task whose handoff names a closed task is prose
+/// about to be trusted past its date — the mentions view says so; a
+/// handoff naming live work is fine.
+#[test]
+fn handoff_cites_closed() {
+    let (_dir, root) = channel_store();
+    write_task(
+        &root,
+        "zz-done1",
+        "status: done\nverify: \"true\"\n",
+        "\n## log\n- 2026-08-01 created\n- 2026-08-02 open\u{2192}done\n",
+    );
+    write_task(
+        &root,
+        "zz-live1",
+        "status: open\nverify: \"true\"\nhandoff: |\n  Start from zz-done1, it landed the seam.\n",
+        "",
+    );
+    write_task(
+        &root,
+        "zz-live2",
+        "status: open\nverify: \"true\"\nhandoff: |\n  Pair with zz-live1.\n",
+        "",
+    );
+    let f = lint_store(&load_repo(&root).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "handoff-cites-closed", "zz-live1"),
+        "{f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "handoff-cites-closed", "zz-done1"),
+        "names the closed task: {f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "handoff-cites-closed", "zz-live2"),
+        "a live reference is not stale: {f:?}"
+    );
+}
+
+/// Two live tasks on one seq in one repo is an order nobody chose;
+/// terminal tasks and distinct seqs are not collisions.
+#[test]
+fn seq_collision() {
+    let (_dir, root) = channel_store();
+    for (id, status, seq) in [
+        ("zz-seqa", "open", 10),
+        ("zz-seqb", "doing", 10),
+        ("zz-seqc", "done", 10),
+        ("zz-seqd", "open", 20),
+    ] {
+        write_task(
+            &root,
+            id,
+            &format!("status: {status}\nverify: \"true\"\nseq: {seq}\n"),
+            "",
+        );
+    }
+    let f = lint_store(&load_repo(&root).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "seq-collision", "zz-seqa")
+            && has(&f, Severity::Warning, "seq-collision", "zz-seqb"),
+        "both live holders named: {f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "seq-collision", "zz-seqc")
+            && !has(&f, Severity::Warning, "seq-collision", "zz-seqd"),
+        "terminal and distinct seqs are silent: {f:?}"
+    );
+}
+
+/// The remaining three: a live→live mention with no edge behind it, a
+/// discovered-from cycle, and repeated failed closes on a live task.
+#[test]
+fn views_findings() {
+    let (_dir, root) = channel_store();
+    write_task(
+        &root,
+        "zz-impa",
+        "status: open\nverify: \"true\"\n",
+        "Depends on what zz-impb decides.\n",
+    );
+    write_task(&root, "zz-impb", "status: open\nverify: \"true\"\n", "");
+    write_task(
+        &root,
+        "zz-impc",
+        "status: open\nverify: \"true\"\nrelates: [zz-impb]\n",
+        "Sibling of zz-impb.\n",
+    );
+    write_task(
+        &root,
+        "zz-cyca",
+        "status: open\nverify: \"true\"\ndiscovered-from: zz-cycb\n",
+        "",
+    );
+    write_task(
+        &root,
+        "zz-cycb",
+        "status: open\nverify: \"true\"\ndiscovered-from: zz-cyca\n",
+        "",
+    );
+    write_task(
+        &root,
+        "zz-cls1",
+        "status: open\nverify: \"true\"\n",
+        "\n## log\n- 2026-08-01 created\n- 2026-08-02 close attempt \u{2014} verify failed\n\
+         - 2026-08-03 close attempt \u{2014} verify failed\n",
+    );
+    let f = lint_store(&load_repo(&root).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "implicit-edge", "zz-impa")
+            && has(&f, Severity::Warning, "implicit-edge", "zz-impb"),
+        "the edgeless mention, both ends named: {f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "implicit-edge", "zz-impc"),
+        "an edge behind the mention is not implicit: {f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "discovered-cycle", "zz-cyca"),
+        "{f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "close-attempts", "zz-cls1"),
+        "{f:?}"
+    );
+}

@@ -24,7 +24,19 @@ pub(crate) struct LintArgs {
 
 /// Findings the text report folds into one line — noise by volume, not
 /// by nature: the ids are a `--explain` away, the JSON keeps every row.
-const FOLDED: &str = "verify-shell";
+/// Code, singular noun, plural noun.
+const FOLDED: &[(&str, &str, &str)] = &[
+    (
+        "verify-shell",
+        "legacy shell verify",
+        "legacy shell verifies",
+    ),
+    (
+        "implicit-edge",
+        "edgeless live mention",
+        "edgeless live mentions",
+    ),
+];
 
 pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
@@ -100,9 +112,12 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     } else {
         // The legacy-shell rows fold (mw-4n00yte): 274 identical lines
         // on the busiest store buried every other signal.
-        let fold = args.explain.as_deref() != Some(FOLDED);
-        let folded = findings.iter().filter(|f| f.code == FOLDED).count();
-        for f in findings.iter().filter(|f| !(fold && f.code == FOLDED)) {
+        let folds = |code: &str| {
+            FOLDED
+                .iter()
+                .any(|(c, _, _)| *c == code && args.explain.as_deref() != Some(code))
+        };
+        for f in findings.iter().filter(|f| !folds(&f.code)) {
             println!(
                 "{}[{}] {}: {}",
                 f.severity.as_str(),
@@ -111,9 +126,12 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
                 crate::cli::sanitize(&f.message)
             );
         }
-        if fold && folded > 0 {
-            let s = if folded == 1 { "y" } else { "ies" };
-            println!("{folded} legacy shell verif{s} \u{2014} lint --explain {FOLDED}");
+        for (code, one, many) in FOLDED.iter().filter(|(c, _, _)| folds(c)) {
+            let n = findings.iter().filter(|f| f.code == *code).count();
+            if n > 0 {
+                let noun = if n == 1 { one } else { many };
+                println!("{n} {noun} \u{2014} lint --explain {code}");
+            }
         }
         println!("{errors} error(s), {warnings} warning(s)");
     }

@@ -267,6 +267,32 @@ pub fn register_blocking(ctx: &SessionContext, clock: &Clock, sql: &str) -> Resu
     rt.block_on(register(ctx, clock, Some(sql)))
 }
 
+/// Run `sql` on a session from synchronous code, every cell a string
+/// (NULL empty) — for model-side readers of the projection such as lint.
+///
+/// # Errors
+/// The query fails to plan or run, or the runtime fails to build.
+pub fn query_blocking(ctx: &SessionContext, sql: &str) -> Result<Vec<Vec<String>>, String> {
+    use datafusion::arrow::util::display::array_value_to_string;
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| e.to_string())?;
+    let batches = rt
+        .block_on(async { ctx.sql(sql).await?.collect().await })
+        .map_err(|e| e.to_string())?;
+    Ok(batches
+        .iter()
+        .flat_map(|b| {
+            (0..b.num_rows()).map(move |row| {
+                (0..b.num_columns())
+                    .map(|col| array_value_to_string(b.column(col), row).unwrap_or_default())
+                    .collect()
+            })
+        })
+        .collect())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
