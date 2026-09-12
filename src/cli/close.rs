@@ -180,6 +180,7 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
 
     match verdict {
         Ok(()) => {
+            uncommitted_notice(&root, &args.id, verify);
             let out = scrub_on_close(&task, &text)?;
             let out = set_scalar(&out, "status", Some("done"))?;
             let out = append_section_entry(
@@ -207,6 +208,54 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
             Err(format!("{} stays {from}: {stays}", args.id))
         }
     }
+}
+
+/// mw-bzzq8yc: a `run` verify that passed on an uncommitted tree vouches
+/// for nothing beyond its own scope — two tasks closed on a red gate that
+/// way. Name the code paths only this verify has seen (store files are
+/// not code; a clean tree, or a verify that runs nothing, says nothing).
+/// Advisory: the close proceeds. Any git failure reads as nothing to say.
+fn uncommitted_notice(root: &std::path::Path, id: &str, verify: &str) {
+    let runs = matches!(
+        crate::verify_dsl::classify(verify),
+        crate::verify_dsl::Classified::Dsl(preds)
+            if preds.iter().any(|p| matches!(p, crate::verify_dsl::Predicate::Run { .. }))
+    );
+    if !runs {
+        return;
+    }
+    let Ok(out) = std::process::Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(root)
+        .output()
+    else {
+        return;
+    };
+    if !out.status.success() {
+        return;
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    let dirty: Vec<&str> = text
+        .lines()
+        .filter_map(|l| l.get(3..))
+        .map(|p| p.rsplit(" -> ").next().unwrap_or(p).trim_matches('"'))
+        .filter(|p| !p.starts_with("docs/meshwork/"))
+        .collect();
+    if dirty.is_empty() {
+        return;
+    }
+    let named: Vec<&str> = dirty.iter().take(5).copied().collect();
+    let more = dirty.len().saturating_sub(5);
+    let rest = if more > 0 {
+        format!(" (+{more})")
+    } else {
+        String::new()
+    };
+    eprintln!(
+        "note: {id} closes against an uncommitted tree \u{2014} this close checked nothing \
+         but its verify on: {}{rest}",
+        named.join(", ")
+    );
 }
 
 /// A verify outcome: `Ok` closes; `Err` is (log note, stays-open reason).

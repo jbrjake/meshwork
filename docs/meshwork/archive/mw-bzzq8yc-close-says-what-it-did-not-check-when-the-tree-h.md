@@ -6,7 +6,7 @@ seq: 730
 verify: run cargo test close_uncommitted_notice
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-6-the-verify-economy
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 Two tasks were closed on a red gate through `tail <log> && close && commit`; the verify was a
@@ -16,3 +16,5 @@ the close proceeds.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-12T16:52Z open→doing — claimed by claude (a4b15620-cf77-4910-ac26-1c233b1b0c38)
+- 2026-09-12T16:56Z doing→done — verify exit 0 @ 3fd0eeb+6

@@ -113,3 +113,63 @@ fn verify_verb_gates_like_close() {
     assert!(err.contains("--approve"), "names the approval step: {err}");
     assert!(!marker.exists(), "nothing executed");
 }
+
+/// mw-bzzq8yc: a `run` verify passing on an uncommitted tree vouches for
+/// nothing beyond its own scope — two tasks closed on a red gate that
+/// way. close names the code paths only its verify has seen. Advisory:
+/// the close proceeds; a clean tree, or a verify that runs nothing, says
+/// nothing.
+#[test]
+fn close_uncommitted_notice() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    // A minimal crate, so `run cargo fmt` has something to run on.
+    std::fs::write(
+        repo.join("Cargo.toml"),
+        "[package]\nname = \"work\"\nversion = \"0.0.0\"\nedition = \"2021\"\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(repo.join("src")).unwrap();
+    std::fs::write(repo.join("src/lib.rs"), "pub fn f() {}\n").unwrap();
+    git(&repo, &["add", "-A"]);
+    git(&repo, &["commit", "-q", "-m", "crate"]);
+
+    // The executor hands `cargo` only PATH/HOME/CARGO_HOME/TMPDIR, and the
+    // harness pins HOME to the tempdir — where rustup finds no toolchain.
+    // These closes borrow the real HOME and keep the registry hermetic
+    // with an empty portfolio override.
+    let home = std::env::var("HOME").unwrap();
+    let empty = repo.join("no-portfolio");
+    std::fs::create_dir_all(&empty).unwrap();
+    let close = |id: &str| {
+        let mut c = meshwork(&repo);
+        c.env("HOME", &home)
+            .env("MESHWORK_PORTFOLIO", &empty)
+            .args(["close", id]);
+        c.assert().success()
+    };
+
+    // Uncommitted code beside the task: one modified, one untracked.
+    std::fs::write(repo.join("src/lib.rs"), "pub fn f() {}\npub fn g() {}\n").unwrap();
+    std::fs::write(repo.join("src/extra.rs"), "pub fn h() {}\n").unwrap();
+    let id = add_id(&repo, &["add", "Runs the formatter", "--verify", "run cargo fmt"]);
+    let err = stderr_of(&close(&id));
+    assert!(err.contains("uncommitted"), "{err}");
+    assert!(
+        err.contains("src/lib.rs") && err.contains("src/extra.rs"),
+        "names the paths: {err}"
+    );
+    assert!(!err.contains("docs/meshwork"), "store files are not code: {err}");
+
+    // A native verify on the same dirty tree runs nothing — nothing to say.
+    let native = add_id(&repo, &["add", "Native", "--verify", "exists Cargo.toml"]);
+    let err = stderr_of(&close(&native));
+    assert!(!err.contains("uncommitted"), "{err}");
+
+    // A clean tree: the run vouched for what was committed.
+    git(&repo, &["add", "-A"]);
+    git(&repo, &["commit", "-q", "-m", "everything"]);
+    let clean = add_id(&repo, &["add", "Clean run", "--verify", "run cargo fmt"]);
+    let err = stderr_of(&close(&clean));
+    assert!(!err.contains("uncommitted"), "{err}");
+}

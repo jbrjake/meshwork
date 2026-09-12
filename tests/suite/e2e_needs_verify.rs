@@ -142,3 +142,53 @@ fn start_redcheck_shell_timeout() {
     assert!(err.contains("note: red-checking"), "{err}");
     assert!(err.contains("up to 1s"), "{err}");
 }
+
+/// mw-68tg7wa: native predicates are pure reads, so the red-check runs
+/// them on a verify this clone never approved — a hand-edit standing in
+/// for a merge arrival — while a hand-edited `run` stays gated with a loud
+/// skip; and `close --approve` on text this clone has never seen prints
+/// that text before recording anything.
+#[test]
+fn start_redcheck_runs_native_dsl_unapproved() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    std::fs::write(repo.join("README.md"), "hello\n").unwrap();
+    let hand_edit = |id: &str, verify: &str| {
+        let path = task_file(&repo, id);
+        let text = std::fs::read_to_string(&path).unwrap();
+        std::fs::write(
+            &path,
+            text.replace("status: open", &format!("status: open\nverify: {verify}")),
+        )
+        .unwrap();
+    };
+
+    let native = add_id(&repo, &["add", "Native, unapproved"]);
+    hand_edit(&native, "exists README.md");
+    let assert = meshwork(&repo)
+        .env_remove("MESHWORK_TRUST")
+        .args(["start", &native])
+        .assert()
+        .success();
+    let err = stderr_of(&assert);
+    assert!(err.contains("already green"), "a pure read runs unapproved: {err}");
+    assert!(!err.contains("red-check skipped"), "{err}");
+
+    let gated = add_id(&repo, &["add", "Run, unapproved"]);
+    hand_edit(&gated, "run cargo fmt");
+    let assert = meshwork(&repo)
+        .env_remove("MESHWORK_TRUST")
+        .args(["start", &gated])
+        .assert()
+        .success();
+    assert!(stderr_of(&assert).contains("red-check skipped"), "{}", stderr_of(&assert));
+
+    // --approve on never-seen text: the text is on screen before the record.
+    let assert = meshwork(&repo)
+        .env_remove("MESHWORK_TRUST")
+        .args(["close", &gated, "--approve"])
+        .assert();
+    let out = stdout_of(&assert);
+    assert!(out.contains(&format!("approving verify for {gated}")), "{out}");
+    assert!(out.contains("verify: run cargo fmt"), "the text is echoed: {out}");
+}
