@@ -259,3 +259,68 @@ fn dep_add_block_style_needs() {
     assert!(!text.contains("needs:"), "empty list drops the key: {text}");
     assert!(!text.contains(&format!("- {ty}")), "orphaned item: {text}");
 }
+
+/// `why` on a ready task answers the other half of "why is this not
+/// next": its placement and lane from the graph view; on an umbrella it
+/// says what hides it; on a blocked task the frontier stays the answer.
+/// The JSON carries the placement on every task.
+#[test]
+fn why_prints_placement() {
+    let (_g, repo) = fixture_repo("alpha");
+
+    // az-q2r4: unranked, needed by az-cw55 (seq 30) and az-z7a1 — a
+    // prerequisite placed behind its dependent, in a three-task lane.
+    let text = stdout_of(&meshwork(&repo).args(["why", "az-q2r4"]).assert().success());
+    assert!(text.contains("nothing blocking"), "{text}");
+    for needle in [
+        "place unranked",
+        "inherit 30",
+        "needs-behind",
+        "unlocks 2",
+        "lane az-cw55 (3 tasks)",
+    ] {
+        assert!(text.contains(needle), "{needle} in: {text}");
+    }
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["why", "az-q2r4", "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(
+        v["data"]["placement"],
+        serde_json::json!({
+            "place": 999_999, "inherit": 30, "needs_behind": true,
+            "unlock": 2, "depth": 1, "lane": "alpha#az-cw55", "lane_size": 3,
+            "live_children": 0, "ready": true
+        }),
+        "{v}"
+    );
+
+    // az-n33d: ranked, nothing needs it, off the live graph.
+    let text = stdout_of(&meshwork(&repo).args(["why", "az-n33d"]).assert().success());
+    assert!(text.contains("place 20") && text.contains("inherit 20"), "{text}");
+    assert!(text.contains("unlocks 0") && text.contains("lane none"), "{text}");
+    assert!(!text.contains("needs-behind"), "{text}");
+
+    // az-s4g0: the saga umbrella — nothing blocks it, its live child hides it.
+    let text = stdout_of(&meshwork(&repo).args(["why", "az-s4g0"]).assert().success());
+    assert!(text.contains("hidden: 1 live child"), "{text}");
+    assert!(!text.contains("place "), "an umbrella has no placement line: {text}");
+
+    // az-v4g9: blocked by two doing leaves — the frontier, no placement line.
+    let text = stdout_of(&meshwork(&repo).args(["why", "az-v4g9"]).assert().success());
+    assert!(text.contains("blocked by 2"), "{text}");
+    assert!(!text.contains("place "), "{text}");
+    let js = stdout_of(
+        &meshwork(&repo)
+            .args(["why", "az-v4g9", "--json"])
+            .assert()
+            .success(),
+    );
+    let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+    assert_eq!(v["data"]["placement"]["ready"], false, "{v}");
+    assert_eq!(v["data"]["placement"]["lane"], "alpha#az-d0w1", "{v}");
+    assert_eq!(v["data"]["placement"]["lane_size"], 4, "{v}");
+}

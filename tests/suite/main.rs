@@ -10,6 +10,7 @@ mod conformance;
 mod e2e;
 mod fixtures;
 mod format;
+mod graph;
 mod id;
 mod lint;
 mod parse;

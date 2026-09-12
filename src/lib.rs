@@ -11,6 +11,7 @@ pub mod clock;
 pub mod docs;
 pub mod edit;
 pub mod grammar;
+pub mod graph;
 pub mod id;
 pub mod lint;
 pub mod lint_tail;

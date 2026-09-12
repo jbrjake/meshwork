@@ -13,6 +13,7 @@ const MODEL_MODULES: &[&str] = &[
     "docs.rs",
     "edit.rs",
     "grammar.rs",
+    "graph.rs",
     "id.rs",
     "lint.rs",
     "lint_tail.rs",

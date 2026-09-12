@@ -8,7 +8,7 @@ verify: 'all(run cargo test graph_rust_matches_view, run cargo test why_prints_p
 docs:
   - docs/PROPOSAL-analytics.md#§-4-5-graph
   - docs/PROPOSAL-prioritization.md#§-5-requirements
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 `ready` and `prime` are gated at 100 ms and from bands on will order by `unlock`; the SQL view
@@ -20,3 +20,5 @@ lane, inherit and unlock; on an umbrella it says `hidden: N live children`. MW-R
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-12T16:14Z open→doing — claimed by claude (a4b15620-cf77-4910-ac26-1c233b1b0c38)
+- 2026-09-12T16:21Z doing→done — verify exit 0 @ 732087b+10

@@ -167,16 +167,40 @@ pub(crate) fn why(args: &super::transition::IdArg, json: bool) -> Result<(), Str
     });
     frontier.dedup();
 
+    // Placement is the other half of "why is this not next": the frontier
+    // says what blocks it, the graph row says where it stands once nothing
+    // does. Same inputs as the query session — terminal foreign rows only.
+    let terminal: Vec<crate::registry::ForeignTask> = foreign
+        .values()
+        .filter(|f| matches!(f.status.as_str(), "done" | "dropped"))
+        .cloned()
+        .collect();
+    let rows = crate::graph::compute(std::slice::from_ref(&store), &terminal);
+    let row = rows.iter().find(|r| r.id == args.id);
+
     if json {
         crate::cli::emit_json(
             "why",
-            &serde_json::json!({ "id": args.id, "frontier": frontier }),
+            &serde_json::json!({ "id": args.id, "frontier": frontier,
+                "placement": row.map(placement_json) }),
         );
     } else if frontier.is_empty() {
         println!(
             "{}: nothing blocking — every hard dep is done/dropped",
             args.id
         );
+        if let Some(r) = row {
+            if r.ready {
+                println!("{}", placement_line(r));
+            } else if r.status == "open" && r.live_children > 0 {
+                let noun = if r.live_children == 1 {
+                    "child"
+                } else {
+                    "children"
+                };
+                println!("hidden: {} live {noun}", r.live_children);
+            }
+        }
     } else {
         println!("{} blocked by {}:", args.id, frontier.len());
         for f in &frontier {
@@ -206,6 +230,49 @@ pub(crate) fn why(args: &super::transition::IdArg, json: bool) -> Result<(), Str
         }
     }
     Ok(())
+}
+
+/// The graph row's placement columns, numbers as the view carries them.
+fn placement_json(r: &crate::graph::GraphRow) -> serde_json::Value {
+    serde_json::json!({
+        "place": r.place, "inherit": r.inherit, "needs_behind": r.needs_behind,
+        "unlock": r.unlock, "depth": r.depth, "lane": r.lane, "lane_size": r.lane_size,
+        "live_children": r.live_children, "ready": r.ready,
+    })
+}
+
+/// One line for a ready task: where it stands, what it inherits, what it
+/// unlocks, which lane it is in.
+fn placement_line(r: &crate::graph::GraphRow) -> String {
+    let rank = |p: i64| {
+        if p == crate::graph::UNRANKED {
+            "unranked".to_string()
+        } else {
+            p.to_string()
+        }
+    };
+    let behind = if r.needs_behind {
+        " (needs-behind)"
+    } else {
+        ""
+    };
+    let lane = match &r.lane {
+        Some(l) => {
+            // The label is a gid (the view's value, kept in the JSON); a
+            // single-repo listing prints local ids bare, like the frontier.
+            let label = l.strip_prefix(&format!("{}#", r.repo)).unwrap_or(l);
+            let noun = if r.lane_size == 1 { "task" } else { "tasks" };
+            format!("lane {label} ({} {noun})", r.lane_size)
+        }
+        None => "lane none".to_string(),
+    };
+    format!(
+        "placement: place {} \u{b7} inherit {}{behind} \u{b7} unlocks {} (depth {}) \u{b7} {lane}",
+        rank(r.place),
+        rank(r.inherit),
+        r.unlock,
+        r.depth
+    )
 }
 
 /// DFS through unmet needs; a node joins the frontier when it blocks the
