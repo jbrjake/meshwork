@@ -17,6 +17,7 @@ const MODEL_MODULES: &[&str] = &[
     "graph.rs",
     "id.rs",
     "lint.rs",
+    "lint_prose.rs",
     "lint_tail.rs",
     "lint_verify.rs",
     "lint_views.rs",

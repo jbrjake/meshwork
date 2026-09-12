@@ -17,10 +17,31 @@ pub(crate) struct LintArgs {
     /// Repair union-poisoned duplicate keys and re-slug duplicate IDs.
     #[arg(long)]
     fix: bool,
-    /// Print every row of a finding the text report folds (verify-shell).
+    /// Print every row of a folded finding (verify-shell, implicit-edge),
+    /// or what a heuristic finding judges and cannot know.
     #[arg(long, value_name = "code")]
     explain: Option<String>,
 }
+
+/// Heuristic findings and what they judge — printed above the rows on
+/// `--explain <code>`, because a warning that cannot say what it cannot
+/// know is a warning nobody can weigh.
+const EXPLAINED: &[(&str, &str)] = &[
+    (
+        "verify-self-satisfying",
+        "a `contains` or bare grep whose target is the task's own file is judged satisfiable \
+         by whoever writes the file, unless its pattern is a date-first line (the owner-marker \
+         idiom: only an appended, dated line matches). Lexical — it sees the shape of the \
+         verify, never who will write the file.",
+    ),
+    (
+        "ruling-without-quote",
+        "a live task whose body, handoff or comments say `owner ruled`, `owner ruling` or \
+         `OWNER CALL` with no quoted span anywhere is flagged: a ruling rests on the owner's \
+         words, and a paraphrase wears the authority without the evidence. Lexical — a quote \
+         of anything satisfies it.",
+    ),
+];
 
 /// Findings the text report folds into one line — noise by volume, not
 /// by nature: the ids are a `--explain` away, the JSON keeps every row.
@@ -112,6 +133,12 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     } else {
         // The legacy-shell rows fold (mw-4n00yte): 274 identical lines
         // on the busiest store buried every other signal.
+        if let Some((code, what)) = EXPLAINED
+            .iter()
+            .find(|(c, _)| args.explain.as_deref() == Some(c))
+        {
+            println!("{code}: {what}\n");
+        }
         let folds = |code: &str| {
             FOLDED
                 .iter()

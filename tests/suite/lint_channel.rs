@@ -249,3 +249,105 @@ fn views_findings() {
         "{f:?}"
     );
 }
+
+/// mw-xb9prd6: a `contains` (or legacy grep) whose target is the task's
+/// own file is satisfiable by whoever writes the file — unless the
+/// pattern is the date-first owner marker only an appended line can
+/// match. A lexical heuristic, and it says so.
+#[test]
+fn verify_self_satisfying() {
+    let (_dir, root) = channel_store();
+    write_task(
+        &root,
+        "zz-self1",
+        "status: open\nverify: contains docs/meshwork/zz-self1-t.md shipped\n",
+        "",
+    );
+    write_task(
+        &root,
+        "zz-self2",
+        "status: open\nverify: grep -q shipped docs/meshwork/zz-self2-t.md\n",
+        "",
+    );
+    write_task(
+        &root,
+        "zz-self3",
+        "status: open\nverify: contains docs/meshwork/zz-self3-t.md /^- 2026-/\n",
+        "",
+    );
+    write_task(
+        &root,
+        "zz-self4",
+        "status: open\nverify: contains docs/other.md shipped\n",
+        "",
+    );
+    let f = lint_store(&load_repo(&root).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "verify-self-satisfying", "zz-self1"),
+        "{f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "verify-self-satisfying", "zz-self2"),
+        "legacy grep on the own file too: {f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "verify-self-satisfying", "zz-self3"),
+        "the date-first owner marker is the sanctioned idiom: {f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "verify-self-satisfying", "zz-self4"),
+        "another file is not self-satisfying: {f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "verify-self-satisfying", "heuristic"),
+        "the finding names itself a heuristic: {f:?}"
+    );
+}
+
+/// mw-xb9prd6: prose that invokes an owner ruling without quoting the
+/// owner is the authority-laundering shape; a quoted span settles it.
+#[test]
+fn ruling_without_quote() {
+    let (_dir, root) = channel_store();
+    write_task(
+        &root,
+        "zz-rul1",
+        "status: open\nverify: \"true\"\n",
+        "Owner ruling 2026-09-01: ship the fold as is.\n",
+    );
+    write_task(
+        &root,
+        "zz-rul2",
+        "status: open\nverify: \"true\"\n",
+        "Owner ruling 2026-09-01: *\"ship the fold as is\"* — so the fold ships.\n",
+    );
+    write_task(
+        &root,
+        "zz-rul3",
+        "status: open\nverify: \"true\"\n",
+        "\n## comments\n- 2026-09-02 [agent] OWNER CALL: parked until the scale ruling.\n",
+    );
+    write_task(
+        &root,
+        "zz-rul4",
+        "status: done\nverify: \"true\"\n",
+        "owner ruled this closed.\n\n## log\n- 2026-09-01 open\u{2192}done\n",
+    );
+    let f = lint_store(&load_repo(&root).unwrap());
+    assert!(
+        has(&f, Severity::Warning, "ruling-without-quote", "zz-rul1"),
+        "{f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "ruling-without-quote", "zz-rul2"),
+        "a quoted span is the owner's words: {f:?}"
+    );
+    assert!(
+        has(&f, Severity::Warning, "ruling-without-quote", "zz-rul3"),
+        "comments count: {f:?}"
+    );
+    assert!(
+        !has(&f, Severity::Warning, "ruling-without-quote", "zz-rul4"),
+        "terminal tasks are history: {f:?}"
+    );
+}

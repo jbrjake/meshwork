@@ -15,6 +15,7 @@ pub mod grammar;
 pub mod graph;
 pub mod id;
 pub mod lint;
+pub mod lint_prose;
 pub mod lint_tail;
 pub mod lint_verify;
 pub mod lint_views;

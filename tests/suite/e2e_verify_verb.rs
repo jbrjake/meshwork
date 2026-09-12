@@ -173,3 +173,25 @@ fn close_uncommitted_notice() {
     let err = stderr_of(&close(&clean));
     assert!(!err.contains("uncommitted"), "{err}");
 }
+
+/// mw-xb9prd6: a waive reason still carrying a `<placeholder>` is the
+/// template, not a reason — refused before anything is written.
+#[test]
+fn close_waive_refuses_placeholder() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Unverifiable");
+    let assert = meshwork(&repo)
+        .args(["close", &id, "--waive", "<why the check cannot exist>"])
+        .assert()
+        .failure();
+    let err = stderr_of(&assert);
+    assert!(err.contains("placeholder"), "{err}");
+    let text = std::fs::read_to_string(task_file(&repo, &id)).unwrap();
+    assert!(text.contains("status: open"), "nothing written: {text}");
+
+    meshwork(&repo)
+        .args(["close", &id, "--waive", "the check is a human review, recorded in the PR"])
+        .assert()
+        .success();
+}

@@ -46,6 +46,18 @@ pub(crate) fn check(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) 
             ));
         }
         let classified = classify(v);
+        if let Some(pattern) = self_satisfying(store, t, v, &classified) {
+            out.push(finding(
+                Severity::Warning,
+                "verify-self-satisfying",
+                &t.id,
+                format!(
+                    "verify reads the task's own file for `{pattern}` — satisfiable by whoever \
+                     writes the file (a heuristic: lint cannot know who); the sanctioned shape \
+                     is the date-first owner marker, `contains <own file> /^- 2026-…/`"
+                ),
+            ));
+        }
         if let Some(path) = missing_read_path(&store.root, v, &classified) {
             out.push(finding(
                 Severity::Warning,
@@ -103,6 +115,57 @@ fn missing_read_path(root: &std::path::Path, v: &str, classified: &Classified) -
             .ok()
             .is_some_and(|abs| !abs.exists())
     })
+}
+
+/// mw-xb9prd6: the pattern a verify looks for in the task's own file,
+/// when that pattern is not the date-first owner marker — a `contains`
+/// (or a bare legacy grep) on the file the author writes is satisfiable
+/// by the author. Lexical: it judges the shape, never the intent.
+fn self_satisfying(
+    store: &RepoStore,
+    t: &Task,
+    v: &str,
+    classified: &Classified,
+) -> Option<String> {
+    let own = store
+        .entries
+        .iter()
+        .find(|e| matches!(&e.parsed, crate::parse::ParsedTask::Valid(x) if x.id == t.id))
+        .map(|e| format!("docs/meshwork/{}", e.file_name))?;
+    let is_own = |path: &str| path.trim_start_matches("./") == own;
+    let date_first = |pattern: &str| {
+        let core = pattern.trim_matches(['/', '"', '\'']);
+        let core = core.trim_start_matches(['^', '-', ' ', '\\', 's']);
+        core.len() >= 5
+            && core[..4].bytes().all(|b| b.is_ascii_digit())
+            && core.as_bytes()[4] == b'-'
+    };
+    match classified {
+        Classified::Dsl(preds) => preds.iter().find_map(|p| match p {
+            Predicate::Contains { path, pattern } if is_own(path) => {
+                let text = match pattern {
+                    crate::verify_dsl::Pattern::Literal(s) => s.clone(),
+                    crate::verify_dsl::Pattern::Regex(s) => format!("/{s}/"),
+                };
+                (!date_first(&text)).then_some(text)
+            }
+            _ => None,
+        }),
+        Classified::LegacyShell => {
+            let path = legacy_grep_path(v)?;
+            if !is_own(&path) {
+                return None;
+            }
+            let args: Vec<&str> = v
+                .split_whitespace()
+                .skip(1)
+                .filter(|t| !t.starts_with('-'))
+                .collect();
+            let pattern = (args.len() >= 2).then(|| args[args.len() - 2])?;
+            (!date_first(pattern)).then(|| pattern.trim_matches(['"', '\'']).to_string())
+        }
+        Classified::Malformed(_) => None,
+    }
 }
 
 /// The file a bare `grep [flags] <pattern> <path>` reads, when the text

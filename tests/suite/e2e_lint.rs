@@ -336,3 +336,31 @@ fn lint_verify_shell_folded() {
         .count();
     assert_eq!(shell, 3, "JSON keeps every finding: {v}");
 }
+
+/// mw-xb9prd6: `--explain <code>` on a heuristic prints what the heuristic
+/// is and what it cannot know, above its rows.
+#[test]
+fn lint_explain_prints_rationale() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Self-satisfying");
+    let path = task_file(&repo, &id);
+    let rel = path.strip_prefix(&repo).unwrap().to_string_lossy().into_owned();
+    meshwork(&repo)
+        .args(["set", &id, "--verify", &format!("contains {rel} shipped")])
+        .assert()
+        .success();
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["lint", "--explain", "verify-self-satisfying"])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains("heuristic"), "{out}");
+    assert!(
+        out.contains(&format!("[verify-self-satisfying] {id}")),
+        "{out}"
+    );
+    let plain = stdout_of(&meshwork(&repo).arg("lint").assert().success());
+    assert!(plain.contains("[verify-self-satisfying]"), "{plain}");
+}

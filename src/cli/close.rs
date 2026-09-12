@@ -164,6 +164,18 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
 
     if let Some(reason) = &args.waive {
+        // A reason still carrying its `<placeholder>` is the template,
+        // not a reason (mw-xb9prd6) — refused before anything is written.
+        if reason
+            .find('<')
+            .is_some_and(|open| reason[open..].contains('>'))
+        {
+            return Err(format!(
+                "refusing to waive {}: the reason carries a placeholder (`<…>`) — write the \
+                 real reason the check cannot exist",
+                args.id
+            ));
+        }
         let out = scrub_on_close(&task, &text)?;
         return close_waived(&path, &root, &args.id, reason, &out, &today, from, json);
     }
