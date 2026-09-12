@@ -146,6 +146,68 @@ fn import_wrapped_titles_and_multiline_verifies() {
     assert!(boundary.contains("Body paragraph, not title."), "{boundary}");
 }
 
+/// mw-w0na6h1: a title wrapped across three physical lines imports whole,
+/// and a checkbox that absorbs a long indented block says so by id and
+/// count — the 340-line section that became one 17 KB body was absorbed
+/// in silence. A few lines of context draw nothing.
+#[test]
+fn import_title_unwrapped() {
+    use std::fmt::Write as _;
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let mut todo = String::from(
+        "# TODO\n\n## Now\n\n\
+         - [ ] **A title so long that the editor wrapped it\n\
+         \x20 across three physical lines before the\n\
+         \x20 em-dash closes it** — context.\n\
+         - [ ] **Absorber**\n",
+    );
+    for i in 0..30 {
+        let _ = writeln!(
+            todo,
+            "  Line {i} of an indented section that belongs to nobody in particular."
+        );
+    }
+    todo.push_str("- [ ] **Short one**\n  one line of context\n");
+    std::fs::write(repo.join("TODO.md"), todo).unwrap();
+
+    let assert = meshwork(&repo)
+        .args(["import", "todo", "TODO.md"])
+        .assert()
+        .success();
+    let out = stdout_of(&assert);
+    let err = stderr_of(&assert);
+    assert!(out.contains("3 imported"), "{out}");
+
+    let q = |sql: &str| stdout_of(&meshwork(&repo).args(["q", sql]).assert().success());
+    let titles = q("SELECT title FROM tasks ORDER BY seq");
+    assert!(
+        titles.contains(
+            "A title so long that the editor wrapped it across three physical lines before \
+             the em-dash closes it"
+        ),
+        "the whole title, one line: {titles}"
+    );
+
+    // The headline join takes a few wrapped lines; the rest land as body
+    // lines and are counted — the count is what makes the absorb visible.
+    let absorber = first_id_titled(&repo, "Absorber");
+    let marker = format!("{absorber}: absorbed ");
+    let at = err.find(&marker).unwrap_or_else(|| panic!("the absorb is loud, by id: {err}"));
+    let n: usize = err[at + marker.len()..]
+        .split_whitespace()
+        .next()
+        .and_then(|t| t.parse().ok())
+        .unwrap_or_else(|| panic!("a count follows the id: {err}"));
+    assert!((20..=30).contains(&n), "most of the block is counted: {n} in {err}");
+    assert_eq!(err.matches("absorbed").count(), 1, "one line of context is not an absorb: {err}");
+    let body = std::fs::read_to_string(task_file(&repo, &absorber)).unwrap();
+    assert!(
+        body.lines().filter(|l| l.starts_with("Line ")).count() >= 20,
+        "the block lands as lines, not one paragraph: {body}"
+    );
+}
+
 // mw-gsgh8s7: column-0 prose outside any checkbox — preambles,
 // interstitial section notes, trailing ledgers — vanished with exit 0.
 // A whole asks-section disappeared that way in a real migration. Now it

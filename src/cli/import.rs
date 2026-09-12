@@ -25,7 +25,14 @@ struct TodoItem {
     /// `[~]` in the source (mw-x5a8g9w): doing without a claimant is a
     /// lie, so the item lands open and its log remembers the marker.
     from_doing: bool,
+    /// Wrapped lines joined into the headline so far — the join is capped
+    /// (mw-w0na6h1), so a long indented block lands as body lines, counted.
+    joined: usize,
 }
+
+/// Wrapped lines a headline may absorb before the join stops and the
+/// rest becomes body: a title wraps two or three times, a section never.
+const HEADLINE_JOIN_MAX: usize = 3;
 
 pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
@@ -56,6 +63,7 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
             seq: None,
             parent: None,
             from_doing: false,
+            joined: 0,
         });
         items.len() - 1
     });
@@ -70,9 +78,13 @@ pub(crate) fn todo(path: &Path, json: bool) -> Result<(), String> {
     let mut ids: Vec<String> = Vec::new();
     let mut short_titles = 0usize;
     let mut counts: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
-    for item in &items {
+    for (i, item) in items.iter().enumerate() {
         let id = mint_unique(&config.alias, &tasks_dir, &mut gen).map_err(|e| e.to_string())?;
         short_titles += usize::from(warn_short_title(&id, &item.title));
+        // The triage task is carried prose by design — announced below.
+        if triage_idx != Some(i) {
+            warn_absorbed(&id, item.context.len());
+        }
         let parent_id = item.parent.map(|i| ids[i].as_str());
         let file = render(item, &id, parent_id, &today);
         let name = format!("{id}-{}.md", slugify(&item.title));
@@ -195,6 +207,7 @@ fn parse_todo(text: &str) -> (Vec<TodoItem>, Vec<String>) {
                 seq,
                 parent,
                 from_doing: false,
+                joined: 0,
             });
             stack.push((indent, items.len() - 1));
             cont = Cont::Headline;
@@ -274,6 +287,10 @@ fn continue_line(
         Cont::Headline => {
             last.title.push(' ');
             last.title.push_str(line.trim_end());
+            last.joined += 1;
+            if last.joined >= HEADLINE_JOIN_MAX {
+                *cont = Cont::Body;
+            }
         }
         Cont::Verify => {
             if let Some(v) = last.verify.as_mut() {
@@ -325,6 +342,21 @@ fn summary_line(counts: &std::collections::BTreeMap<&str, usize>, nested: usize)
 /// sazed's R11/R8/R7 were unintelligible in every listing three days
 /// later. Warn per title, on stderr, naming the minted id so the review
 /// pass has its retitle handle; the import itself never blocks on this.
+/// Indented lines under one checkbox before the import says so — a
+/// 340-line section once became one 17 KB body in silence (mw-w0na6h1).
+const ABSORB_WARN_LINES: usize = 20;
+
+/// Loud when a checkbox absorbed a long indented block as its body: the
+/// lines may be the section's, not the task's — the reader decides.
+fn warn_absorbed(id: &str, lines: usize) {
+    if lines >= ABSORB_WARN_LINES {
+        eprintln!(
+            "warn: {id}: absorbed {lines} indented lines as its body — check they belong to \
+             it and not to the tasks around it"
+        );
+    }
+}
+
 fn warn_short_title(id: &str, title: &str) -> bool {
     let single = title.split_whitespace().count() == 1;
     if single {
