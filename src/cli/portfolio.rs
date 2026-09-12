@@ -44,10 +44,12 @@ pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
 }
 
 /// Everything a portfolio verb starts from: registry, loaded stores, the
-/// skip report — and the autoprune already applied (mw-chcqk6g,
-/// owner-ruled: running any portfolio verb prunes satisfied sequence.md
-/// entries; no flag, git diff in the portfolio repo is the review
-/// surface).
+/// skip report — and, for the verbs that consume the overlay, the
+/// autoprune already applied (mw-chcqk6g, owner-ruled: `ready`, `next`
+/// and `seq` prune satisfied sequence.md entries; no flag, git diff in
+/// the portfolio repo is the review surface). `q` is a pure read
+/// (MW-S14): it never touches sequence.md, so its `pruned` is always
+/// empty — kept on the JSON envelope for shape stability (MW-C3).
 struct Portfolio {
     dir: PathBuf,
     reg: Registry,
@@ -56,11 +58,17 @@ struct Portfolio {
     pruned: Vec<PrunedEntry>,
 }
 
-fn load_portfolio() -> Result<Portfolio, String> {
+/// Load the registry and every resolvable store; `prune` says whether
+/// this verb consumes the overlay and may rewrite sequence.md.
+fn load_portfolio(prune: bool) -> Result<Portfolio, String> {
     let dir = registry::portfolio_dir()?;
     let reg = registry::load(&dir)?;
     let (stores, skipped) = registry::load_stores(&reg)?;
-    let pruned = crate::registry_hygiene::autoprune_sequence(&dir, &reg, &stores)?;
+    let pruned = if prune {
+        crate::registry_hygiene::autoprune_sequence(&dir, &reg, &stores)?
+    } else {
+        Vec::new()
+    };
     Ok(Portfolio {
         dir,
         reg,
@@ -119,7 +127,7 @@ fn sort_total(rows: &mut [Vec<String>], sequence: &[String], reg: &Registry) -> 
 /// `portfolio next` (MW-G4, mw-jpbv): the first READY task in the total
 /// ordering. Total, deterministic — row 0 of the shared sort.
 fn next(json: bool) -> Result<(), String> {
-    let p = load_portfolio()?;
+    let p = load_portfolio(true)?;
     // Post-prune read: the overlay `next` walks is the surviving one.
     let sequence = registry::load_sequence(&p.dir)?;
     let skipped = &p.skipped;
@@ -171,7 +179,7 @@ fn next(json: bool) -> Result<(), String> {
 /// reorders). Unseq'd and terminal tasks are untouched; a weight already
 /// on its target value is not rewritten (minimal diffs, MW-I1's spirit).
 fn seq(json: bool) -> Result<(), String> {
-    let p = load_portfolio()?;
+    let p = load_portfolio(true)?;
     let mut renumbered = Vec::new();
     for store in &p.stores {
         let mut live: Vec<(i64, String, String, &str)> = store
@@ -243,8 +251,8 @@ fn seq(json: bool) -> Result<(), String> {
 }
 
 /// Loaded portfolio → one `SessionContext` over the union.
-fn union_session() -> Result<(SessionContext, Portfolio), String> {
-    let p = load_portfolio()?;
+fn union_session(prune: bool) -> Result<(SessionContext, Portfolio), String> {
+    let p = load_portfolio(prune)?;
     // No foreign injection here: every resolvable repo is already loaded
     // whole; what the union can't load, a file lookup can't reach either.
     let ctx = crate::tables::session_for(&p.stores, &[]).map_err(|e| e.to_string())?;
@@ -294,7 +302,7 @@ fn skips_json(skipped: &[SkippedRepo]) -> serde_json::Value {
 const LISTING_CAP: usize = 20;
 
 fn ready(json: bool) -> Result<(), String> {
-    let (ctx, p) = union_session()?;
+    let (ctx, p) = union_session(true)?;
     // The normative §5 ready SQL with the repo column joined in — the
     // predicate is untouched (one semantics, MW-G3); presentation is the
     // MW-G4 total ordering `next` picks row 0 from.
@@ -343,7 +351,8 @@ fn ready(json: bool) -> Result<(), String> {
 }
 
 fn q(sql: &str, json: bool) -> Result<(), String> {
-    let (ctx, p) = union_session()?;
+    // A pure read (MW-S14): the overlay is never rewritten under a query.
+    let (ctx, p) = union_session(false)?;
     if crate::views::mentioned(sql) {
         // The union has no config of its own: the default window (MW-S5).
         let clock = crate::views::Clock::resolve(crate::views::DEFAULT_WINDOW_DAYS)?;

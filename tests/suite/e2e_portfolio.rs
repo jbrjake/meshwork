@@ -455,6 +455,50 @@ fn portfolio_sequence_prune() {
     );
 }
 
+/// MW-S14: reads never prune. `portfolio q` over a sequence.md holding a
+/// satisfied entry leaves the file byte-identical, says nothing about
+/// pruning, and keeps the `pruned` key (always empty) so the JSON shape
+/// holds (MW-C3); `portfolio ready` over the same file still prunes.
+#[test]
+fn portfolio_q_never_prunes() {
+    let (dir, portfolio) = portfolio_fixture();
+    let before = "# sequence\n\n- beta#bz-c0r3\n- alpha#az-n33d\n";
+    std::fs::write(portfolio.join("sequence.md"), before).unwrap();
+
+    for json in [true, false] {
+        let mut args = vec!["portfolio", "q", "SELECT id FROM tasks WHERE id = 'bz-c0r3'"];
+        if json {
+            args.push("--json");
+        }
+        let assert = meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(&args)
+            .assert()
+            .success();
+        let err = stderr_of(&assert);
+        assert!(!err.contains("pruned"), "q is a pure read (json={json}): {err}");
+        let after = std::fs::read_to_string(portfolio.join("sequence.md")).unwrap();
+        assert_eq!(after, before, "q left sequence.md untouched (json={json})");
+        if json {
+            let v: serde_json::Value = serde_json::from_str(&stdout_of(&assert)).unwrap();
+            assert_eq!(v["data"]["pruned"], serde_json::json!([]), "{v}");
+            assert_eq!(v["data"]["rows"].as_array().map(Vec::len), Some(1), "{v}");
+        }
+    }
+
+    // The overlay's consumers keep the ruled autoprune.
+    let err = stderr_of(
+        &meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(["portfolio", "ready"])
+            .assert()
+            .success(),
+    );
+    assert!(err.contains("pruned beta#bz-c0r3"), "ready still prunes: {err}");
+    let after = std::fs::read_to_string(portfolio.join("sequence.md")).unwrap();
+    assert_eq!(after, "# sequence\n\n- alpha#az-n33d\n");
+}
+
 /// Discovery: default is ~/Documents/code/portfolio (§15.4); no
 /// registry anywhere is a loud error.
 #[test]

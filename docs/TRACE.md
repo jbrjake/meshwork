@@ -68,6 +68,6 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-S11 | `arch::analytics_fences` | planned |
 | MW-S12 | `e2e::ready_unchanged_by_views` | planned |
 | MW-S13 | `arch::analytics_fences` | planned |
-| MW-S14 | `portfolio_q_never_prunes` | planned |
+| MW-S14 | `e2e::portfolio_q_never_prunes` | done |
 | MW-S15 | `e2e::offline_all` (the view sessions run under it) | planned |
 | MW-S16 | `conformance::views_golden` (a reopened task in the fixture is not a closure) | done |
