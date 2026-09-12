@@ -13,6 +13,7 @@ mod lint;
 mod notes;
 mod portfolio;
 mod prime;
+mod prime_render;
 mod pulse;
 mod query;
 mod search;
