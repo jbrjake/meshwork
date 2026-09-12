@@ -15,6 +15,16 @@ VER=${TAG#v}
 [[ -z $(git status --porcelain) ]] || { echo "cut-release: working tree must be clean"; exit 1; }
 [[ -z $(git tag -l "$TAG") ]] || { echo "cut-release: $TAG already exists"; exit 1; }
 
+# The release notes are a precondition of the tag, same standing as the
+# version stamps: release.yml publishes this file as the release body, so a
+# tag without it ships boilerplate (v0.4.0 did). Owner-voiced, user impact
+# first — docs/release-notes/TEMPLATE.md is the shape.
+NOTES="docs/release-notes/RELEASE-NOTES-$TAG.md"
+[[ -f $NOTES ]] || {
+  echo "cut-release: $NOTES is missing — draft the release notes first (docs/release-notes/TEMPLATE.md), commit them, then cut"
+  exit 1
+}
+
 # Stamp every version the repo states, in lockstep with the tag.
 sed -i.bak -e "s/^version = \".*\"/version = \"$VER\"/" Cargo.toml
 sed -i.bak -e "s/\"version\": \".*\"/\"version\": \"$VER\"/" .claude-plugin/plugin.json

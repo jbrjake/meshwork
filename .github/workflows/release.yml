@@ -31,11 +31,22 @@ jobs:
       - name: create release
         env:
           GH_TOKEN: ${{ github.token }}
+        # The body is the committed notes file (cut-release.sh refuses to
+        # tag without it); its footer carries the install line. The
+        # boilerplate below is only for re-firing a tag that predates the
+        # rule.
         run: |
+          NOTES="docs/release-notes/RELEASE-NOTES-${GITHUB_REF_NAME}.md"
           if ! gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release create "${GITHUB_REF_NAME}" \
-              --title "meshwork ${GITHUB_REF_NAME}" \
-              --notes "darwin arm64, linux arm64/x86_64, windows x86_64. Pin: put ${GITHUB_REF_NAME} in .meshwork-version; install to ~/.meshwork/versions/${GITHUB_REF_NAME}/ (see the meshwork adoption skill)."
+            if [[ -f "$NOTES" ]]; then
+              gh release create "${GITHUB_REF_NAME}" \
+                --title "meshwork ${GITHUB_REF_NAME}" \
+                --notes-file "$NOTES"
+            else
+              gh release create "${GITHUB_REF_NAME}" \
+                --title "meshwork ${GITHUB_REF_NAME}" \
+                --notes "darwin arm64, linux arm64/x86_64, windows x86_64. Pin: put ${GITHUB_REF_NAME} in .meshwork-version; install to ~/.meshwork/versions/${GITHUB_REF_NAME}/ (see the meshwork adoption skill)."
+            fi
           fi
           gh release upload "${GITHUB_REF_NAME}" dist/*.tar.gz --clobber
   build:

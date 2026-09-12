@@ -1,7 +1,7 @@
 ---
 id: mw-6erbg4a
 title: "Release notes are part of the cut — cut-release.sh requires the notes file, release.yml publishes it"
-status: open
+status: done
 category: meta/distribution
 discovered-from: mw-h4s4gka
 verify: "all(contains scripts/cut-release.sh release-notes, contains .github/workflows/release.yml notes-file)"
@@ -18,3 +18,5 @@ Content standard (owner, 2026-08-25): notes lead with user impact — new featur
 
 ## log
 - 2026-08-25T21:28Z created
+- 2026-09-12T17:07Z open→doing — claimed by claude (a4b15620-cf77-4910-ac26-1c233b1b0c38)
+- 2026-09-12T17:09Z doing→done — verify exit 0 @ 7ed1b54+4
