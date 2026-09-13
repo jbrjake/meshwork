@@ -555,6 +555,28 @@ Tagged `[cli] [prime] [error-msg] [help-text] [skill-doc] [lint] [format] [workf
 surface (DESIGN §6, §15.12) and need an owner ruling; they are listed anyway because the evidence
 is what a ruling should weigh.
 
+### The split, priced
+
+The tiers were ranked by what they cost the owner, qualitatively. `docs/cost-baseline.md`
+(`scripts/mine_cost.py`, `message.usage` over 473 sessions) and §1.6 put a number beside every
+finding that has one in the record; a finding with none says so rather than borrowing one.
+Tokens are fresh tokens (input + output + cache writes); a stopped session burns none, so a
+latency finding prices at zero tokens and its number is wall time.
+
+| finding | tier | tokens per finding | wall time and waits | what the number says |
+|---|---|---|---|---|
+| the eruptions — the inbox invisible (§2.1), the handoff outranking the owner (§2.2), invented authority (§2.7) | 1 #1, #3, #4; 4 #20 | **7.2M fresh tokens after the first emphatic prompt, in 29 sessions — a median 44% of each session.** The six repeat sessions hold 1.1M of it (tensoon/f1040972 468k, sazed/51e60dbd 313k, sazed/94b76cfa 177k, marasi-applied-r-and-d/58b837fb 72k, sazed/1b167145 50k, sazed/72773264 31k) | none — an eruption is typed, not waited for | the largest priced item. The record cannot split it across the three mechanisms, so the inbox, the handoff and the authority findings share one price |
+| 723 hand-edits — no CLI path for `to:`, `answers:`, the body (§2.3) | 1 #2 | **650 API turns in 210 sessions; 615k output tokens (1% of all output) on turns re-sending 150M tokens of context**, nearly all cache reads | none | second by tokens. The turns are the cost, the output is small; three YAML breakages and one voided approval ride on top and have no token price |
+| the five error messages (§1.3, §2.4) | 1 #5 | no price in the record — the 408 `--help` probes are counted, not costed | none | shipped (mw-48mzck9) |
+| the unscoped verify — `run` rejects `-p`/`--test`, so verifies stay shell and compile 18 minutes against a 5-minute timeout (§2.5.2–3) | 2 #6, #7 | **0** | **20 `start`/`close`/`verify` calls past 5 minutes, 5.7 h of wall time** (sazed 6, leras 5, meshwork 4, marasi 2, marasi-applied-r-and-d 2, tensoon 1); asked twice (`le-yppwtpq`, `ma-tpmcdnk`) | the top latency item. The timeout half (#7) shipped (mw-82thxwz); the grammar half waits on the verify-grammar ruling |
+| approval holds on verbs that run nothing | none | **0** | **52 calls past 5 minutes, 10.7 h** — `comment` 13, `lint` 10, `set` 7, `show` 5, `q` 3, `portfolio` 3 | the biggest wait number in the cut belongs to the harness's permission prompt, not to the CLI: a per-clone allowlist, not a meshwork change |
+| verify hygiene and the readable lint channel (§2.5.4, §2.6, §2.7) | 2 #9, #10, #10a | no price in the record | none | shipped (mw-xb9prd6, mw-c3s9209, mw-4n00yte) |
+| 61% of sessions never load the skill (§1.2) | 3 #17a | **28.3k fresh per meshwork call without the skill against 21.0k with it (sessions with ≥ 10 calls, n=108/94) — and flat per session: 494k against 490k**, hand-edits flat (median 1 both ways) | none | the token case is nil at the session level: the skill changes the mix of calls, not the bill. The behavioural case (sazed/51e60dbd's one-minute turnaround, §1.2) stands alone |
+| agent idle waiting on the owner (§1.6) | none — a session-layer defect | **0** | **545 h idle, 91% of it in waits over an hour; 76 h of it inside hour-plus waits while the owner was working in another session**; 16 of 41 hour-plus waits held ≥ 30 minutes of it | no item in these tiers moves this number. The store's lever is the inbox (an ask nobody reads is a wait nobody sees); the session's is the state primitive in §1.6 |
+
+Two large numbers belong to no finding here: 20% of the corpus's fresh tokens go to subagents
+(ask A8, the analytics lane's), and the 10.7 h of approval holds above is the harness's.
+
 ### Tier 1 — the eruptions
 
 1. **[prime] Make the inbox honest.** Print every ask addressed to the repo (or the count plus the
@@ -701,13 +723,22 @@ is what a ruling should weigh.
 
 ## 4. What to do first
 
-If only four things happen: (1) the inbox fix — full list, no suppression by open answers, a
-disambiguating note on local `q` (Tier 1 #1, #5); (2) `--to`/`--answers`/`set --body` or a
-correction to SKILL.md (Tier 1 #2); (3) the DSL flag tokens plus the `start` timeout (Tier 2 #6,
-#7); (4) load the skill with prime (Tier 3 #17a). Those remove the mechanism under every "sixth
-time" eruption, the cause of most hand-edits, the money leak, and the 61% of sessions that run
-the CLI from memory without ever seeing the ask vocabulary. Everything else in Tier 3 is a doc
-change and can ship in one commit.
+If only four things happen, with the price beside each: (1) the inbox fix — outbound asks out of
+`ready`, an ask visible until its answer is terminal; the full list and the five messages have
+shipped (Tier 1 #1, #3, #5) — **7.2M fresh tokens** of eruption, the largest number in the record;
+(2) `--to`/`--answers`/`set --body` or a correction to SKILL.md (Tier 1 #2) — **650 API turns**
+of hand-editing; (3) the DSL `package=`/`target=` tokens; the `start` timeout has shipped (Tier 2
+#6, #7) — **5.7 h of wall time** in twenty stalled verifies, and two adopters asking; (4) load
+the skill with prime; the footer has shipped (Tier 3 #17a) — **flat per session**, kept on the
+behavioural evidence and because the remaining half costs one hook line. Those remove the
+mechanism under every "sixth time" eruption, the cause of most hand-edits, the stall the asks
+name, and the 61% of sessions that run the CLI from memory without ever seeing the ask
+vocabulary. Everything else in Tier 3 is a doc change and can ship in one commit.
+
+The prices hold the order of the first three and demote the fourth: in the implementation plan's
+Wave 2 the skill hook sits behind the DSL trio (seq 560 after 530–550), and nothing else moves.
+(1) and (2) wait on the session-ritual ruling, (3) on the verify-grammar ruling; the numbers do
+not change which ruling comes first — the session ritual unblocks the two most expensive findings.
 
 ---
 

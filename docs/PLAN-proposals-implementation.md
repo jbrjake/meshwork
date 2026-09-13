@@ -869,7 +869,7 @@ handle: f-hook-injects-skill
 title: Have the SessionStart hook inject the skill body alongside prime
 category: skill
 needs: [@r-session]
-seq: 520
+seq: 560
 verify: contains .claude/settings.json /skills/meshwork/SKILL.md/
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-3-recommendations
