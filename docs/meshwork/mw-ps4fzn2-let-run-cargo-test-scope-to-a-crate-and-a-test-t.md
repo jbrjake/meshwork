@@ -3,6 +3,7 @@ id: mw-ps4fzn2
 title: Let run cargo test scope to a crate and a test target with dash-free package= and target= tokens
 category: core/verify
 needs: [mw-t41d6ze]
+answers: marasi#ma-tpmcdnk
 seq: 530
 verify: run cargo test verify_dsl::run_package_target_tokens
 docs:
