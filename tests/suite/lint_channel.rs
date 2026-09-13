@@ -351,3 +351,70 @@ fn ruling_without_quote() {
         "terminal tasks are history: {f:?}"
     );
 }
+
+/// mw-073zekp: a prerequisite placed later than live work that needs it
+/// is a contradiction the graph can see — the finding sits on the
+/// prerequisite and names the best-placed dependent with both places,
+/// transitively; an unranked prerequisite says so; a prerequisite ahead
+/// of its dependent, or one whose dependents are all terminal, is silent.
+#[test]
+fn needs_behind() {
+    let (_dir, root) = channel_store();
+    let task = |seq: Option<u32>, status: &str, needs: &str| {
+        let seq = seq.map(|s| format!("seq: {s}\n")).unwrap_or_default();
+        let needs = if needs.is_empty() {
+            String::new()
+        } else {
+            format!("needs: [{needs}]\n")
+        };
+        format!("status: {status}\nverify: \"true\"\n{seq}{needs}")
+    };
+    write_task(&root, "zz-pre1", &task(Some(900), "open", ""), "");
+    write_task(&root, "zz-dep1", &task(Some(150), "open", "zz-pre1"), "");
+    write_task(&root, "zz-pre2", &task(None, "open", ""), "");
+    write_task(&root, "zz-mid2", &task(Some(500), "open", "zz-pre2"), "");
+    write_task(&root, "zz-dep2", &task(Some(10), "doing", "zz-mid2"), "");
+    write_task(&root, "zz-pre3", &task(Some(30), "open", ""), "");
+    write_task(&root, "zz-dep3", &task(Some(40), "open", "zz-pre3"), "");
+    write_task(&root, "zz-pre4", &task(Some(800), "open", ""), "");
+    write_task(
+        &root,
+        "zz-dep4",
+        &task(Some(1), "done", "zz-pre4"),
+        "\n## log\n- 2026-08-01 created\n- 2026-08-02 open\u{2192}done\n",
+    );
+    let f = lint_store(&load_repo(&root).unwrap());
+    let on = |pre: &str| -> Vec<&str> {
+        f.iter()
+            .filter(|x| x.code == "needs-behind" && x.subject == pre)
+            .map(|x| x.message.as_str())
+            .collect()
+    };
+    assert_eq!(on("zz-pre1").len(), 1, "one finding per prerequisite: {f:?}");
+    assert!(
+        on("zz-pre1")[0].contains("900")
+            && on("zz-pre1")[0].contains("zz-dep1")
+            && on("zz-pre1")[0].contains("150"),
+        "both ids and both places: {f:?}"
+    );
+    assert!(
+        on("zz-pre2")[0].contains("unranked") && on("zz-pre2")[0].contains("zz-dep2"),
+        "transitive, and the unset seq says so: {f:?}"
+    );
+    assert!(
+        on("zz-mid2")[0].contains("zz-dep2") && on("zz-mid2")[0].contains("500"),
+        "the middle of the chain is behind too: {f:?}"
+    );
+    assert!(
+        on("zz-pre3").is_empty() && on("zz-dep3").is_empty(),
+        "a prerequisite ahead of its dependent is in order: {f:?}"
+    );
+    assert!(
+        on("zz-pre4").is_empty(),
+        "a terminal dependent no longer waits: {f:?}"
+    );
+    assert!(
+        on("zz-dep1").is_empty() && on("zz-dep2").is_empty(),
+        "the finding sits on the prerequisite, never the dependent: {f:?}"
+    );
+}
