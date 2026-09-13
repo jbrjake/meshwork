@@ -6,8 +6,7 @@
 //! (mw-tb6gdr9 — a claim coordinates, it never locks).
 
 use crate::edit::{append_section_entry, remove_scalar, set_scalar};
-use crate::parse::{parse_task_file, ParsedTask, Status};
-use crate::store::find_task_file;
+use crate::parse::{ParsedTask, Status};
 use crate::write::yaml_scalar;
 
 #[derive(clap::Args)]
@@ -54,8 +53,9 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
     // is the first unit of the work itself. Waive stays a close-time
     // concept for the genuinely unverifiable; this is the not-yet-specified.
     let tasks_dir = root.join("docs").join("meshwork");
-    if let Some(path) = find_task_file(&tasks_dir, &args.id) {
-        if let ParsedTask::Valid(t) = parse_task_file(&path) {
+    if let Some(located) = crate::archive::locate(&tasks_dir, &args.id) {
+        let path = located.path().to_path_buf();
+        if let ParsedTask::Valid(t) = located.parse() {
             match t.verify.as_deref().map(str::trim) {
                 None | Some("") => {
                     return Err(format!(
@@ -288,10 +288,10 @@ fn transition(
 ) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
-    let Some(path) = find_task_file(&tasks_dir, id) else {
+    let Some(located) = crate::archive::locate(&tasks_dir, id) else {
         return Err(format!("{id} not found in {}", tasks_dir.display()));
     };
-    let task = match parse_task_file(&path) {
+    let task = match located.parse() {
         ParsedTask::Valid(t) => t,
         ParsedTask::Invalid(inv) => {
             return Err(format!(
@@ -312,6 +312,14 @@ fn transition(
         ));
     }
 
+    // A bundled document comes back out as a file of its own first
+    // (mw-bvxpeef) — reopen is the one transition a terminal task takes,
+    // and the relocation below then carries the file to the root.
+    let path = if located.bundled() {
+        crate::archive::extract(&tasks_dir, id)?
+    } else {
+        located.path().to_path_buf()
+    };
     let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
     let mut text = set_scalar(&text, "status", Some(to.as_str()))?;
     match (to, reason) {

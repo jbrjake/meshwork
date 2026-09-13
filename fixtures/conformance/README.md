@@ -1,10 +1,17 @@
 # FORMAT.md conformance corpus
 
 A golden store plus its expected projection. Implement a reader from
-FORMAT.md (version 1), run it over `docs/meshwork/` here, and diff your
+FORMAT.md (version 2), run it over `docs/meshwork/` here, and diff your
 output against `expected.json` — byte-equal means conformant. Where this
 corpus and FORMAT.md disagree, the spec wins and the corpus has a bug;
 file it.
+
+The store declares `format = 2` and its archive holds both shapes a
+reader must load identically: single files, and `archive/bundle-0001.md`
+— two task documents concatenated, the second with a fenced `---`/`id:`
+pair and a bare horizontal rule in its body, neither of which opens a
+document (FORMAT.md §Bundles). Both bundled rows carry the bundle as
+their `path`.
 
 ## What expected.json is
 

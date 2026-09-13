@@ -4,8 +4,7 @@
 //! frontmatter. Excerpt-first: lint warns past 1MB.
 
 use crate::edit::{append_section_entry, set_list};
-use crate::parse::{parse_task_file, ParsedTask};
-use crate::store::find_task_file;
+use crate::parse::ParsedTask;
 use std::path::PathBuf;
 
 #[derive(clap::Args)]
@@ -65,7 +64,7 @@ pub(crate) fn resolve_author(
 pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
-    let Some(path) = find_task_file(&tasks_dir, &args.id) else {
+    let Some(located) = crate::archive::locate(&tasks_dir, &args.id) else {
         return Err(format!("{} not found", args.id));
     };
 
@@ -77,9 +76,9 @@ pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
     let today = crate::clock::stamp();
     let text_flat = crate::cli::prose_payload(&args.text)?.replace('\r', "");
     let entry = format!("{today} [{author}] {}", text_flat.replace('\n', "\n  "));
-    let file = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let file = located.read()?;
     let file = append_section_entry(&file, "comments", &entry);
-    std::fs::write(&path, file).map_err(|e| e.to_string())?;
+    located.write(&file)?;
 
     if json {
         crate::cli::emit_json(
@@ -95,10 +94,10 @@ pub(crate) fn comment(args: &CommentArgs, json: bool) -> Result<(), String> {
 pub(crate) fn attach(args: &AttachArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
-    let Some(task_path) = find_task_file(&tasks_dir, &args.id) else {
+    let Some(located) = crate::archive::locate(&tasks_dir, &args.id) else {
         return Err(format!("{} not found", args.id));
     };
-    let task = match parse_task_file(&task_path) {
+    let task = match located.parse() {
         ParsedTask::Valid(t) => t,
         ParsedTask::Invalid(inv) => {
             return Err(format!(
@@ -137,9 +136,9 @@ pub(crate) fn attach(args: &AttachArgs, json: bool) -> Result<(), String> {
     if !list.contains(&rel) {
         list.push(rel.clone());
     }
-    let file = std::fs::read_to_string(&task_path).map_err(|e| e.to_string())?;
+    let file = located.read()?;
     let file = set_list(&file, "attachments", &list)?;
-    std::fs::write(&task_path, file).map_err(|e| e.to_string())?;
+    located.write(&file)?;
 
     if bytes > 1_048_576 && !json {
         eprintln!(

@@ -141,8 +141,14 @@ pub fn mint_unique(alias: &str, tasks_dir: &Path, gen: &mut IdGen) -> std::io::R
 }
 
 fn id_taken(id: &str, tasks_dir: &Path) -> std::io::Result<bool> {
-    // Archived ids count as taken — never reused (MW-A4, mw-45e2qf4).
-    Ok(id_in_dir(id, tasks_dir)? || id_in_dir(id, &tasks_dir.join("archive"))?)
+    // Archived ids count as taken — never reused (MW-A4, mw-45e2qf4) —
+    // bundled ones included (mw-bvxpeef).
+    let archive = tasks_dir.join("archive");
+    Ok(id_in_dir(id, tasks_dir)?
+        || id_in_dir(id, &archive)?
+        || crate::archive::ids_in_bundles(&archive)
+            .iter()
+            .any(|b| b == id))
 }
 
 fn id_in_dir(id: &str, dir: &Path) -> std::io::Result<bool> {

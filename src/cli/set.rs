@@ -8,7 +8,6 @@
 //! hand-written `# …` comments survive.
 
 use crate::edit::{append_block_item, append_section_entry, remove_scalar, set_block, set_scalar};
-use crate::store::find_task_file;
 use crate::write::yaml_scalar;
 
 /// Wrap width for `handoff:` block lines — readable files, readable `»`
@@ -57,7 +56,7 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
     }
     let root = crate::cli::require_store_root()?;
     let tasks_dir = crate::store::tasks_dir(&root);
-    let Some(path) = find_task_file(&tasks_dir, &args.id) else {
+    let Some(located) = crate::archive::locate(&tasks_dir, &args.id) else {
         return Err(format!("{} not found in {}", args.id, tasks_dir.display()));
     };
 
@@ -77,7 +76,7 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
         crate::cli::reject_controls("docs link", link, false)?;
     }
 
-    let mut text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let mut text = located.read()?;
     let mut set_fields: Vec<&str> = Vec::new();
     if let Some(seq) = args.seq {
         text = set_scalar(&text, "seq", Some(&seq.to_string()))?;
@@ -124,7 +123,7 @@ pub(crate) fn run(args: &SetArgs, json: bool) -> Result<(), String> {
         text = set_scalar(&text, "title", Some(&yaml_scalar(&title)))?;
         set_fields.push("title");
     }
-    std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    located.write(&text)?;
     // Approve-at-mint (§12b as amended 2026-08-21, mw-51x0wty): replacing
     // the text is authoring it — record this clone's approval; every
     // other clone re-gates on the new text by construction. Best-effort.

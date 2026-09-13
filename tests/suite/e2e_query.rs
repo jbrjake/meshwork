@@ -107,7 +107,7 @@ fn json_stable_shapes() {
     let check = |assert: &assert_cmd::assert::Assert, verb: &str| {
         let v: serde_json::Value = serde_json::from_str(&stdout_of(assert))
             .unwrap_or_else(|e| panic!("{verb}: bad JSON: {e}"));
-        assert_eq!(v["meshwork"]["schema"], 1, "{verb}: envelope schema");
+        assert_eq!(v["meshwork"]["schema"], 2, "{verb}: envelope schema");
         assert_eq!(
             v["meshwork"]["version"],
             env!("CARGO_PKG_VERSION"),

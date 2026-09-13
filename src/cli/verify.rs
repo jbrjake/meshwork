@@ -7,8 +7,7 @@
 //! `--approve` here: approval stays a close-side act, and the gate's
 //! refusal already names it. Single-task only, per the same ruling.
 
-use crate::parse::{parse_task_file, ParsedTask};
-use crate::store::find_task_file;
+use crate::parse::ParsedTask;
 
 #[derive(clap::Args)]
 #[command(after_help = crate::verify_dsl::GRAMMAR_HELP)]
@@ -20,11 +19,12 @@ pub(crate) struct VerifyArgs {
 pub(crate) fn run(args: &VerifyArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
-    let Some(path) = find_task_file(&tasks_dir, &args.id) else {
+    let Some(located) = crate::archive::locate(&tasks_dir, &args.id) else {
         return Err(format!("{} not found in {}", args.id, tasks_dir.display()));
     };
+    let path = located.path().to_path_buf();
     // Any status runs: a rotted verify on a done task is the sweep's quarry.
-    let task = match parse_task_file(&path) {
+    let task = match located.parse() {
         ParsedTask::Valid(t) => t,
         ParsedTask::Invalid(inv) => {
             return Err(format!(

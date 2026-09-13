@@ -280,10 +280,10 @@ pub fn resolve_foreign(
         }
         let Some(root) = &entry.path else { continue };
         let tasks_dir = root.join("docs").join("meshwork");
-        let Some(file) = crate::store::find_task_file(&tasks_dir, id_part) else {
+        let Some(located) = crate::archive::locate(&tasks_dir, id_part) else {
             continue;
         };
-        let ParsedTask::Valid(t) = crate::parse::parse_task_file(&file) else {
+        let ParsedTask::Valid(t) = located.parse() else {
             continue;
         };
         out.push(ForeignTask {
@@ -292,7 +292,7 @@ pub fn resolve_foreign(
             id: t.id.clone(),
             status: t.status.as_str().to_string(),
             title: Some(t.title.clone()),
-            path: file.display().to_string(),
+            path: located.path().display().to_string(),
         });
     }
     out

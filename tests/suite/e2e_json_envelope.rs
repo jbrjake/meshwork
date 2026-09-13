@@ -23,7 +23,7 @@ fn json_envelope_stamps_version_and_schema() {
             env!("CARGO_PKG_VERSION"),
             "{args:?}: {out}"
         );
-        assert_eq!(v["meshwork"]["schema"], 1, "{args:?}: {out}");
+        assert_eq!(v["meshwork"]["schema"], 2, "{args:?}: {out}");
         assert!(v["verb"].is_string(), "{args:?}: {out}");
         assert!(!v["data"].is_null(), "{args:?}: {out}");
     }

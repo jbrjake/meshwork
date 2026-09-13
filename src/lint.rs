@@ -85,6 +85,7 @@ pub fn lint_store(store: &RepoStore) -> Vec<Finding> {
     check_lifecycle(&valid, &mut out);
     check_budgets(store, &valid, &mut out);
     check_misplaced(store, &mut out);
+    check_archive(store, &mut out);
     check_docs(store, &valid, &mut out);
     crate::lint_tail::check(store, &mut out);
     crate::lint_verify::check(store, &valid, &mut out);
@@ -569,22 +570,48 @@ fn check_misplaced(store: &RepoStore, out: &mut Vec<Finding>) {
                 ),
             ));
         } else if !terminal && in_archive {
+            let where_ = if crate::archive::is_bundle_path(&entry.file_name) {
+                "inside an archive bundle — live tasks belong in the store root (lint --fix splits it out and moves it)"
+            } else {
+                "in archive/ — live tasks belong in the store root (lint --fix moves it)"
+            };
             out.push(finding(
                 Severity::Warning,
                 "misplaced",
                 &t.id,
-                format!(
-                    "{} but its file sits in archive/ — live tasks belong in the store root (lint --fix moves it)",
-                    t.status.as_str()
-                ),
+                format!("{} but its file sits {where_}", t.status.as_str()),
             ));
         }
+    }
+}
+
+/// Loose archived files past the threshold (mw-bvxpeef): every closed
+/// task is a file handle and a git path until `lint --fix` folds them
+/// into bundles — a deliberate step, since the first bundle makes the
+/// store format 2.
+fn check_archive(store: &RepoStore, out: &mut Vec<Finding>) {
+    let archive = crate::store::tasks_dir(&store.root).join(crate::store::ARCHIVE_SUBDIR);
+    let loose = crate::archive::loose_singles(&archive).len();
+    if loose >= crate::archive::LOOSE_THRESHOLD {
+        out.push(finding(
+            Severity::Warning,
+            "archive-loose",
+            "archive",
+            format!(
+                "{loose} archived tasks are loose files — lint --fix bundles them into \
+                 archive/bundle-NNNN.md (the store becomes format 2; older binaries then refuse it)"
+            ),
+        ));
     }
 }
 
 /// Byte budgets (MW-A5/D5/K3, §15.5) + attachment paths exist.
 fn check_budgets(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) {
     for entry in &store.entries {
+        // A bundle's size is the archive's, not any one task's.
+        if crate::archive::is_bundle_path(&entry.file_name) {
+            continue;
+        }
         let path = store
             .root
             .join("docs")

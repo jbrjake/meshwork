@@ -4,7 +4,7 @@
 //! stay lint's job, MW-B2).
 
 use crate::edit::set_list;
-use crate::parse::{parse_task_file, ParsedTask};
+use crate::parse::ParsedTask;
 use crate::store::find_task_file;
 
 #[derive(clap::Args)]
@@ -58,10 +58,10 @@ pub(crate) fn run(args: &DepArgs, json: bool) -> Result<(), String> {
     };
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
-    let Some(path) = find_task_file(&tasks_dir, &edge.a) else {
+    let Some(located) = crate::archive::locate(&tasks_dir, &edge.a) else {
         return Err(format!("{} not found", edge.a));
     };
-    let task = match parse_task_file(&path) {
+    let task = match located.parse() {
         ParsedTask::Valid(t) => t,
         ParsedTask::Invalid(inv) => {
             return Err(format!(
@@ -93,7 +93,7 @@ pub(crate) fn run(args: &DepArgs, json: bool) -> Result<(), String> {
         }
     }
 
-    let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let text = located.read()?;
     // set_list/remove_scalar are block-aware: a hand-written or batch-
     // imported block-style `needs:` collapses cleanly instead of leaving
     // its old `  - item` lines stranded under the new flow line.
@@ -102,7 +102,7 @@ pub(crate) fn run(args: &DepArgs, json: bool) -> Result<(), String> {
     } else {
         set_list(&text, "needs", &needs)?
     };
-    std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    located.write(&text)?;
 
     if json {
         crate::cli::emit_json(

@@ -5,6 +5,7 @@
 //! Modeling errors (cycles, missing reasons, dangling refs) stay human
 //! problems.
 
+use crate::archive::Located;
 use crate::edit::{append_section_entry, set_scalar};
 use crate::id::{mint_unique, IdGen};
 use crate::lint::{lint_store, Severity};
@@ -75,6 +76,7 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
         if repairs > 0 && !json {
             println!("fixed {repairs} file(s)");
         }
+        fix_compact(&store, json)?;
         store = load_repo(&root).map_err(|e| e.to_string())?;
         // What no fixer mends is said plainly, by name — a file that
         // still fails to parse is a human's problem, not a silent one.
@@ -183,10 +185,14 @@ fn fix_stray_tail(store: &RepoStore) -> Result<usize, String> {
         if matches!(t.status, Status::Done | Status::Dropped) {
             continue;
         }
-        let path = crate::store::tasks_dir(&store.root).join(&entry.file_name);
+        let located = Located::for_entry(
+            &crate::store::tasks_dir(&store.root),
+            &entry.file_name,
+            &t.id,
+        );
         // Earlier repairs (re-slug, relocation) may have moved this entry
         // out from under the pre-fix snapshot — the reload below settles it.
-        let Ok(text) = std::fs::read_to_string(&path) else {
+        let Ok(text) = located.read() else {
             continue;
         };
         let Some((repaired, moved)) = crate::lint_tail::relocate_stray(&text) else {
@@ -201,7 +207,7 @@ fn fix_stray_tail(store: &RepoStore) -> Result<usize, String> {
                  tail sections into the body"
             ),
         );
-        std::fs::write(&path, repaired).map_err(|e| e.to_string())?;
+        located.write(&repaired)?;
         fixed += 1;
     }
     Ok(fixed)
@@ -244,12 +250,48 @@ fn fix_misplaced(store: &RepoStore) -> Result<usize, String> {
         let terminal = matches!(t.status, Status::Done | Status::Dropped);
         let in_archive = entry.file_name.starts_with("archive/");
         if terminal != in_archive {
-            let path = tasks_dir.join(&entry.file_name);
+            // A live task inside a bundle comes out as its own file first
+            // (mw-bvxpeef), then moves like any misplaced single.
+            let path = if crate::archive::is_bundle_path(&entry.file_name) {
+                crate::archive::extract(&tasks_dir, &t.id)?
+            } else {
+                tasks_dir.join(&entry.file_name)
+            };
             crate::store::relocate_for_status(&path, terminal).map_err(|e| e.to_string())?;
             moved += 1;
         }
     }
     Ok(moved)
+}
+
+/// Past the loose-file threshold, fold archived singles into bundles
+/// (mw-bvxpeef) and say what happened; below it the archive is left
+/// alone, so a routine fix run never bumps a store's format by surprise.
+fn fix_compact(store: &RepoStore, json: bool) -> Result<(), String> {
+    let tasks_dir = crate::store::tasks_dir(&store.root);
+    let loose = crate::archive::loose_singles(&tasks_dir.join(crate::store::ARCHIVE_SUBDIR));
+    if loose.len() < crate::archive::LOOSE_THRESHOLD {
+        return Ok(());
+    }
+    let report = crate::archive::compact(&tasks_dir)?;
+    if json {
+        return Ok(());
+    }
+    if report.bundled > 0 {
+        println!(
+            "compacted {} archived file(s) into {} — the store is format 2 now",
+            report.bundled,
+            report.bundles.join(", ")
+        );
+    }
+    for (name, why) in &report.skipped {
+        println!(
+            "left loose {}: {}",
+            crate::cli::sanitize(name),
+            crate::cli::sanitize(why)
+        );
+    }
+    Ok(())
 }
 
 /// Union merge's signature damage: the same top-level key twice. Keep the
@@ -267,12 +309,12 @@ fn fix_duplicate_keys(store: &RepoStore) -> Result<usize, String> {
         if !inv.error.contains("duplicate frontmatter key") {
             continue;
         }
-        let path = store
-            .root
-            .join("docs")
-            .join("meshwork")
-            .join(&entry.file_name);
-        let text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let located = Located::for_entry(
+            &crate::store::tasks_dir(&store.root),
+            &entry.file_name,
+            &inv.id,
+        );
+        let text = located.read()?;
         let Some((repaired, dropped)) = drop_duplicate_keys(&text) else {
             continue;
         };
@@ -305,7 +347,7 @@ fn fix_duplicate_keys(store: &RepoStore) -> Result<usize, String> {
                 &format!("{today} lint --fix: dropped duplicate `{line}` (union merge; kept the first value)"),
             );
         }
-        std::fs::write(&path, repaired).map_err(|e| e.to_string())?;
+        located.write(&repaired)?;
         fixed += 1;
     }
     Ok(fixed)
@@ -352,11 +394,15 @@ fn fix_needs_collision(store: &RepoStore) -> Result<usize, String> {
     let today = crate::clock::stamp();
     let mut fixed = 0;
     for entry in &store.entries {
-        let ParsedTask::Invalid(_) = &entry.parsed else {
+        let ParsedTask::Invalid(inv) = &entry.parsed else {
             continue;
         };
-        let path = crate::store::tasks_dir(&store.root).join(&entry.file_name);
-        let Ok(text) = std::fs::read_to_string(&path) else {
+        let located = Located::for_entry(
+            &crate::store::tasks_dir(&store.root),
+            &entry.file_name,
+            &inv.id,
+        );
+        let Ok(text) = located.read() else {
             continue;
         };
         let Some((repaired, dropped)) = drop_needs_collision(&text) else {
@@ -371,7 +417,7 @@ fn fix_needs_collision(store: &RepoStore) -> Result<usize, String> {
                  already carried by the flow list"
             ),
         );
-        std::fs::write(&path, repaired).map_err(|e| e.to_string())?;
+        located.write(&repaired)?;
         fixed += 1;
     }
     Ok(fixed)
@@ -396,8 +442,12 @@ fn fix_crossrepo_docs(store: &RepoStore) -> Result<usize, String> {
         if rewrites.is_empty() {
             continue;
         }
-        let path = crate::store::tasks_dir(&store.root).join(&entry.file_name);
-        let mut text = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        let located = Located::for_entry(
+            &crate::store::tasks_dir(&store.root),
+            &entry.file_name,
+            &t.id,
+        );
+        let mut text = located.read()?;
         for (old, new) in &rewrites {
             text = text.replacen(&format!("- {old}"), &format!("- {new}"), 1);
             text = append_section_entry(
@@ -406,7 +456,7 @@ fn fix_crossrepo_docs(store: &RepoStore) -> Result<usize, String> {
                 &format!("{today} lint --fix: docs: {old} \u{2192} {new} (registered repo)"),
             );
         }
-        std::fs::write(&path, text).map_err(|e| e.to_string())?;
+        located.write(&text)?;
         fixed += 1;
     }
     Ok(fixed)
@@ -419,11 +469,15 @@ fn fix_stranded_block(store: &RepoStore) -> Result<usize, String> {
     let today = crate::clock::stamp();
     let mut fixed = 0;
     for entry in &store.entries {
-        let ParsedTask::Invalid(_) = &entry.parsed else {
+        let ParsedTask::Invalid(inv) = &entry.parsed else {
             continue;
         };
-        let path = crate::store::tasks_dir(&store.root).join(&entry.file_name);
-        let Ok(text) = std::fs::read_to_string(&path) else {
+        let located = Located::for_entry(
+            &crate::store::tasks_dir(&store.root),
+            &entry.file_name,
+            &inv.id,
+        );
+        let Ok(text) = located.read() else {
             continue;
         };
         let Some((repaired, dropped)) = crate::edit::strip_stranded_block(&text) else {
@@ -438,7 +492,7 @@ fn fix_stranded_block(store: &RepoStore) -> Result<usize, String> {
                  frontmatter under no key"
             ),
         );
-        std::fs::write(&path, repaired).map_err(|e| e.to_string())?;
+        located.write(&repaired)?;
         fixed += 1;
     }
     Ok(fixed)
@@ -553,6 +607,13 @@ fn fix_duplicate_ids(store: &RepoStore) -> Result<usize, String> {
             key_a.cmp(&key_b)
         });
         for (file_name, _) in files.iter().skip(1) {
+            if crate::archive::is_bundle_path(file_name) {
+                eprintln!(
+                    "note: `{old_id}` is also inside {file_name} — a bundled duplicate is \
+                     not re-slugged; reopen and drop the copy you do not want"
+                );
+                continue;
+            }
             let new_id = mint_unique(&store.config.alias, &tasks_dir, &mut gen)
                 .map_err(|e| e.to_string())?;
             reslug(&tasks_dir, file_name, &old_id, &new_id, &today)?;

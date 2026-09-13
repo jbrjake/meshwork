@@ -29,7 +29,9 @@ pub enum StoreError {
 /// The store format this binary understands (mw-n6nvzpa). The minting-rule
 /// idiom (§15.8) covers additive change; bump this only on a SEMANTIC
 /// format change, so old binaries refuse loudly instead of misreading.
-pub const STORE_FORMAT: u64 = 1;
+/// Format 2 (mw-bvxpeef): `archive/bundle-NNNN.md` holds many task
+/// documents — a format-1 reader would take a bundle for one task.
+pub const STORE_FORMAT: u64 = 2;
 
 /// `docs/meshwork/.gitattributes` — the committed union attribute is the
 /// store's whole concurrency mechanism (FORMAT.md Merge semantics). `init`
@@ -251,12 +253,26 @@ pub fn load_repo(root: &Path) -> Result<RepoStore, StoreError> {
                         .path()
                         .extension()
                         .is_some_and(|ext| ext.eq_ignore_ascii_case("md"));
-                    if is_md {
-                        entries.push(TaskEntry {
-                            parsed: parse_task_file(&entry.path()),
-                            file_name: format!("{prefix}{name}"),
-                        });
+                    if !is_md {
+                        continue;
                     }
+                    let file_name = format!("{prefix}{name}");
+                    // A bundle (format 2) is many documents under one
+                    // name; each loads as its own entry, in bundle order.
+                    if !prefix.is_empty() && crate::archive::is_bundle_name(&name) {
+                        let text = std::fs::read_to_string(entry.path()).unwrap_or_default();
+                        for parsed in crate::archive::load_bundle(&file_name, &text) {
+                            entries.push(TaskEntry {
+                                parsed,
+                                file_name: file_name.clone(),
+                            });
+                        }
+                        continue;
+                    }
+                    entries.push(TaskEntry {
+                        parsed: parse_task_file(&entry.path()),
+                        file_name,
+                    });
                 }
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {} // fresh store
@@ -283,10 +299,20 @@ pub fn find_git_root(start: &Path) -> Option<PathBuf> {
         .map(Path::to_path_buf)
 }
 
-/// Locate a task file by ID: `<id>.md` or the `<id>-<slug>.md` glob —
-/// the ID prefix exists precisely for this lookup (DESIGN §2/§5).
+/// Locate the file holding a task by ID: `<id>.md` or the `<id>-<slug>.md`
+/// glob — the ID prefix exists precisely for this lookup (DESIGN §2/§5) —
+/// else the archive bundle whose documents include it. An existence
+/// answer; a verb that reads or writes the task goes through
+/// `archive::locate`, which knows which of the two it got.
 #[must_use]
 pub fn find_task_file(tasks_dir: &Path, id: &str) -> Option<PathBuf> {
+    find_single(tasks_dir, id)
+        .or_else(|| crate::archive::bundle_holding(&tasks_dir.join(ARCHIVE_SUBDIR), id))
+}
+
+/// A task's own file, root or archive; never a bundle.
+#[must_use]
+pub fn find_single(tasks_dir: &Path, id: &str) -> Option<PathBuf> {
     find_in_dir(tasks_dir, id).or_else(|| find_in_dir(&tasks_dir.join(ARCHIVE_SUBDIR), id))
 }
 

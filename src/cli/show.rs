@@ -2,8 +2,7 @@
 //! of the flat two-level disclosure (MW-D1). Comments cap at last-3 with an
 //! explicit `… and N more` marker (MW-K4/D2); `--comments` opts out.
 
-use crate::parse::{parse_task_file, ParsedTask, Task};
-use crate::store::find_task_file;
+use crate::parse::{ParsedTask, Task};
 
 #[derive(clap::Args)]
 pub(crate) struct ShowArgs {
@@ -49,12 +48,13 @@ fn commits_for(root: &std::path::Path, id: &str) -> Vec<(String, String)> {
 pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
-    let Some(path) = find_task_file(&tasks_dir, &args.id) else {
+    let Some(located) = crate::archive::locate(&tasks_dir, &args.id) else {
         return Err(not_found(&root, &tasks_dir, &args.id));
     };
+    let path = located.path().to_path_buf();
     // The path the store actually holds — archive/ included once close
     // has moved the file (mw-7ywrxf1: a root path for an archived task
-    // sent an agent to `find`).
+    // sent an agent to `find`), the bundle once compaction folded it in.
     let rel = path.strip_prefix(&root).map_or_else(
         |_| {
             format!(
@@ -65,7 +65,7 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
         |p| p.to_string_lossy().replace('\\', "/"),
     );
 
-    match parse_task_file(&path) {
+    match located.parse() {
         ParsedTask::Valid(task) => {
             let shown_from = if args.comments {
                 0
@@ -75,7 +75,8 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
             // Stranded tail content surfaces in the body area, where it
             // would have rendered — stderr warnings scroll past unread
             // (mw-7tseswy). Same counter as lint's stray-tail-content.
-            let stray = std::fs::read_to_string(&path)
+            let stray = located
+                .read()
                 .ok()
                 .and_then(|text| crate::lint_tail::relocate_stray(&text))
                 .map(|(_, moved)| moved);

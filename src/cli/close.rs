@@ -7,8 +7,7 @@
 //! `sh -c` — sits behind the MW-E5 trust gate (mw-9rc4vs6).
 
 use crate::edit::{append_section_entry, remove_scalar, set_scalar};
-use crate::parse::{parse_task_file, ParsedTask, Status};
-use crate::store::find_task_file;
+use crate::parse::{ParsedTask, Status};
 use crate::write::yaml_scalar;
 
 #[derive(clap::Args)]
@@ -139,10 +138,10 @@ fn close_waived(
 pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
     let root = crate::cli::require_store_root()?;
     let tasks_dir = root.join("docs").join("meshwork");
-    let Some(path) = find_task_file(&tasks_dir, &args.id) else {
+    let Some(located) = crate::archive::locate(&tasks_dir, &args.id) else {
         return Err(format!("{} not found in {}", args.id, tasks_dir.display()));
     };
-    let task = match parse_task_file(&path) {
+    let task = match located.parse() {
         ParsedTask::Valid(t) => t,
         ParsedTask::Invalid(inv) => {
             return Err(format!(
@@ -158,6 +157,9 @@ pub(crate) fn run(args: &CloseArgs, json: bool) -> Result<(), String> {
             task.status.as_str()
         ));
     }
+    // A live task never belongs in a bundle; if one is there, the move
+    // out is a repair, not a close.
+    let path = located.require_single("close")?.to_path_buf();
 
     let today = crate::clock::stamp();
     let from = task.status.as_str();

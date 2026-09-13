@@ -1,8 +1,8 @@
-# FORMAT.md — the meshwork on-disk format, version 1
+# FORMAT.md — the meshwork on-disk format, version 2
 
 Normative and self-contained: a third party can implement a reader from this file without the binary. Rationale lives in docs/DESIGN-meshwork.md; requirement IDs (`MW-*`) in docs/REQUIREMENTS-meshwork.md. Where this file and the binary disagree, this file wins and the binary has a bug. A conformance corpus — a golden store plus its expected projection, self-checkable by any reader — lives at `fixtures/conformance/` in the meshwork repo (mw-7c6svyn).
 
-**Versioning.** The store declares its format in `config.toml` (`format = 1`; absent means 1). The version bumps only on a *semantic* change — one that would make an old reader misread existing bytes. Additive change ships without a bump under the minting-rule idiom: new writers may mint richer forms (longer IDs, minute stamps, new log shapes), but parsers accept the old forms forever and never validate mint-time rules. A reader encountering a format newer than it knows MUST refuse loudly, never guess. The store, not the file, is the versioning unit (mw-1bb2542): `format` covers every file in the store, and a bare task file encountered outside one — pasted into an issue, emailed — carries no version and is read at the reader's current format version. Machine output carries the same number: the binary's `--json` verbs wrap results in an envelope, `{"meshwork": {"version": <binary version>, "schema": <n>}, "verb": …, "data": …}`, and the envelope's `schema` IS this format version — one contract, one number (mw-5rgq9ka). `version` identifies the producing binary and moves per release; `schema` moves only when `format` does.
+**Versioning.** The store declares its format in `config.toml` (`format = 2` is current; absent means 1). The version bumps only on a *semantic* change — one that would make an old reader misread existing bytes. Additive change ships without a bump under the minting-rule idiom: new writers may mint richer forms (longer IDs, minute stamps, new log shapes), but parsers accept the old forms forever and never validate mint-time rules. A reader encountering a format newer than it knows MUST refuse loudly, never guess. The store, not the file, is the versioning unit (mw-1bb2542): `format` covers every file in the store, and a bare task file encountered outside one — pasted into an issue, emailed — carries no version and is read at the reader's current format version. Machine output carries the same number: the binary's `--json` verbs wrap results in an envelope, `{"meshwork": {"version": <binary version>, "schema": <n>}, "verb": …, "data": …}`, and the envelope's `schema` IS this format version — one contract, one number (mw-5rgq9ka). `version` identifies the producing binary and moves per release; `schema` moves only when `format` does. Format 2 adds archive bundles (*Store layout*): a format-1 reader would take a bundle for one task, hence the bump. Every format-1 store reads unchanged under a format-2 reader, and a writer declares 2 only when it creates the store or writes its first bundle (mw-bvxpeef).
 
 ## Store layout
 
@@ -14,10 +14,13 @@ docs/meshwork/               # the store root, flat
                              #   deletable at any time, never a dependency
   <id>-<slug>.md             # one live task per file
   archive/<id>-<slug>.md     # terminal tasks (done|dropped); same format, always loaded
+  archive/bundle-NNNN.md     # format 2: many terminal task documents, concatenated
   attachments/<id>/<file>    # attachment payloads, plain files
 ```
 
 Only `.md` files directly in the store root and in `archive/` are task files. Terminal tasks live in `archive/`; location carries no semantics beyond tidiness — every reader MUST load both directories identically. Nothing outside `docs/meshwork/` belongs to the store, and the store never references files outside its repo.
+
+**Bundles (format 2).** In `archive/`, a file named `bundle-<digits>.md` is a bundle: a sequence of task documents, not a task. A document opens at a top-level `---` line directly followed by an `id:` line; its frontmatter runs to the next `---` line; its body runs to the next opener. A `---` inside a fenced code block, or one not followed by an `id:` line (a horizontal rule), is body. Documents are separated by one blank line. A bundled task takes its id from its `id:` line — the filename carries none — and a reader MUST load every document exactly as it loads a single file, the bundle's path standing as the task's path. A bundle holds only terminal tasks (a live one there is the reference binary's `misplaced` finding). Writers append whole documents; a document leaves a bundle only by being split back out as a single file (`reopen`). The reference binary bundles nothing until 100 archived files are loose, then folds them under `lint --fix`, 512 KiB per bundle (DESIGN §1).
 
 ## config.toml
 
@@ -26,7 +29,7 @@ TOML; unknown keys are ignored (config is not the strict surface task files are)
 | key | meaning |
 |---|---|
 | `alias` | string, required, `[a-z0-9]+` — the ID prefix for tasks minted in this store; a dash or uppercase would corrupt filename ID recovery (first two dash-segments of the stem) |
-| `format` | integer — format version; absent = 1 |
+| `format` | integer — format version; absent = 1; 2 means `archive/bundle-NNNN.md` files may exist (see *Bundles*) |
 | `default_author` | string — fallback identity for comments/claims |
 | `[hierarchy] levels` | string list — display names for category depths; zero semantics |
 | `mirror` | bool — GitHub mirror opt-in; absent = off |

@@ -216,9 +216,21 @@ pub fn id_from_filename(file_name: &str) -> String {
 /// ID recovery on failure and the filename/id mismatch warning.
 #[must_use]
 pub fn parse_task_str(file_name: &str, text: &str) -> ParsedTask {
+    parse_document(file_name, &id_from_filename(file_name), true, text)
+}
+
+/// Parse one document of an archive bundle: the bundle's name carries no
+/// id, so `id` (the document's own `id:` line) stands in for recovery and
+/// the filename check is moot.
+#[must_use]
+pub fn parse_bundled(bundle_name: &str, id: &str, text: &str) -> ParsedTask {
+    parse_document(bundle_name, id, false, text)
+}
+
+fn parse_document(file_name: &str, id_hint: &str, check_name: bool, text: &str) -> ParsedTask {
     let invalid = |error: String| {
         ParsedTask::Invalid(Invalid {
-            id: id_from_filename(file_name),
+            id: id_hint.to_string(),
             file_name: file_name.to_string(),
             error,
         })
@@ -239,7 +251,7 @@ pub fn parse_task_str(file_name: &str, text: &str) -> ParsedTask {
 
     let mut warnings = Vec::new();
     warn_unknown_keys(fm_text, &mut warnings);
-    if !fm.id.is_empty() && !file_name.starts_with(&format!("{}-", fm.id)) {
+    if check_name && !fm.id.is_empty() && !file_name.starts_with(&format!("{}-", fm.id)) {
         warnings.push(format!(
             "filename `{file_name}` does not start with id `{}` — by-ID lookup globs on the filename prefix",
             fm.id

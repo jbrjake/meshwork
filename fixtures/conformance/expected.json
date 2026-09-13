@@ -17,6 +17,14 @@
       "04d2aad5a21376b54de9a010fb596f6027e4ed0481158cd063f09a0d4372c626"
     ],
     [
+      "conformance#cf-bund2ed",
+      "1",
+      "2026-08-06T10:00Z",
+      "spec",
+      "A comment appended into the bundle after compaction.",
+      "105012cbecf1b7e0db94fcfccc1bb66a8c1fd0f206da95ec113559ef9257bbf1"
+    ],
+    [
       "conformance#cf-l0gedge",
       "1",
       "2026-08-06T09:00Z",
@@ -145,6 +153,38 @@
       "open",
       "blocked",
       "upstream fixture not published"
+    ],
+    [
+      "conformance#cf-bund1ed",
+      "1",
+      "2026-07-31",
+      "",
+      "",
+      "created"
+    ],
+    [
+      "conformance#cf-bund1ed",
+      "2",
+      "2026-08-05T09:00Z",
+      "open",
+      "done",
+      "verify exit 0"
+    ],
+    [
+      "conformance#cf-bund2ed",
+      "1",
+      "2026-08-01",
+      "",
+      "",
+      "created"
+    ],
+    [
+      "conformance#cf-bund2ed",
+      "2",
+      "2026-08-05T09:30Z",
+      "open",
+      "done",
+      "verify exit 0"
     ],
     [
       "conformance#cf-dr0pped",
@@ -322,6 +362,48 @@
       "docs/meshwork/cf-bl0cked-blocked-with-reason.md",
       "false",
       "`blocked-reason` is required non-empty iff status is blocked.",
+      "",
+      ""
+    ],
+    [
+      "conformance#cf-bund1ed",
+      "conformance",
+      "cf-bund1ed",
+      "Bundled done task — the first document of a bundle",
+      "done",
+      "engine/spill",
+      "exists README.md",
+      "",
+      "",
+      "2026-07-31",
+      "",
+      "",
+      "",
+      "",
+      "docs/meshwork/archive/bundle-0001.md",
+      "false",
+      "A bundle (FORMAT.md §Bundles, format 2) is task documents concatenated:\nthis one opens the file. The bundle's name carries no id; each document's\n`id:` line does. Readers load it exactly as a file of its own, with the\nbundle as its path.",
+      "",
+      ""
+    ],
+    [
+      "conformance#cf-bund2ed",
+      "conformance",
+      "cf-bund2ed",
+      "Bundled done task whose body quotes the format",
+      "done",
+      "",
+      "true",
+      "",
+      "",
+      "2026-08-01",
+      "",
+      "",
+      "",
+      "",
+      "docs/meshwork/archive/bundle-0001.md",
+      "false",
+      "The boundary rule is `---` followed by an `id:` line, outside fences. Both\nof these stay in this body:\n\n```\n---\nid: cf-notadoc\ntitle: fenced text, not a document\n---\n```\n\n---\n\nThat bare rule above is a horizontal rule — no `id:` follows it.",
       "",
       ""
     ],

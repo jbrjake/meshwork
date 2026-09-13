@@ -4,7 +4,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 
 | req | tests | status |
 |---|---|---|
-| MW-A1 | `parse::roundtrip_hand_edited`, `e2e::add_show_roundtrip` | done |
+| MW-A1 | `parse::roundtrip_hand_edited`, `e2e::add_show_roundtrip`, `e2e::archive_compact` | done |
 | MW-A2 | `tables::memtable_no_disk`, `e2e::cache_delete_safe` | done |
 | MW-A3 | `e2e::init_layout` (nothing written outside repo, no hooks) | done |
 | MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id` | done |
