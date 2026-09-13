@@ -60,6 +60,27 @@ An explicit `--as` always wins, and a human shell (no session id) falls
 through to `default_author` untouched. Never put `]` in an author — the
 comment grammar closes on it.
 
+## The portfolio store (the registry repo is a store too)
+
+The repo that holds `repos.toml` — `~/Documents/code/portfolio` by default,
+`MESHWORK_PORTFOLIO=<dir>` overrides — carries portfolio-scope tasks
+(rulings, cross-repo seams) in its own `docs/meshwork/`, and every
+`portfolio ready` / `next` / `q` reads the registry from it. It gets the
+same ritual as any adopter, or its sessions start cold with no shim to
+call: pin `.meshwork-version` and commit the shim exactly as above, then
+wire the SessionStart hook from `adopt.md` step 4 into its
+`.claude/settings.json`. Register each repo once:
+
+```toml
+[[repo]]
+name = "leras"                 # the id namespace: leras#le-…
+remote = "git@github.com:jbrjake/leras.git"
+# the checkout defaults to ~/Documents/code/<name>; a per-machine override
+# is a `name = "<path>"` line under [paths] in the gitignored repos.local.toml
+```
+
+Registry order is the `portfolio next` fallback order.
+
 ## The skill (plugin, user-scoped — the default)
 
 ```

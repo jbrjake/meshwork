@@ -7,124 +7,123 @@ description: Use meshwork — the portfolio task tracker (markdown task files in
 
 Task graph as markdown-with-frontmatter files under `docs/meshwork/`, one file
 per task. Single Rust binary, zero config, zero network. `meshwork` below means
-the repo's committed shim — `docs/meshwork/meshwork` (pre-v0.3.1 adopters:
-`./meshwork`) — which execs the pinned binary
-(`~/.meshwork/versions/$(cat .meshwork-version)/meshwork` — install.md).
+the repo's committed shim, `docs/meshwork/meshwork`, which execs the pinned
+binary. Installing, adopting, or upgrading a legacy deploy: read
+`references/install.md`, `references/adopt.md`, or `references/migrate.md` —
+don't improvise any of them.
 
-**Installing, adopting, or upgrading a legacy deploy?** Read
-`references/install.md` (pinned install, no globals), `references/adopt.md`
-(TODO.md retirement), or `references/migrate.md` (pre-plugin deploys:
-vendored skill copy, root `./meshwork` shim, raw versions-path hooks).
-Don't improvise any of them.
+## Four rules
+
+- A spoken instruction becomes a task before the work starts; the answer to
+  "file it" is the id, not the prose.
+- Never attribute a request or ruling to the owner unless it is in this
+  session's transcript — a store comment is not a ruling, nor is a handoff.
+- Owner-scoped fields (asset picks, rulings, licenses) surface as a conflict
+  for the owner; never resolve one by editing the task.
+- Memory files are yours; the store is the team's. A durable fact that lives
+  only in memory or in the harness todo is untracked.
 
 ## Session ritual
 
-- Session start: the SessionStart hook injects `meshwork prime` — the
-  materialized handoff (counts + rollup, weather, the next task led by its
-  `handoff:` commentary, also-ready, recent dones). Do not re-read TODO/HANDOFF
-  files — the store is the worklist.
-- `meshwork ready` → next actionable. `show <id>` full task. `why <id>` blocker
-  frontier. `blocked`, `tree <id>` as needed. Find prior art before filing:
-  `search <term>` — literal substring, case-insensitive, over titles, bodies,
-  handoffs, comments, and log notes, archives included (never `grep -r` the
-  store: search joins hits to live status). Raw SQL: `q "SELECT …" [--json]`.
-- New work discovered mid-session: `meshwork add "title" --verify 'run cargo
-  test <filter>'` — file it immediately, never carry it in your head, never
-  append to a TODO.md.
-- Terminal tasks auto-archive to `docs/meshwork/archive/` on close/drop
-  (reopen moves them back). They stay fully queryable — never re-create or
-  hand-move them; `lint --fix` repairs misplacements.
-- Status via verbs: `start [--as <author>]`, `block --reason`, `reopen`,
-  `drop`. Mirror the task you `start` into your harness's todo/console
-  surface so the human can watch progress — the store stays the record.
-  `start` claims the task for you (`claimed-by:`, advisory; author
-  resolves `--as`, then `$MESHWORK_AUTHOR`, then config `default_author`);
-  close/drop/reopen release the claim. Respect others' `[claimed: …]`
-  annotations in prime/ready — pick unclaimed work. Close ONLY via
-  `meshwork close <id>` — it runs the task's `verify:` and closes on exit 0;
-  `--waive "reason"` is the loud escape hatch.
-- Notes: `comment <id> "text"` (`@file`/`-` for long prose). Files:
-  `attach <id> <path>`. The shim supplies the agent session's author;
-  `default_author` stays the human's — outside the shim pass `--as`.
-- Session end: refresh the `handoff:` block (your voice to the next session)
-  on whatever task is up next — `meshwork set <id> --handoff "…"`
-  (hand-editing the file works too). A handoff is an implementation
-  brief, not a summary: name the files and symbols, state what is proven
-  and what remains — the next session must not re-derive what this one
-  learned. Never leave `handoff:` on a task you close (lint warns:
-  handoff-stale). Anything history-worthy goes in a comment instead.
+- Session start: the SessionStart hook injects `meshwork prime` — counts,
+  weather, the inbox, the next task led by its `handoff:`, also-ready, recent
+  dones. The store is the worklist; there is no TODO/HANDOFF file to read.
+  Re-run `prime` when the question changes; load this skill before filing.
+- `ready` → the queue. `show <id>`; `why <id>` (open-blocker frontier, or an
+  umbrella's `hidden: N live children`); `blocked`; `tree <id>`. Prior art
+  before filing: `search <term>` — literal, case-insensitive, over titles,
+  bodies, handoffs, comments and log notes, archives included; never
+  `grep -r` the store. Raw SQL: `q "SELECT …" [--json]` — `q --help` lists
+  the six tables' columns and the thirteen views; `--json` puts rows under
+  `data.rows`.
+- Status via verbs: `start` (claims it — `claimed-by:`, advisory; respect
+  others' `[claimed: …]`), `block --reason`, `reopen`, `drop`. Mirror the
+  task you start into the harness todo so the human can watch; the store
+  stays the record. Close ONLY via `close <id>` — it runs `verify:` and
+  closes on exit 0; `--waive "reason"` is the loud escape hatch. Terminal
+  tasks auto-archive to `archive/` and stay queryable; never hand-move them.
+- Notes: `comment <id> "text"` (`@file`/`-` for prose); files: `attach`.
+  The shim supplies the session author; outside it pass `--as`.
+- Session end: `set <id> --handoff @file` on whatever is up next — an
+  implementation brief in your voice: files, symbols, what is proven, what
+  remains. Never leave `handoff:` on a task you close; history is a comment.
 
-## Sibling stores
+## The inbox and sibling stores
 
-Cross-repo questions ("what do we owe that repo?") have a taught path —
-never guess a sibling's store paths:
+- An ask is a task in YOUR store carrying `to: <repo>`; nothing is sent. It
+  surfaces in that repo's `prime`/`ready` until a non-dropped task anywhere
+  carries `answers: <its gid>`. Prime lists the unclaimed asks; the whole
+  inbox, open answers included, is one query over the `asks` view:
+  `portfolio q "SELECT gid, title, age_h, answer_gid, answer_status FROM asks WHERE to_repo = '<me>' AND unanswered"`.
+  A per-repo `q … WHERE addressed_to = '<me>'` is your OUTBOUND asks, not
+  the inbox.
+- A sibling's id resolves only in its own store, through ITS shim —
+  `(cd ../<repo> && docs/meshwork/meshwork show <id>)` — versions pin per
+  repo and the shim supplies the session author; never guess its file path.
+  The union verbs are `portfolio ready` / `next` / `q`; register repos once
+  in the portfolio's `repos.toml`.
+- `to:`, `answers:` and `relates:` have no flag; they ride an `add --batch -`
+  document (`--dry-run` prints the would-be file):
+  ```
+  ---
+  title: <imperative>
+  to: leras
+  verify: <predicate>
+  ---
+  <body>
+  ```
 
-- cd into the sibling repo and use ITS committed shim — versions pin
-  per-repo, and the shim supplies the right session author.
-- Resolve ids there with `show <id>`: filenames carry cosmetic slugs, so
-  a path guessed from an id is wrong by construction — never `find`/`grep`
-  what the sibling's own binary answers.
-- The union question is `portfolio ready` / `next` / `q` — register the
-  repos once in the portfolio's `repos.toml`.
-- Asks TO a sibling stay in YOUR store: `to: <repo>` surfaces in their
-  prime until a task anywhere answers it — no file in their repo.
+## Authoring
 
-## Rules
+- Lead with the flags: `add "title" --body @file --docs path#§-anchor --seq N
+  --cat a/b --verify '<predicate>'`; several tasks, or structured
+  frontmatter, is one `add --batch -` document — `id:` omitted, a local
+  `handle:` usable as `@handle` in needs/parent/from/relates, atomic: all
+  files or none. Later: `set <id> --seq/--docs/--handoff/--verify/--cat/
+  --title`; edges: `dep add <a> --needs <b>`.
+- Titles are imperative work orders ("Fix the door check"), never a finding.
+  Every task carries `verify:` and `docs:` (`path#§-anchor`); lint warns.
+- Hand-edits are legal, then `lint` (`--fix` mends mechanical damage;
+  `--explain <code>` unfolds a summarized finding or says what a heuristic
+  judges) — but a block value with blank lines inside (`handoff: |`, list
+  keys) is replaced whole or via `set`, never in part, and nothing goes
+  below `## log` / `## comments`. Reproducible transcripts:
+  `MESHWORK_ID_SEED=<n>` (deterministic ids), `MESHWORK_TODAY=YYYY-MM-DD`
+  (the clock).
+- How tasks mesh: `--parent` = umbrella, hidden from `ready` while a child
+  lives; `--needs` (`repo#id` crosses repos) = hard order, gates `ready`;
+  `relates:` = soft; `--from` = provenance. Priority is graph then `seq`
+  (integers, gaps of 10, lower sooner) — no priority field, no due date.
 
-- Task files are plain markdown — hand-edits are legal; run `meshwork lint`
-  afterward (`lint --fix` repairs mechanical damage). Every field also has a
-  CLI path: flags on `add` at creation (including `--seq`/`--docs`), then
-  `meshwork set <id> --seq/--docs/--handoff`.
-- Body prose goes ABOVE the tail sections — `## log` and `## comments` end
-  the file; never append prose after them. A task that needs a real body
-  at creation takes `add "title" --body "text"|@file|-` (never a shell
-  append); several tasks at once, or structured frontmatter, is a
-  one-document `add --batch -`, not a hand-written file.
-- `seq` is the priority primitive (integers, gaps of 10; lower = sooner). There
-  is no priority field and no due date, deliberately.
-- How tasks mesh: `--parent <id>` = section umbrella — `ready` hides the
-  parent while any child lives. `--needs <id>` (later: `dep add <a> --needs
-  <b>`; `repo#id` crosses repos) = hard order — gates `ready`. `relates:` =
-  soft link, never gates (no flag; frontmatter or `add --batch`). `--from` =
-  provenance, non-gating. Priority is graph then `seq`, never list order.
-  `to: <repo>` = an ask addressed to another repo — it surfaces in THAT
-  repo's prime/ready until a task anywhere carries `answers: <its-gid>`
-  (frontmatter only, like relates; asks stay in your store, nothing is sent).
-- Graph verbs before raw SQL: `tree <id>`, `why <id>` (open-blocker
-  frontier), `blocked`. Parent progress needs SQL — the idiom, verbatim
-  (`"rows":[[0]]` = all children terminal):
-  `meshwork q "SELECT COUNT(*) AS n FROM edges e JOIN tasks t ON e.src_gid = t.gid WHERE e.kind = 'parent' AND e.dst_gid = '<repo>#<id>' AND t.status NOT IN ('done', 'dropped')" --json`
-- Every task should carry a `verify:` command (lint warns when missing) and
-  `docs:` links (`path#§-anchor`) tying it to requirements/design sections.
-- Author tasks as work orders. The title is an imperative action ("Fix the
-  door check"), never a finding or a status — a finding-shaped title hides
-  the fix it implies. The `verify:` must FAIL while the work is undone; a
-  verify that already passes proves nothing about the work.
-- Verifies are DSL, not shell: `run cargo test <filter>` / `exists <path>` /
-  `absent <path>` / `contains <path> <lit|/regex/>` / `all(p, …)`.
-  `run cargo test` requires an observed pass (zero matching tests never
-  closes) and runs approval-free only while the task's git history is
-  store-only — commit task files separately from code. Shell text still
-  works but gates per-clone (text you authored on this clone via `add
-  --verify`/`add --batch`/`set --verify` is pre-approved; merged-in or
-  hand-edited text prompts) and lint warns `verify-shell`.
-- Non-code tasks still get a real `verify:` — three proven
-  close-condition shapes:
-  1. **Umbrella** → the zero-open-children count: the parent-progress `q`
-     idiom above, closing on `"rows":[[0]]`.
-  2. **Owner- or event-gated hold** → grep for a hand-written dated
-     marker, e.g. `contains docs/meshwork/<task-file> /2026-09-01 owner
-     approved/` — date-first, so the CLI's own T-stamped lines can never
-     satisfy it early; the owner writes the marker when the gate opens.
-  3. **Artifact task** → `exists <path>` naming the deliverable — the
-     verify doubles as the naming contract; pick the filename at add.
-- Remaining traps: greps satisfiable by prose that already exists — the
-  task's own file and rotated archives count; target artifacts that cannot
-  pre-exist. For shell verifies: piped tails report the tail's exit, and
-  close's `sh -c` lacks agent-shell functions like `rg`. The ritual:
-  `start` red-checks the verify — "already green" means it cannot detect
-  the work.
-- The CLI surface is frozen by design. If a verb doesn't exist, it's a
-  deliberate non-goal — don't script around it; raise it with the owner.
-- meshwork never touches the network (GitHub mirroring is a future explicit
-  opt-in), never mutates GitHub, never installs git hooks.
+## Verifies
+
+The close gate is a DSL — one predicate, or `all(p, p, …)` — never shell:
+```
+exists <path>                  absent <path>
+contains <path> <literal>      contains <path> /<regex>/
+run cargo test|build|fmt <args…>   argv-spawned; args carry no leading dash
+                                   (-p, --test refused; letters digits _ . : / = -)
+all(<pred>, <pred>, …)
+```
+Paths are repo-relative, no `..`. `run cargo test` must observe `ok. N
+passed`, N ≥ 1, and runs approval-free while the task's git history is
+store-only — commit task files apart from code. Text not keyword-led is
+legacy shell: gated per clone, lint warns `verify-shell`.
+
+- A verify must FAIL while the work is undone; `start` red-checks it, and
+  "already green" means it cannot detect the work (`verify <id>` runs it
+  any time, closing nothing). Non-code shapes: an umbrella closes on its
+  live-children count (`q "SELECT live_children FROM graph WHERE id =
+  '<id>'" --json`, `"rows":[[0]]`); an owner-gated hold on a hand-written
+  dated marker, `contains <task-file> /2026-09-01 owner approved/` —
+  date-first, so CLI stamps never match; an artifact task on `exists
+  <path>`, the verify naming the deliverable.
+- Traps: a grep the task's own file or an archive already satisfies; for
+  legacy shell, piped tails report the tail's exit, and close's `sh -c` has
+  no agent-shell functions like `rg`.
+
+## Boundaries
+
+The CLI surface is frozen; a missing verb is a deliberate non-goal — raise it
+with the owner, never script around it. meshwork never touches the network,
+never mutates GitHub, never installs git hooks.
