@@ -45,3 +45,17 @@ test -f target/debug/meshwork
 true
 ./scripts/check-perf.sh
 ! (./meshwork lint 2>&1 | grep -q handoff-stale)
+# --- R-E (MW-N1..N4): dash-free scoping tokens, lacks, one glob segment ---
+run cargo test package=leras-core target=suite spill::
+run cargo build package=leras-core
+run cargo test -p leras-core
+run cargo test --test suite
+run cargo test package=a/b
+lacks docs/batch-door.md TODO
+lacks STATUS.md /^- 2026-.* PENDING/
+lacks docs/batch-door.md
+exists docs/RANK-*.md
+exists docs/*/x.md
+exists docs/**.md
+absent docs/*.md
+contains docs/ marker

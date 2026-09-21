@@ -67,6 +67,11 @@ const KEPT_ENV: &[&str] = &["PATH", "HOME", "CARGO_HOME", "TMPDIR"];
 pub fn execute(root: &Path, preds: &[Predicate]) -> Result<(), String> {
     for p in preds {
         match p {
+            Predicate::Exists { path } if path.contains('*') => {
+                if !glob_exists(root, path)? {
+                    return Err(format!("exists {path}: nothing matches"));
+                }
+            }
             Predicate::Exists { path } => {
                 if !safe_join(root, path)?.exists() {
                     return Err(format!("exists {path}: no such path"));
@@ -78,20 +83,81 @@ pub fn execute(root: &Path, preds: &[Predicate]) -> Result<(), String> {
                 }
             }
             Predicate::Contains { path, pattern } => {
-                let text = std::fs::read_to_string(safe_join(root, path)?)
-                    .map_err(|e| format!("contains {path}: {e}"))?;
+                let text = read_file(root, "contains", path)?;
                 if !matches(&text, pattern)? {
                     return Err(format!("contains {path} {pattern}: no match"));
                 }
             }
+            // MW-N3: the inverse, with one asymmetry — a file that is not
+            // there is not a file that lacks the pattern.
+            Predicate::Lacks { path, pattern } => {
+                let text = read_file(root, "lacks", path)?;
+                if matches(&text, pattern)? {
+                    return Err(format!("lacks {path} {pattern}: found"));
+                }
+            }
             Predicate::Run { argv } => {
-                let out = run_argv(root, argv, run_timeout(), OUTPUT_CAP)
+                let spawned = spawn_argv(argv);
+                let out = run_argv(root, &spawned, run_timeout(), OUTPUT_CAP)
                     .map_err(|e| format!("run {}: {e}", argv.join(" ")))?;
-                require_non_vacuous(argv, &out)?;
+                require_non_vacuous(&spawned, &out)?;
             }
         }
     }
     Ok(())
+}
+
+/// The argv the executor spawns for a `run` predicate: the tokens as
+/// written, with `package=<crate>` and `target=<name>` spelled as
+/// `-p <crate>` and `--test <name>` (MW-N1). This is the only place
+/// author text becomes a flag, and only from these two prefixes.
+#[must_use]
+pub fn spawn_argv(argv: &[String]) -> Vec<String> {
+    let mut out = Vec::with_capacity(argv.len() + 2);
+    for arg in argv {
+        match crate::verify_dsl::SCOPING_TOKENS
+            .iter()
+            .find_map(|(prefix, flag)| arg.strip_prefix(prefix).map(|v| (*flag, v)))
+        {
+            Some((flag, value)) => {
+                out.push(flag.to_string());
+                out.push(value.to_string());
+            }
+            None => out.push(arg.clone()),
+        }
+    }
+    out
+}
+
+/// One confined file for `contains`/`lacks`: a directory refuses rather
+/// than being walked (MW-N4), and a missing file refuses by name — for
+/// `lacks` that refusal is the whole point (MW-N3).
+fn read_file(root: &Path, kw: &str, path: &str) -> Result<String, String> {
+    let on_disk = safe_join(root, path)?;
+    if on_disk.is_dir() {
+        return Err(format!("{kw} {path}: is a directory — {kw} reads one file"));
+    }
+    if !on_disk.exists() {
+        return Err(format!(
+            "{kw} {path}: missing file — a file that is not there cannot be read"
+        ));
+    }
+    std::fs::read_to_string(on_disk).map_err(|e| format!("{kw} {path}: {e}"))
+}
+
+/// `exists` with one `*` in the last segment: the parent directory is
+/// confined and listed once; a name matches when it carries the literal
+/// prefix and suffix around the star (MW-N4).
+fn glob_exists(root: &Path, pattern: &str) -> Result<bool, String> {
+    let (dir, name) = pattern.rsplit_once('/').unwrap_or((".", pattern));
+    let (prefix, suffix) = name.split_once('*').unwrap_or((name, ""));
+    let Ok(entries) = std::fs::read_dir(safe_join(root, dir)?) else {
+        return Ok(false);
+    };
+    Ok(entries.flatten().any(|e| {
+        let n = e.file_name().to_string_lossy().into_owned();
+        n.len() >= prefix.len() + suffix.len() && n.starts_with(prefix) && n.ends_with(suffix)
+    }))
 }
 
 /// `cargo test` exits 0 when a filter matches nothing — the vacuous pass

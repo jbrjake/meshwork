@@ -15,9 +15,9 @@ run cargo fmt
 all(exists FORMAT.md, contains FORMAT.md config-toml, run cargo test e2e::)
   = DSL exists FORMAT.md && contains FORMAT.md config-toml && run cargo test e2e::
 run cargo test --workspace
-  = MALFORMED bad arg token: --workspace
+  = MALFORMED bad arg token: --workspace — args carry no leading dash
 run cargo test -- --exact foo
-  = MALFORMED bad arg token: --
+  = MALFORMED bad arg token: -- — args carry no leading dash
 exists -rf
   = MALFORMED path must be repo-relative, dash-free: -rf
 contains -x.md literal
@@ -72,3 +72,29 @@ true
   = SHELL
 ! (./meshwork lint 2>&1 | grep -q handoff-stale)
   = SHELL
+run cargo test package=leras-core target=suite spill::
+  = DSL run cargo test package=leras-core target=suite spill::
+run cargo build package=leras-core
+  = DSL run cargo build package=leras-core
+run cargo test -p leras-core
+  = MALFORMED bad arg token: -p — args carry no leading dash; spell it package=<crate>
+run cargo test --test suite
+  = MALFORMED bad arg token: --test — args carry no leading dash; spell it target=<name>
+run cargo test package=a/b
+  = MALFORMED bad package= value: "a/b" — one crate or target name (letters, digits, _ -)
+lacks docs/batch-door.md TODO
+  = DSL lacks docs/batch-door.md TODO
+lacks STATUS.md /^- 2026-.* PENDING/
+  = DSL lacks STATUS.md /^- 2026-.* PENDING/
+lacks docs/batch-door.md
+  = MALFORMED lacks needs <path> <literal|/regex/>
+exists docs/RANK-*.md
+  = DSL exists docs/RANK-*.md
+exists docs/*/x.md
+  = MALFORMED exists takes one * inside the last path segment, beside literal text: docs/*/x.md
+exists docs/**.md
+  = MALFORMED exists takes one * inside the last path segment, beside literal text: docs/**.md
+absent docs/*.md
+  = MALFORMED bad path token: docs/*.md
+contains docs/ marker
+  = MALFORMED contains reads one file, never a directory: docs/

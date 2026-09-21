@@ -101,10 +101,12 @@ don't improvise any of them.
 
 The close gate is a DSL — one predicate, or `all(p, p, …)` — never shell:
 ```
-exists <path>                  absent <path>
+exists <path>                  absent <path>     (exists: one * in the last segment)
 contains <path> <literal>      contains <path> /<regex>/
+lacks <path> <literal|/regex/>     the file exists and does not match; missing refuses
 run cargo test|build|fmt <args…>   argv-spawned; args carry no leading dash
-                                   (-p, --test refused; letters digits _ . : / = -)
+                                   (letters digits _ . : / = -); package=<crate>
+                                   and target=<name> spell -p and --test
 all(<pred>, <pred>, …)
 ```
 Paths are repo-relative, no `..`. `run cargo test` must observe `ok. N

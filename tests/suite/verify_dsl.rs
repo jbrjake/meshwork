@@ -232,6 +232,147 @@ fn exec_contains_dot_all_opt_in() {
     );
 }
 
+fn dsl_argv(text: &str) -> Vec<String> {
+    match &dsl(text)[0] {
+        meshwork::verify_dsl::Predicate::Run { argv } => argv.clone(),
+        other => panic!("{text} is not a run predicate: {other}"),
+    }
+}
+
+/// MW-N1: `package=<crate>` and `target=<name>` are dash-free tokens the
+/// grammar accepts on `cargo test` (`package=` on `cargo build` too); the
+/// executor — never the parser — turns them into `-p`/`--test` in the
+/// spawned argv, so the predicate renders as written and no author text
+/// is ever a flag.
+#[test]
+fn run_package_target_tokens() {
+    let line = "run cargo test package=leras-core target=suite spill::";
+    assert_eq!(dsl(line)[0].to_string(), line);
+    assert_eq!(
+        meshwork::verify_exec::spawn_argv(&dsl_argv(line)),
+        [
+            "cargo",
+            "test",
+            "-p",
+            "leras-core",
+            "--test",
+            "suite",
+            "spill::"
+        ]
+    );
+    assert_eq!(
+        meshwork::verify_exec::spawn_argv(&dsl_argv("run cargo build package=leras-core")),
+        ["cargo", "build", "-p", "leras-core"]
+    );
+    for bad in [
+        "run cargo test package=",
+        "run cargo test target=a/b",
+        "run cargo test package=a=b",
+        "run cargo fmt package=x",
+        "run cargo build target=suite",
+    ] {
+        assert!(matches!(classify(bad), Classified::Malformed(_)), "{bad}");
+    }
+}
+
+/// MW-N2: a dash-led arg still refuses, and the refusal names the
+/// dash-free spelling where one exists.
+#[test]
+fn run_dash_refused_names_spelling() {
+    for (bad, spelling) in [
+        ("run cargo test -p leras", "package="),
+        ("run cargo test --package leras", "package="),
+        ("run cargo test --test suite", "target="),
+        ("run cargo test --workspace", "no leading dash"),
+    ] {
+        match classify(bad) {
+            Classified::Malformed(why) => assert!(why.contains(spelling), "{bad}: {why}"),
+            _ => panic!("{bad} must refuse"),
+        }
+    }
+}
+
+/// MW-N3: `lacks` is `contains` inverted — native, confined — and a
+/// missing file refuses rather than passing: deleting the file must not
+/// close the task.
+#[test]
+fn lacks_predicate() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::write(
+        root.join("door.md"),
+        "the Q21 batch door\n- 2026-09-01 TODO later\n",
+    )
+    .unwrap();
+    assert_eq!(
+        dsl("lacks door.md TODO")[0].to_string(),
+        "lacks door.md TODO"
+    );
+    assert!(execute(root, &dsl("lacks door.md Q99")).is_ok());
+    assert!(execute(root, &dsl("lacks door.md /^- 2026-.* DONE/")).is_ok());
+    let err = execute(root, &dsl("lacks door.md TODO")).unwrap_err();
+    assert!(err.contains("found"), "{err}");
+    let err = execute(root, &dsl("lacks GONE.md TODO")).unwrap_err();
+    assert!(
+        err.contains("GONE.md") && err.contains("missing"),
+        "a missing file is not a missing pattern: {err}"
+    );
+    for bad in ["lacks door.md", "lacks", "lacks ../x.md a", "lacks -x.md a"] {
+        assert!(matches!(classify(bad), Classified::Malformed(_)), "{bad}");
+    }
+}
+
+/// MW-N4: `exists` takes one `*` inside its last path segment, resolved
+/// under the same confinement; two stars, a star in an inner segment, a
+/// bare star, or a glob on any other predicate refuse at parse.
+#[test]
+fn exists_single_segment_glob() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::create_dir_all(root.join("docs")).unwrap();
+    std::fs::write(root.join("docs/RANK-2026-09-08.md"), "x").unwrap();
+    assert_eq!(
+        dsl("exists docs/RANK-*.md")[0].to_string(),
+        "exists docs/RANK-*.md"
+    );
+    assert!(execute(root, &dsl("exists docs/RANK-*.md")).is_ok());
+    assert!(execute(root, &dsl("exists docs/*.md")).is_ok());
+    assert!(execute(root, &dsl("exists docs/BURN-*.md")).is_err());
+    assert!(execute(root, &dsl("exists gone/*.md")).is_err());
+    for bad in [
+        "exists docs/*/x.md",
+        "exists docs/**.md",
+        "exists *",
+        "absent docs/*.md",
+        "contains docs/*.md x",
+        "lacks docs/*.md x",
+    ] {
+        assert!(matches!(classify(bad), Classified::Malformed(_)), "{bad}");
+    }
+}
+
+/// MW-N4: a directory is not a file `contains` can read — a trailing
+/// slash refuses at parse, and a directory that exists by that name
+/// refuses at execution rather than being walked.
+#[test]
+fn contains_dir_refused() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::create_dir_all(root.join("docs")).unwrap();
+    assert!(matches!(
+        classify("contains docs/ marker"),
+        Classified::Malformed(_)
+    ));
+    assert!(matches!(
+        classify("lacks docs/ marker"),
+        Classified::Malformed(_)
+    ));
+    let err = execute(root, &dsl("contains docs marker")).unwrap_err();
+    assert!(err.contains("directory"), "{err}");
+    let err = execute(root, &dsl("lacks docs marker")).unwrap_err();
+    assert!(err.contains("directory"), "{err}");
+}
+
 /// run spawns argv-style: metacharacters reach the child verbatim —
 /// there is no shell to give them meaning.
 #[test]

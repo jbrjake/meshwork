@@ -10,34 +10,43 @@
 //! Grammar:
 //! ```text
 //! verify   := predicate | "all(" predicate ("," predicate)* ")"
-//! predicate:= "exists" path | "absent" path
+//! predicate:= "exists" path-or-glob | "absent" path
 //!           | "contains" path (literal | "/" regex "/")
+//!           | "lacks" path (literal | "/" regex "/")
 //!           | "run" runner-argv
 //! ```
-//! Paths are repo-relative: no leading `/` or `-`, no `..` segment.
+//! Paths are repo-relative: no leading `/` or `-`, no `..` segment; an
+//! `exists` path may carry one `*` inside its last segment (MW-N4).
 //! Runner argvs are per-runner grammars, not an argv[0] allowlist
 //! (Cursor GHSA-hf2x-r83r-qw5q / Flowise: allowlists fall to argument
 //! injection) — today `cargo test|build|fmt`, every arg in a tight
-//! character class with no leading dash. Regex patterns are stored raw,
-//! delimiter-checked only; they may not contain `,` inside `all(…)`.
+//! character class with no leading dash; `package=<crate>` and
+//! `target=<name>` are the dash-free spellings of `-p`/`--test`, which
+//! the executor — never this parser — writes into the argv (MW-N1/N2).
+//! Regex patterns are stored raw, delimiter-checked only; they may not
+//! contain `,` inside `all(…)`.
 
 /// The grammar as help text — printed by `verify --help` and
 /// `close --help`, so the shapes that close accepts are one `--help`
 /// away instead of a defect report (mw-8e769q0).
 pub const GRAMMAR_HELP: &str = "Verify grammar (the close gate; one predicate, or all(p, p, ...)):
-  exists <path>                the repo-relative path exists
+  exists <path>                the repo-relative path exists (one * allowed in the last segment)
   absent <path>                the path does not exist
   contains <path> <token>      the file contains the literal token
-  contains <path> /<regex>/    the file matches the regex
+  contains <path> /<regex>/    the file matches the regex (grep-like: ^ $ anchor lines;
+                               lead with (?s) to let . cross a line wrap)
+  lacks <path> <token|/regex/> the file exists and does not match — a missing file refuses
   run cargo test|build|fmt <args...>   spawned argv-style, never a shell; args carry
-                               no leading dash (letters, digits, _ . : / = -)
+                               no leading dash (letters, digits, _ . : / = -);
+                               package=<crate> and target=<name> spell -p and --test
   all(<pred>, <pred>, ...)     every predicate must hold
 Paths: no leading / or -, no .. segment. run cargo test must observe `ok. N passed`, N >= 1.
 Anything not keyword-led is legacy shell: it runs only behind the per-clone approval gate.";
 
 /// One line naming the grammar — for refusals at authoring time.
-pub const GRAMMAR_LINE: &str = "exists|absent <path> · contains <path> <token|/regex/> · \
-                                run cargo test|build|fmt <args> · all(p, p)";
+pub const GRAMMAR_LINE: &str = "exists|absent <path> · contains|lacks <path> <token|/regex/> · \
+                                run cargo test|build|fmt <args> [package=<crate> target=<name>] \
+                                · all(p, p)";
 
 /// The refusal for a keyword-led verify that does not parse — the same
 /// words at `add`, `set`, `add --batch` and `start`, so a verify close
@@ -80,9 +89,18 @@ pub enum Predicate {
         /// Literal token or raw regex.
         pattern: Pattern,
     },
+    /// The file exists and its content does NOT match the pattern (MW-N3);
+    /// a missing file refuses rather than passing.
+    Lacks {
+        /// Repo-relative path.
+        path: String,
+        /// Literal token or raw regex.
+        pattern: Pattern,
+    },
     /// A known runner with a class-checked argv.
     Run {
-        /// Full argv, runner first — executed argv-style, never a shell.
+        /// Full argv, runner first, tokens as written — the executor spells
+        /// `package=`/`target=` as `-p`/`--test` when it spawns.
         argv: Vec<String>,
     },
 }
@@ -100,7 +118,12 @@ pub enum Pattern {
 /// Everything after the subcommand is a tight-class arg.
 const RUNNERS: &[(&str, &[&str])] = &[("cargo", &["test", "build", "fmt"])];
 
-const KEYWORDS: &[&str] = &["exists", "absent", "contains", "run"];
+const KEYWORDS: &[&str] = &["exists", "absent", "contains", "lacks", "run"];
+
+/// Dash-free spellings of the two flags a scoped `cargo test` needs
+/// (MW-N1): token prefix → the flag the executor writes. A typed flag
+/// refuses naming its spelling (MW-N2).
+pub const SCOPING_TOKENS: &[(&str, &str)] = &[("package=", "-p"), ("target=", "--test")];
 
 /// Classify one `verify:` string. Parsing only — nothing here executes.
 #[must_use]
@@ -133,15 +156,20 @@ fn predicate(p: &str) -> Result<Predicate, String> {
     let (kw, rest) = p.split_once(char::is_whitespace).unwrap_or((p, ""));
     let rest = rest.trim();
     match kw {
-        "exists" => one_path(kw, rest).map(|path| Predicate::Exists { path }),
-        "absent" => one_path(kw, rest).map(|path| Predicate::Absent { path }),
-        "contains" => {
+        "exists" => one_path(kw, rest, "_./-*")
+            .and_then(|path| glob_path(&path))
+            .map(|path| Predicate::Exists { path }),
+        "absent" => one_path(kw, rest, "_./-").map(|path| Predicate::Absent { path }),
+        "contains" | "lacks" => {
             let (path_tok, pat) = rest
                 .split_once(char::is_whitespace)
-                .ok_or("contains needs <path> <literal|/regex/>")?;
-            Ok(Predicate::Contains {
-                path: path_token(path_tok)?,
-                pattern: pattern(pat.trim())?,
+                .ok_or_else(|| format!("{kw} needs <path> <literal|/regex/>"))?;
+            let path = file_path_token(kw, path_tok)?;
+            let pattern = pattern(pat.trim())?;
+            Ok(if kw == "lacks" {
+                Predicate::Lacks { path, pattern }
+            } else {
+                Predicate::Contains { path, pattern }
             })
         }
         "run" => run_argv(rest).map(|argv| Predicate::Run { argv }),
@@ -150,19 +178,49 @@ fn predicate(p: &str) -> Result<Predicate, String> {
     }
 }
 
-fn one_path(kw: &str, rest: &str) -> Result<String, String> {
+/// A path `exists` may glob: at most one `*`, inside the last segment,
+/// beside at least one literal character (MW-N4 — one dated artifact,
+/// never a directory walk). Plain paths pass through.
+fn glob_path(path: &str) -> Result<String, String> {
+    let stars = path.matches('*').count();
+    if stars == 0 {
+        return Ok(path.to_string());
+    }
+    let last = path.rsplit('/').next().unwrap_or(path);
+    if stars > 1 || !last.contains('*') || last == "*" {
+        return Err(format!(
+            "exists takes one * inside the last path segment, beside literal text: {path}"
+        ));
+    }
+    Ok(path.to_string())
+}
+
+/// A path `contains`/`lacks` reads: a file, never a directory — the
+/// trailing slash that would ask for a walk refuses at parse (MW-N4).
+fn file_path_token(kw: &str, t: &str) -> Result<String, String> {
+    if t.ends_with('/') {
+        return Err(format!("{kw} reads one file, never a directory: {t}"));
+    }
+    path_token(t)
+}
+
+fn one_path(kw: &str, rest: &str, class: &str) -> Result<String, String> {
     if rest.is_empty() {
         return Err(format!("{kw} needs a path"));
     }
     if rest.split_whitespace().nth(1).is_some() {
         return Err(format!("{kw} takes exactly one path"));
     }
-    path_token(rest)
+    path_token_in(rest, class)
 }
 
 /// Repo-relative, dash-free, traversal-free, tight class.
 fn path_token(t: &str) -> Result<String, String> {
-    if !class_ok(t, "_./-") {
+    path_token_in(t, "_./-")
+}
+
+fn path_token_in(t: &str, class: &str) -> Result<String, String> {
+    if !class_ok(t, class) {
         return Err(format!("bad path token: {t}"));
     }
     if t.starts_with('/') || t.starts_with('-') {
@@ -208,12 +266,54 @@ fn run_argv(rest: &str) -> Result<Vec<String>, String> {
     }
     let mut argv = vec![runner.to_string(), sub.to_string()];
     for arg in toks {
-        if arg.starts_with('-') || !class_ok(arg, "_.:/=-") {
+        if arg.starts_with('-') {
+            return Err(dash_refusal(arg));
+        }
+        if !class_ok(arg, "_.:/=-") {
             return Err(format!("bad arg token: {arg}"));
         }
+        scoping_token_ok(sub, arg)?;
         argv.push(arg.to_string());
     }
     Ok(argv)
+}
+
+/// A dash-led arg refuses (flags are the injection surface); the refusal
+/// names the dash-free spelling where one exists (MW-N2).
+fn dash_refusal(arg: &str) -> String {
+    let spelled = match arg {
+        "-p" | "--package" => Some("package=<crate>"),
+        "--test" => Some("target=<name>"),
+        _ => None,
+    };
+    match spelled {
+        Some(s) => format!("bad arg token: {arg} — args carry no leading dash; spell it {s}"),
+        None => format!("bad arg token: {arg} — args carry no leading dash"),
+    }
+}
+
+/// `package=<crate>` is legal on `test` and `build`, `target=<name>` on
+/// `test`; each value is one crate-or-target name (letters, digits, `_`,
+/// `-`), never empty, never another `=` (MW-N1).
+fn scoping_token_ok(sub: &str, arg: &str) -> Result<(), String> {
+    for (prefix, flag) in SCOPING_TOKENS {
+        let Some(value) = arg.strip_prefix(prefix) else {
+            continue;
+        };
+        let allowed = match *flag {
+            "-p" => matches!(sub, "test" | "build"),
+            _ => sub == "test",
+        };
+        if !allowed {
+            return Err(format!("{prefix}<name> is not a cargo {sub} token"));
+        }
+        if !class_ok(value, "_-") {
+            return Err(format!(
+                "bad {prefix} value: {value:?} — one crate or target name (letters, digits, _ -)"
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// ASCII-alphanumeric plus `extra`, non-empty.
@@ -229,6 +329,7 @@ impl std::fmt::Display for Predicate {
             Predicate::Exists { path } => write!(f, "exists {path}"),
             Predicate::Absent { path } => write!(f, "absent {path}"),
             Predicate::Contains { path, pattern } => write!(f, "contains {path} {pattern}"),
+            Predicate::Lacks { path, pattern } => write!(f, "lacks {path} {pattern}"),
             Predicate::Run { argv } => write!(f, "run {}", argv.join(" ")),
         }
     }

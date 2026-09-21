@@ -103,7 +103,9 @@ fn missing_read_path(root: &std::path::Path, v: &str, classified: &Classified) -
         Classified::Dsl(preds) => preds
             .iter()
             .filter_map(|p| match p {
-                Predicate::Contains { path, .. } => Some(path.clone()),
+                Predicate::Contains { path, .. } | Predicate::Lacks { path, .. } => {
+                    Some(path.clone())
+                }
                 _ => None,
             })
             .collect(),
