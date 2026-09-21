@@ -1,10 +1,10 @@
 ---
 id: mw-qhmek05
-title: Let contains read a directory recursively and exists take a single-segment glob
+title: "Let exists take a single-segment glob, and refuse a directory target for contains"
 category: core/verify
 needs: [mw-t41d6ze]
 seq: 550
-verify: run cargo test verify_dsl::dir_and_glob
+verify: run cargo test verify_dsl::exists_single_segment_glob
 docs:
   - docs/DESIGN-meshwork.md#§-12b-trust-boundary
 status: open

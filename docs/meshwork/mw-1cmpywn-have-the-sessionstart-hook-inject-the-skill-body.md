@@ -1,10 +1,10 @@
 ---
 id: mw-1cmpywn
-title: Have the SessionStart hook inject the skill body alongside prime
-category: skill
+title: "Put the four session rules in prime's footer in two lines, inside the MW-D3 budget"
+category: core/render
 needs: [mw-vffwacx]
 seq: 560
-verify: contains .claude/settings.json /skills/meshwork/SKILL.md/
+verify: run cargo test e2e::prime_footer_rules
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-3-recommendations
 status: open

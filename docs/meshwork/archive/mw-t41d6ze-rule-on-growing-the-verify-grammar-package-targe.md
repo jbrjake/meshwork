@@ -9,7 +9,7 @@ verify: contains docs/PLAN-proposals-implementation.md /R-E RULED 20[0-9]{2}-[0-
 docs:
   - docs/PLAN-proposals-implementation.md#§-3-rulings
   - docs/DESIGN-meshwork.md#§-12b-trust-boundary
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 Owner-gated; a §12b trust-boundary decision, not a §6 one. Three items with the leras census
@@ -19,3 +19,4 @@ rules, whichever way.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-21T00:06Z open→done — verify exit 0 @ 29da891+17

@@ -2,7 +2,7 @@
 id: mw-ex5x0y2
 title: Bands and placement — [bands] rules resolved by nearest ancestor, the composite key, placed_by in the projection
 category: capability/rank
-needs: [mw-zwgp6x7, mw-ryd25rq]
+needs: [mw-zwgp6x7, mw-ryd25rq, mw-v4d2hwt]
 seq: 600
 verify: run cargo test e2e::ready_bands_placement
 docs:

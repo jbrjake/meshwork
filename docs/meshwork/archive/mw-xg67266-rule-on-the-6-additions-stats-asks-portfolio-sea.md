@@ -9,7 +9,7 @@ docs:
   - docs/PLAN-proposals-implementation.md#§-3-rulings
   - docs/DESIGN-meshwork.md#§-6-cli-surface
   - docs/PROPOSAL-analytics.md#§-5-3-stats
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 Owner-gated. Four items. Each is a canned query or a flag over data the views already carry;
@@ -18,3 +18,4 @@ accepted verb with a reviewed diff.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-21T00:06Z open→done — verify exit 0 @ 29da891+15

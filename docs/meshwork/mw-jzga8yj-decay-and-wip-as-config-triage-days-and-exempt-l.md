@@ -2,7 +2,7 @@
 id: mw-jzga8yj
 title: Decay and WIP as config — triage_days and exempt_labels, the wip cap, open-decayed and wip-over-cap, the headline line
 category: capability/rank
-needs: [mw-bwwd75h, mw-ryd25rq]
+needs: [mw-bwwd75h, mw-ryd25rq, mw-v4d2hwt]
 seq: 630
 verify: run cargo test lint::open_decayed
 docs:
