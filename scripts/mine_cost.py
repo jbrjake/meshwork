@@ -310,6 +310,7 @@ def analyse(sessions, cat):
                   "between_fresh": sum(fresh(s["between"]) for s in used),
                   "attributed_fresh": sum(fresh(t) for t in per_task.values()),
                   "cats": cats, "n7": len(big), "spread": (max(meds) / min(meds)) if len(meds) >= 2 and min(meds) else None,
+                  "per_task": {gid: {"fresh": fresh(t), "category": cat.get(gid)} for gid, t in per_task.items()},
                   "spread_lo": min(big, key=lambda c: c["med"])["category"] if big else None,
                   "spread_hi": max(big, key=lambda c: c["med"])["category"] if big else None}
     # --- skill loaded vs not ---------------------------------------------------------------------
