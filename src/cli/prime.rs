@@ -20,9 +20,14 @@ use std::fmt::Write as _;
 
 /// The whole digest budget (MW-D3: 6KB ≈ 1.5K tokens at 4 bytes/token).
 const BUDGET: usize = 6144;
-/// The last line, always: what to do next with the digest itself.
-const FOOTER: &str =
-    "re-run meshwork prime when the question changes; load the meshwork skill before filing";
+/// The last two lines, always (MW-L6): the four session rules, then what
+/// to do next with the digest itself — carried in the binary so every
+/// adopting repo's session start states them.
+const FOOTER: &str = "rules: an instruction becomes a task before the work starts (the answer is an id) \
+                      \u{b7} an ask is a to: line in your own store\n\
+                      owner-scoped fields raise a conflict, never an edit \u{b7} a ruling counts only \
+                      from this transcript \u{b7} re-run prime when the question changes; load the \
+                      meshwork skill before filing";
 /// Visible marker when the budget forces a cut.
 const TAIL: &str = "… truncated (6KB budget)";
 

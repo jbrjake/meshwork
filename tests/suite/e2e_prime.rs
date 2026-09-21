@@ -302,16 +302,18 @@ fn prime_inbox_lists_all_or_names_the_verb() {
     );
 }
 
-/// mw-d539ppk: the digest ends on the line that says what to do next
+/// mw-d539ppk: the digest ends on the lines that say what to do next
 /// with it — re-run it when the question changes, load the skill before
-/// filing — and that line survives the budget's truncation.
+/// filing — and those lines survive the budget's truncation.
 #[test]
 fn prime_footer_names_skill() {
-    const FOOTER: &str =
-        "re-run meshwork prime when the question changes; load the meshwork skill before filing";
     let (_g, repo) = fixture_repo("alpha");
     let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
-    assert_eq!(out.lines().last(), Some(FOOTER), "{out}");
+    let last = out.lines().last().unwrap_or_default();
+    assert!(
+        last.contains("re-run prime") && last.contains("meshwork skill"),
+        "{out}"
+    );
 
     let (_g2, big) = git_repo("bulk");
     init_store(&big);
@@ -323,5 +325,37 @@ fn prime_footer_names_skill() {
     let out = stdout_of(&meshwork(&big).arg("prime").assert().success());
     assert!(out.len() <= 6144, "budget: {} bytes", out.len());
     assert!(out.contains("truncated"), "{out}");
-    assert_eq!(out.lines().last(), Some(FOOTER), "the footer outlives the cut:\n{out}");
+    let tail: Vec<&str> = out.lines().rev().take(2).collect();
+    assert!(
+        tail[0].contains("meshwork skill") && tail[1].starts_with("rules:"),
+        "the footer outlives the cut:\n{out}"
+    );
+}
+
+/// MW-L6 (owner ruling 2026-09-20, R-B item B.6): the footer states the
+/// four session rules in two lines inside the budget — a spoken
+/// instruction becomes a task and the answer is an id; an ask is a `to:`
+/// line in the author's own store; an owner-scoped field raises a
+/// conflict, never an edit; a ruling counts only from this transcript —
+/// in the binary, so every adopting repo's session start carries them.
+#[test]
+fn prime_footer_rules() {
+    let (_g, repo) = fixture_repo("alpha");
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    let lines: Vec<&str> = out.lines().collect();
+    let footer = &lines[lines.len() - 2..];
+    assert!(footer[0].starts_with("rules:"), "{out}");
+    let joined = footer.join("\n");
+    for rule in [
+        "becomes a task before the work starts",
+        "the answer is an id",
+        "to: line in your own store",
+        "conflict, never an edit",
+        "counts only from this transcript",
+        "load the meshwork skill before filing",
+    ] {
+        assert!(joined.contains(rule), "{rule}:\n{joined}");
+    }
+    assert!(joined.len() <= 320, "two tight lines: {} bytes", joined.len());
+    assert!(out.len() <= 6144, "budget: {} bytes", out.len());
 }

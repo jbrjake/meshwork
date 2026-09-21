@@ -77,7 +77,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-L3 | `e2e::prime_inbox_ten_and_verb` | planned |
 | MW-L4 | `e2e::prime_stale_ask_leads_next` | planned |
 | MW-L5 | `e2e::outbound_asks_out_of_ready`, `e2e::asks_out_line_answered_state` | done |
-| MW-L6 | `e2e::prime_footer_rules` (rendered inside the MW-D3 budget) | planned |
+| MW-L6 | `e2e::prime_footer_rules` (rendered inside the MW-D3 budget) | done |
 | MW-L7 | `arch::no_cross_store_writes`, `e2e::offline_all` | planned |
 | MW-M1 | `e2e::stats_verb`, `e2e::portfolio_stats` | planned |
 | MW-M2 | `e2e::asks_verb_in_and_out` | planned |
