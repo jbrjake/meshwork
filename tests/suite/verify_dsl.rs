@@ -197,6 +197,41 @@ fn exec_contains_regex_anchors_lines() {
     }
 }
 
+/// portfolio#po-5sv8hs3: `.` stays line-bound (grep-like), so a two-phrase
+/// `.*` pattern misses a marker that wrapped onto the next line — and the
+/// inline `(?s)` flag is the per-predicate opt-in that lets it span the
+/// wrap. Both facts pinned, so the documented idiom stays true.
+#[test]
+fn exec_contains_dot_all_opt_in() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    std::fs::write(
+        root.join("STATUS.md"),
+        "# Status\n\nC2's body was rewritten and the ask is\nANSWERED by marasi (`ma-1`).\n",
+    )
+    .unwrap();
+    assert!(
+        execute(
+            root,
+            &dsl("contains STATUS.md /C2's body.*ANSWERED by marasi/")
+        )
+        .is_err(),
+        "a line-bound `.` must not cross the wrap"
+    );
+    assert!(
+        execute(
+            root,
+            &dsl("contains STATUS.md /(?s)C2's body.*ANSWERED by marasi/")
+        )
+        .is_ok(),
+        "`(?s)` opts this predicate into spanning lines"
+    );
+    assert!(
+        execute(root, &dsl("contains STATUS.md /^ANSWERED by marasi/")).is_ok(),
+        "the single-line marker idiom needs no flag"
+    );
+}
+
 /// run spawns argv-style: metacharacters reach the child verbatim —
 /// there is no shell to give them meaning.
 #[test]

@@ -38,6 +38,9 @@ pub enum LinkError {
     AnchorMissing {
         /// The fragment as written after `#`.
         anchor: String,
+        /// The closest heading's slug, when one shares anything with the
+        /// anchor — the disagreement, spelled out for the author.
+        nearest: Option<String>,
     },
     /// The path resolves outside the repo — absolute, traversing, or a
     /// symlink escape; never read (mw-2pz0zqc).
@@ -64,7 +67,13 @@ impl std::fmt::Display for LinkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LinkError::Unreadable { path } => write!(f, "{path} not readable"),
-            LinkError::AnchorMissing { anchor } => write!(f, "anchor not found: #{anchor}"),
+            LinkError::AnchorMissing { anchor, nearest } => {
+                write!(f, "anchor not found: #{anchor}")?;
+                match nearest {
+                    Some(n) => write!(f, " — nearest heading: #{n}"),
+                    None => Ok(()),
+                }
+            }
             LinkError::Escapes { path } => write!(f, "{path} escapes the repo — refusing to read"),
             LinkError::RepoUnknown { repo } => {
                 write!(f, "{repo} is not registered — never read")
@@ -171,6 +180,7 @@ pub fn resolve(root: &Path, link: &str) -> Excerpt {
             let Some(s) = anchored_section(&content, a) else {
                 let err = LinkError::AnchorMissing {
                     anchor: a.to_string(),
+                    nearest: nearest_heading(&content, a),
                 };
                 return make(String::new(), false, Some(err));
             };
@@ -201,41 +211,94 @@ pub fn crossrepo_rewrite(link: &str) -> Option<String> {
 /// The section owned by `anchor`: from its heading line through the line
 /// before the next heading of the same or shallower level. Headings only
 /// count outside fenced code blocks. Anchor matching is slug-prefix at a
-/// `-` boundary, so the stable short form (`§-10-migration`) keeps
-/// matching a heading whose tail wording drifts.
+/// `-` boundary under either slug rule, so the stable short form
+/// (`§-10-migration`) keeps matching a heading whose tail wording drifts,
+/// and an anchor copied from a rendered GitHub link matches as written.
 fn anchored_section<'a>(content: &'a str, anchor: &str) -> Option<&'a str> {
-    let target = slug(anchor);
-    let mut start = None;
-    let mut level = 0;
+    let heads = headings(content);
+    let (i, &(start, level, _)) = heads
+        .iter()
+        .enumerate()
+        .find(|(_, (_, _, text))| anchor_hits(anchor, text))?;
+    let end = heads[i + 1..]
+        .iter()
+        .find(|(_, l, _)| *l <= level)
+        .map_or(content.len(), |(offset, _, _)| *offset);
+    Some(content[start..end].trim_end())
+}
+
+/// Every heading outside fenced code: (byte offset, level, text).
+fn headings(content: &str) -> Vec<(usize, usize, &str)> {
+    let mut out = Vec::new();
     let mut in_fence = false;
-    let mut end = content.len();
     for (offset, line) in line_offsets(content) {
         if line.trim_start().starts_with("```") {
             in_fence = !in_fence;
             continue;
         }
-        let Some((l, text)) = heading(line) else {
-            continue;
-        };
         if in_fence {
             continue;
         }
-        match start {
-            None => {
-                let s = slug(text);
-                if s == target || s.starts_with(&format!("{target}-")) {
-                    start = Some(offset);
-                    level = l;
-                }
-            }
-            Some(_) if l <= level => {
-                end = offset;
-                break;
-            }
-            Some(_) => {}
+        if let Some((level, text)) = heading(line) {
+            out.push((offset, level, text));
         }
     }
-    start.map(|s| content[s..end].trim_end())
+    out
+}
+
+/// `anchor` names `heading` when either slug rule prefix-matches at a
+/// `-` boundary. Two rules because two authors: meshwork's hyphenates
+/// every punctuation run, GitHub's drops punctuation outright — and an
+/// anchor copied from a rendered heading link is the second kind
+/// (sazed#sa-rj7vxkt).
+fn anchor_hits(anchor: &str, heading: &str) -> bool {
+    let hit = |target: String, s: String| {
+        !target.is_empty() && (s == target || s.starts_with(&format!("{target}-")))
+    };
+    hit(slug(anchor), slug(heading)) || hit(github_slug(anchor), github_slug(heading))
+}
+
+/// GitHub's heading slug: lowercased; every character that is not
+/// alphanumeric, `-`, `_` or a space is dropped; spaces become `-`. So
+/// `3.2` → `32`, `engine's` → `engines`, and a symbol between two spaces
+/// leaves `--`. Leading hyphens trim so the `§-` convention costs nothing.
+fn github_slug(text: &str) -> String {
+    let mut out = String::new();
+    for c in text.trim().chars() {
+        if c == ' ' {
+            out.push('-');
+        } else if c.is_alphanumeric() || c == '-' || c == '_' {
+            out.extend(c.to_lowercase());
+        }
+    }
+    out.trim_start_matches('-').to_string()
+}
+
+/// The heading nearest a missed anchor, as the slug an author would copy
+/// from a rendered link: one whose slug contains the anchor's (a dropped
+/// section number or `§-`), else the longest shared prefix. None when no
+/// heading shares a character — nothing to point at.
+fn nearest_heading(content: &str, anchor: &str) -> Option<String> {
+    let target = github_slug(anchor);
+    if target.is_empty() {
+        return None;
+    }
+    let mut best: Option<(usize, String)> = None;
+    for (_, _, text) in headings(content) {
+        let s = github_slug(text);
+        let score = if s.contains(&target) {
+            usize::MAX
+        } else {
+            s.chars()
+                .zip(target.chars())
+                .take_while(|(a, b)| a == b)
+                .count()
+        };
+        if score > 0 && best.as_ref().is_none_or(|(b, _)| score > *b) {
+            best = Some((score, s));
+        }
+    }
+    best.map(|(_, s)| s)
 }
 
 /// (byte offset, line) pairs — offsets let the section borrow from the
@@ -309,6 +372,46 @@ mod tests {
         // `1-one` must not match a hypothetical `## 1-oneish` heading.
         assert!(anchored_section("## 1. Oneish\n\nx\n", "§-1-one").is_none());
         assert!(anchored_section(DOC, "§-9-none").is_none());
+    }
+
+    /// Punctuation vanishes rather than separating; a symbol between two
+    /// spaces leaves a double hyphen; underscores and Unicode letters
+    /// survive; the `§-` convention costs nothing.
+    #[test]
+    fn github_slug_matches_the_rendered_link() {
+        for (heading, want) in [
+            (
+                "3.2 🔴 The peer engine's half — and its price",
+                "32--the-peer-engines-half--and-its-price",
+            ),
+            (
+                "Expression compiler (`sazed-plan::expr`)",
+                "expression-compiler-sazed-planexpr",
+            ),
+            ("check_perf and Élan", "check_perf-and-élan"),
+            ("§-10-migration", "10-migration"),
+        ] {
+            assert_eq!(github_slug(heading), want, "{heading}");
+        }
+        let doc = "## 5.4 A checkpoint holds STATE, never the computation\n\nbody.\n";
+        assert!(anchored_section(doc, "54-a-checkpoint-holds-state").is_some());
+        assert!(anchored_section(doc, "§-5-4-a-checkpoint-holds-state").is_some());
+    }
+
+    /// A miss points at the heading whose slug contains the anchor's,
+    /// else the longest shared prefix — never at nothing shared.
+    #[test]
+    fn nearest_heading_names_the_disagreement() {
+        let doc = "## 1. What it is\n\n### Crates\n\n## 6. Engine parity — the gap\n";
+        assert_eq!(
+            nearest_heading(doc, "engine-parity").as_deref(),
+            Some("6-engine-parity--the-gap")
+        );
+        assert_eq!(
+            nearest_heading(doc, "1-the-crates").as_deref(),
+            Some("1-what-it-is")
+        );
+        assert_eq!(nearest_heading(doc, "zzz"), None);
     }
 
     #[test]

@@ -339,6 +339,61 @@ fn anchor_missing_warn() {
     );
 }
 
+/// sazed#sa-rj7vxkt: an anchor spelled the way GitHub slugs its heading —
+/// punctuation dropped rather than hyphenated, so `3.2` → `32`, `engine's`
+/// → `engines`, and an emoji or em dash between spaces leaves `--` —
+/// resolves, and lint stays quiet; meshwork's own `§-` short form keeps
+/// matching beside it. A true miss names the nearest heading's slug, so
+/// the author sees the disagreement instead of guessing.
+#[test]
+fn anchor_github_slug_and_nearest_heading() {
+    let dir = tempfile::tempdir().unwrap();
+    let mw = dir.path().join("repo/docs/meshwork");
+    std::fs::create_dir_all(&mw).unwrap();
+    std::fs::write(mw.join("config.toml"), "alias = \"zz\"\n").unwrap();
+    std::fs::write(
+        dir.path().join("repo/door.md"),
+        "# Door\n\n\
+         ### 3.2 🔴 The peer engine's half is its DEDICATED session — and what it cost\n\nbody.\n\n\
+         ## Expression compiler (`sazed-plan::expr`)\n\nbody.\n\n\
+         ## 6. Engine parity — the gap, CLOSED (Stage 2)\n\nbody.\n",
+    )
+    .unwrap();
+    let task = |id: &str, link: &str| {
+        format!(
+            "---\nid: {id}\ntitle: T {id}\nstatus: open\nverify: \"true\"\n\
+             docs:\n  - {link}\n---\n"
+        )
+    };
+    for (id, link) in [
+        (
+            "zz-gh1",
+            "door.md#32--the-peer-engines-half-is-its-dedicated-session--and-what-it-cost",
+        ),
+        ("zz-gh2", "door.md#expression-compiler-sazed-planexpr"),
+        ("zz-gh3", "door.md#§-3-2-the-peer-engine-s-half"),
+        ("zz-gh4", "door.md#engine-parity"),
+    ] {
+        std::fs::write(mw.join(format!("{id}-x.md")), task(id, link)).unwrap();
+    }
+
+    let f = lint_store(&load_repo(&dir.path().join("repo")).unwrap());
+    let missing = |id: &str| {
+        f.iter()
+            .find(|x| x.code == "anchor-missing" && x.subject.contains(id))
+    };
+    for ok in ["zz-gh1", "zz-gh2", "zz-gh3"] {
+        assert!(missing(ok).is_none(), "{ok} resolves under one rule: {f:?}");
+    }
+    let miss = missing("zz-gh4").expect("a dropped section number is a true miss");
+    assert!(
+        miss.message
+            .contains("nearest heading: #6-engine-parity--the-gap-closed-stage-2"),
+        "{}",
+        miss.message
+    );
+}
+
 /// mw-221f3jt: statically trivially-satisfiable verifies warn — the golf
 /// (bare `true`/`echo`/`touch`) and presence checks already green at
 /// lint time. Warn-only; the start red-check (mw-175bn4c) is the

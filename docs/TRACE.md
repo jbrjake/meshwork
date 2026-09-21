@@ -34,7 +34,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-E5 | `e2e::verify_trust_gate_refuses_unapproved`, `e2e::verify_trust_changed_text_revokes`, `e2e::verify_trust_env_grant_for_ci`, `e2e::verify_migration_run_store_only_ungated`, `e2e::verify_migration_run_rode_along_gates`, `e2e::verify_migration_malformed_refuses`, `e2e::verify_migration_lint_pressure` (mw-4aqmf0t: §12b gate routing + verify-shell pressure), `lint::verify_changed_since_approval`, `e2e::prime_flags_verify_changed_since_approval` (mw-yyf1bab: silent weakening surfaced as approved-vs-current), `e2e::batch_authored_verify_preapproved` (mw-9dq6850: batch documents join approve-at-mint) | done |
 | MW-F1 | `parse::docs_links` | done |
 | MW-F2 | `e2e::show_docs_excerpts` | done |
-| MW-F3 | `lint::anchor_missing_warn` | done |
+| MW-F3 | `lint::anchor_missing_warn`, `lint::anchor_github_slug_and_nearest_heading` | done |
 | MW-K1 | `e2e::comment_attach`, `parse::comment_format` | done |
 | MW-K2 | `e2e::comment_attach` | done |
 | MW-K3 | `lint::attachment_size_warn` | done |

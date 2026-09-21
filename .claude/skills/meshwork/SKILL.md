@@ -118,6 +118,10 @@ legacy shell: gated per clone, lint warns `verify-shell`.
   dated marker, `contains <task-file> /2026-09-01 owner approved/` —
   date-first, so CLI stamps never match; an artifact task on `exists
   <path>`, the verify naming the deliverable.
+- A `contains` regex is grep-like: `^`/`$` anchor lines and `.` stops at
+  a newline, so a two-phrase `.*` pattern misses a marker that wrapped.
+  Prefer a one-line marker; a pattern that must span a wrap leads with
+  `(?s)`.
 - Traps: a grep the task's own file or an archive already satisfies; for
   legacy shell, piped tails report the tail's exit, and close's `sh -c` has
   no agent-shell functions like `rg`.
