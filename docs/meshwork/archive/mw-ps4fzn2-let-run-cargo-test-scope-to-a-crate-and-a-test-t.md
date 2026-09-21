@@ -9,7 +9,7 @@ verify: run cargo test verify_dsl::run_package_target_tokens
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-5-defects
   - docs/DESIGN-meshwork.md#§-12b-trust-boundary
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 The runner grammar forbids a leading dash, correctly, so `-p <crate>` is inexpressible and
@@ -21,3 +21,5 @@ text, and the DSL fixture corpus.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-21T16:30Z open→doing — claimed by claude (b80d763e-77c7-4aa5-8ead-40c1daaa1288)
+- 2026-09-21T16:35Z doing→done — verify exit 0 @ 9c9cd95+4
