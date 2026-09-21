@@ -11,6 +11,62 @@ docs:
 status: open
 created: 2026-09-07T16:32Z
 needs: [mw-v4d2hwt]
+handoff: |
+  The spike is in: docs/SPIKE-prioritization-rubric.md (commit 30744ac),
+  and this task is
+  now the only thing between the numbers and a build. Read §0 for the
+  five-line answer and
+  §7 for what is being asked; everything else is the evidence behind
+  those.
+  
+  What the ruling has to say, item by item:
+  - The key shape (§3): rank space — seq is the base position,
+  sequence.md wins outright, an
+  unplaced task starts mid-list, inherit substitutes the base, four terms
+  in positions, every
+  term rendered in `placed by:` and `why`. The alternative (seq points)
+  was struck by its own
+  falsifier: on sazed a two-step term moved seq-4 work 27 places.
+  - The weights (§4), declared once in the portfolio repo (rubric.toml
+  beside repos.toml,
+  defaults compiled in). The number to set with care is `almost` (−2
+  positions × done share)
+  — it is the term doing the work (21 of 35 attributed moves) and on a
+  hub doc it moves every
+  live task citing it as a group (§2's hub table). `age` is 0 by policy;
+  C.4 holds on the
+  hazard.
+  - The effort field (§6): measured cost by category explains η² = 0.11
+  of per-task token
+  variance, covers 37% of the ready set, and its spread went 24.2× →
+  9.6× in 13 days. It does
+  not stand in for an authored size. Three shapes are laid out: authored
+  size as a fenced §3
+  exception with a declared weight; no size and the cost term struck; a
+  non-category proxy
+  (none found). This is the owner's call, not ours.
+  - Struck by number and not needing a ruling unless he disagrees: depth
+  (duplicates unlock),
+  queue_h (empty on ready), age as a boost, points space, path-level doc
+  cohesion.
+  - The `owner` label as the exemption: this repo's reveal marker
+  mw-59f0t1q is unlabelled and
+  the falsifier moved it 1 → 3. If the exemption is ruled, label the
+  marker in the same commit.
+  
+  After the ruling, in this order: record R-C RULED in
+  docs/PLAN-proposals-implementation.md
+  §3 (this task's verify), DESIGN §15 decision, REQUIREMENTS §R rows;
+  rewrite mw-ex5x0y2 into
+  the rank-space key + placed_by term string (no [bands]) and trim
+  mw-jzga8yj to triage + WIP;
+  file the rubric.toml reader and the `ready --json` placement schema bump
+  as their own tasks.
+  
+  To re-run the falsifier under the ruled weights before any Rust:
+  python3 scripts/mine_cost.py --json cost.json
+  MESHWORK_COST_JSON=cost.json python3 scripts/mine_rubric.py --falsify
+  --weights almost=-1.5,cost=0
 ---
 Owner-gated. Eight items, recommendations in the plan's R-C table. C.7 (transcripts as the
 cost source) is one ruling with three consumers: rungs 5–6's gate, the field study's pricing,
@@ -18,6 +74,7 @@ the weft's WF12. C.6 also wants the one-line call on the mirror chain under the 
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-21T15:56Z handoff by claude (b80d763e-77c7-4aa5-8ead-40c1daaa1288)
 
 ## comments
 - 2026-09-20T23:51Z [claude (6104c7c3-6cf9-4c90-90ac-e4ec66924a6d)] Owner ruling 2026-09-20, in session: C.1/C.2/C.3 as posed are rejected, and the ruling now waits
