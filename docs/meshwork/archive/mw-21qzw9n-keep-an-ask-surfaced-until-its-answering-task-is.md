@@ -4,11 +4,11 @@ title: Keep an ask surfaced until its answering task is terminal, rendered answe
 category: capability/asks
 needs: [mw-vffwacx]
 seq: 470
-verify: run cargo test addressed_visible_until_answer_terminal
+verify: run cargo test e2e::ask_surfaced_until_answer_done
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-1-the-inbox
   - docs/PROPOSAL-analytics.md#§-4-6-asks
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 `src/addressed.rs` drops an ask when any non-dropped task carries `answers:`; an open
@@ -20,3 +20,5 @@ pins both states.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-21T16:04Z open→doing — claimed by claude (b80d763e-77c7-4aa5-8ead-40c1daaa1288)
+- 2026-09-21T16:14Z doing→done — verify exit 0 @ c11c1df+4

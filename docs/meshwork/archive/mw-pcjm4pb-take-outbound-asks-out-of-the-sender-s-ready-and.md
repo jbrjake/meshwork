@@ -4,11 +4,11 @@ title: Take outbound asks out of the sender's ready and next and list them under
 category: capability/asks
 needs: [mw-vffwacx]
 seq: 460
-verify: run cargo test ready_excludes_outbound_asks
+verify: run cargo test e2e::outbound_asks_out_of_ready
 docs:
   - docs/FIELD-STUDY-session-transcripts.md#§-2-1-the-inbox
   - docs/DESIGN-meshwork.md#§-5-canned-verbs
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 A `to:` task sits in its author's `ready` like work, so handoffs open "Nothing to build here —
@@ -19,3 +19,5 @@ DESIGN §5 gains the one clause and its golden is re-blessed.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-21T16:04Z open→doing — claimed by claude (b80d763e-77c7-4aa5-8ead-40c1daaa1288)
+- 2026-09-21T16:14Z doing→done — verify exit 0 @ c11c1df+3
