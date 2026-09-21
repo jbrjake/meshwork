@@ -161,58 +161,68 @@ decision, and TRACE.md gains `planned` rows in the same commit.
 
 | | |
 |---|---|
-| **R-B** | field study Tier 1 #1–#3, Tier 3 #17a; DESIGN §15.12 amendments · argued in `FIELD-STUDY-session-transcripts.md` §2.1–§2.3 and `ASKS-analytics-and-field-study.md` §4 · **unruled** |
+| **R-B** | field study Tier 1 #1–#3, Tier 3 #17a; DESIGN §15.12 amendments · argued in `FIELD-STUDY-session-transcripts.md` §2.1–§2.3 and `ASKS-analytics-and-field-study.md` §4 · **R-B RULED 2026-09-20** — owner ruled item by item in session; each item's ruling is the last column below. Recorded as REQUIREMENTS §L (`MW-L1`–`MW-L7`), DESIGN §15.12 (amended) and §15.15, TRACE rows `planned` |
 
-| item | decision | recommendation |
+| item | decision | ruling |
 |---|---|---|
-| B.1 | `--to`, `--answers`, `--relates` on `add` and `set`; `set --body`, `--parent`, `--from`; `set --docs <old> <new>` — read §15.12's "no flag" as "no transport": a flag writing local frontmatter is in scope | yes; precedent is `set --cat/--verify/--title` (ruling 2026-08-10); `e2e::cli_surface_frozen` re-blessed once |
-| B.2 | an ask stays surfaced in the addressee's `prime`/`ready` until its answering task is **terminal**, rendered `answered-by <gid> (open)` meanwhile — amends §15.12's "un-surfaces the moment a non-dropped answer exists" | yes; an open intent to answer is not an answer, and inbox-zero by frontmatter alone is the defect |
-| B.3 | `prime` lists every inbound ask, or the count plus the oldest age plus the exact verb that lists them; never a bare "and N more" | yes, as behaviour under the byte budget |
-| B.4 | asks older than N days rank at parity with `next →` (the product-intent conflict: "never displace next" vs the owner's model) | rule it explicitly either way; recommendation: an ask past the triage age leads the next block once, then yields |
-| B.5 | outbound `to:` tasks leave the sender's `ready`/`next` and list under an `asks out` line | yes; "Nothing to build here" handoffs are a status spelled by hand |
-| B.6 | the SessionStart hook injects the skill body alongside `prime` (plugin-side) | yes, after `f-prime-footer-skill` ships the one-line fallback |
+| B.1 | `--to`, `--answers`, `--relates` on `add` and `set`; `set --body`, `--parent`, `--from`; `set --docs <old> <new>` — read §15.12's "no flag" as "no transport": a flag writing local frontmatter is in scope | **in, all eight.** A flag that writes local frontmatter is in scope; transport is not. Precedent is `set --cat/--verify/--title` (ruling 2026-08-10); `e2e::cli_surface_frozen` re-blessed once when they land |
+| B.2 | an ask stays surfaced in the addressee's `prime`/`ready` until its answering task is **terminal**, rendered `answered-by <gid> (open)` meanwhile — amends §15.12's "un-surfaces the moment a non-dropped answer exists" | **in, with the drop case named.** `done` un-surfaces; `open`/`doing`/`blocked` render `answered-by <gid> (<status>)`; a **dropped** answer re-surfaces the ask — declining to answer leaves it owed |
+| B.3 | `prime` lists every inbound ask, or the count plus the oldest age plus the exact verb that lists them; never a bare "and N more" | **cap 10, and the line names the verb that lists the rest** — a bound plus a real command, not the unbounded list. `asks` (D.2) is that verb |
+| B.4 | asks older than N days rank at parity with `next →` (the product-intent conflict: "never displace next" vs the owner's model) | **in.** An ask past the triage age leads the `next` block, then yields to the local next below it — a render order, not tracked state. Fresh asks stay below weather |
+| B.5 | outbound `to:` tasks leave the sender's `ready`/`next` and list under an `asks out` line | **in, with the answered state.** The `asks out` line carries answered-by and age, and `show` on an ask prints its answer; moving asks out of `ready` without that would only hide them |
+| B.6 | the SessionStart hook injects the skill body alongside `prime` (plugin-side) | **down to two lines in `prime`'s footer** (`src/cli/prime.rs`), not a hook injecting the skill body: instructions become tasks before work (the answer is an id); asks are `to:` lines in your own store; owner fields raise conflicts; rulings come only from this transcript. The token case is nil per session (494k against 490k); the behavioural case carries it at 165 bytes |
 
 ### R-C — prioritization
 
 | | |
 |---|---|
-| **R-C** | prioritization rulings 1–9 · argued in `PROPOSAL-prioritization.md` §10 · **unruled** |
+| **R-C** | prioritization rulings 1–9 · argued in `PROPOSAL-prioritization.md` §10 · **the mechanism is rejected; C.6 settled 2026-09-20; the rest waits on `mw-v4d2hwt`** — the owner rejected bands-over-categories in a per-repo config with `seq` for exceptions, in session: *"seq is not good enough for prioritization. it's too coarse and undifferentiated a mechanism"*; *"making people set up another repo specific config file sucks and i hate it"*; *"making it still the only prioritization value but with hard coded bands based on arbitrary categories sucks even more"*. `mw-ryd25rq` needs the spike and stays open |
 
-| item | decision | recommendation |
+Two defects in this group's evidence, found while presenting it, are why the mechanism went back
+to a spike rather than to a yes/no. The §1 Sidney decomposition was run with `w = f(place)` and
+`p ≡ 1`; under unit processing times Smith's rule orders by weight, and the weight *was* the
+current placement, so reproducing the current order is the arithmetic, not a finding. And §8's
+pre-registered falsifier fired the other way and was not followed: `docs/cost-baseline.md`
+measures a **24.2× spread** in tokens per task across 8 categories at n ≥ 7 and records the
+rung-0 question as answered **yes**, while §1 reading 2 declared cost flat on wall-clock service
+time — the measure a 98%-queue lifetime distorts most. The one dimension tested in isolation,
+priority inheritance, found four real placement errors `seq` missed.
+
+| item | decision | ruling |
 |---|---|---|
-| C.1 | bands as the tier mechanism: declare once per category, keep `seq` for exceptions | yes |
-| C.2 | bands live in per-repo `config.toml` only; `sequence.md` stays the only cross-repo override | yes |
-| C.3 | `default` band = 500 once a store opts in; 999999 stays for stores that have not | yes |
-| C.4 | aging posture: past-triage tasks are a decision queue rolled up by category, never boosted, never auto-dropped; `owner`-labelled markers exempt; triage age is config (14 d) | yes — the most disciplined call in either proposal, and ASKS §5 agrees |
-| C.5 | value stays unit (no authored `weight`/`cod`/`due`) until the placed-by histogram argues otherwise | yes |
-| C.6 | `needs-behind` is a finding; `[bands] inherit = true` is opt-in, default off | yes; the mirror chain under the v1 gate (`mw-v4ej` at 150 waiting on `mw-cvw8` at 900) wants its own one-line ruling: re-seq the gate behind the park, or un-park |
-| C.7 | the token measurement from transcripts is authorized as the gate on rungs 5–6 — the same ruling the weft's Q6 and the field study's A4 pricing need | yes; one script, one committed data file, three consumers |
-| C.8 | `stats` carries the placed-by histogram and the hazard table (not `lint --stats`) | yes; lint reports findings, `stats` reports measurements — ruled together with R-D |
+| C.1 | bands as the tier mechanism: declare once per category, keep `seq` for exceptions | **rejected.** One number per category is coarser than one per task, and inert where categories are thin (leras 5/64, oreseur 0/9, wyndam 0/15) |
+| C.2 | bands live in per-repo `config.toml` only; `sequence.md` stays the only cross-repo override | **rejected.** A per-repo config file is the wrong home; what replaces it must be shared across repos and reasoned about in one place |
+| C.3 | `default` band = 500 once a store opts in; 999999 stays for stores that have not | **rejected with C.1.** The wrong-signed default (`coalesce(seq, 999999)` sorting new work below deliberately parked work) is real and stays on the spike's list |
+| C.4 | aging posture: past-triage tasks are a decision queue rolled up by category, never boosted, never auto-dropped; `owner`-labelled markers exempt; triage age is config (14 d) | **to the spike.** "Age triages, never boosts" is exactly what a rubric weighing age would overturn; it cannot be settled ahead of the dimension study |
+| C.5 | value stays unit (no authored `weight`/`cod`/`due`) until the placed-by histogram argues otherwise | **to the spike, and reopened.** The owner named t-shirt-sized effort as a candidate dimension. The spike tests whether measured cost by category does the work an authored size would; if it cannot, the authored field comes to a ruling with numbers rather than being assumed out under §3 |
+| C.6 | `needs-behind` is a finding; `[bands] inherit = true` is opt-in, default off | `needs-behind` **landed** as a finding (`mw-073zekp`); `inherit` goes to the spike with the rest. The mirror chain under the v1 gate is **ruled: re-seq the gate behind the park** — `mw-v4ej` moves 150 → 950, REQUIREMENTS §4 is untouched and the 2026-08-14 deferral is not reversed; v1 is deferred as long as the mirror is, and says so |
+| C.7 | the token measurement from transcripts is authorized as the gate on rungs 5–6 — the same ruling the weft's Q6 and the field study's A4 pricing need | **landed and authorized.** `scripts/mine_cost.py` and `docs/cost-baseline.md` are committed and three consumers read them. Its result — 24.2× — is the number the spike starts from |
+| C.8 | `stats` carries the placed-by histogram and the hazard table (not `lint --stats`) | **settled by R-D.** Lint reports findings, `stats` reports measurements; what `stats` carries about placement waits on the spike |
 
 ### R-D — verbs that touch §6
 
 | | |
 |---|---|
-| **R-D** | `stats`, `asks`, `portfolio search`; `show --comments <N>` · argued in `PROPOSAL-analytics.md` §5.3, `FIELD-STUDY-session-transcripts.md` §1.2 and §3 Tier 1 #3/#3a · **unruled** |
+| **R-D** | `stats`, `asks`, `portfolio search`; `show --comments <N>` · argued in `PROPOSAL-analytics.md` §5.3, `FIELD-STUDY-session-transcripts.md` §1.2 and §3 Tier 1 #3/#3a · **R-D RULED 2026-09-20** — three verbs in, the flag out; each item's ruling is the last column below. Recorded as REQUIREMENTS §M (`MW-M1`–`MW-M4`), DESIGN §15.16, TRACE rows `planned`. Each accepted verb gains its §6 row in the commit that ships it, with `e2e::cli_surface_frozen` re-blessed against a reviewed diff — §6 is not edited ahead of the code |
 
-| item | decision | recommendation |
+| item | decision | ruling |
 |---|---|---|
-| D.1 | `stats [--window 7d\|28d] [--json]` and `portfolio stats` | yes; canned SELECTs over the views, the `ready`/`search` pattern, no language |
-| D.2 | `asks` — inbound and outbound, unsuppressed, with answered-by state and age; the verb agents typed as `inbox`/`addressed`/`portfolio show` 22 times | yes; the `asks` view makes it one canned query |
-| D.3 | `portfolio search <term>` (or `search --portfolio`) | yes; the lab replaced `prime` with a hand-rolled cross-repo query for lack of it |
-| D.4 | `show --comments <N>` (count, not boolean) | optional; cheap, low evidence |
+| D.1 | `stats [--window 7d\|28d] [--json]` and `portfolio stats` | **in, both.** Canned SELECTs over the views, the `ready`/`search` pattern, no language. The union half is the half only the portfolio can see |
+| D.2 | `asks` — inbound and outbound, unsuppressed, with answered-by state and age; the verb agents typed as `inbox`/`addressed`/`portfolio show` 22 times | **in, both directions.** Load-bearing for B.3's footer and B.5's `asks out` line, which both name it |
+| D.3 | `portfolio search <term>` (or `search --portfolio`) | **in, as `portfolio search`** — the union verbs stay in one place, which is how the skill teaches them. A read: it never prunes `sequence.md` (MW-S14) |
+| D.4 | `show --comments <N>` (count, not boolean) | **out.** No flag. `show` instead prints how many comments exist alongside the one it renders, so the rest are known to be there without a new surface |
 
 ### R-E — the verify grammar
 
 | | |
 |---|---|
-| **R-E** | leras ask `le-yppwtpq`, field study Tier 2 #6 · argued in `FIELD-STUDY-session-transcripts.md` §2.5 item 3 and DESIGN §12b · **unruled** |
+| **R-E** | leras ask `le-yppwtpq`, field study Tier 2 #6 · argued in `FIELD-STUDY-session-transcripts.md` §2.5 item 3 and DESIGN §12b · **R-E RULED 2026-09-20** — two shapes in, one out; each item's ruling is the last column below. Recorded as REQUIREMENTS §N (`MW-N1`–`MW-N4`), DESIGN §15.17, TRACE rows `planned`. The grammar's §12b invariants are unchanged |
 
-| item | decision | recommendation |
+| item | decision | ruling |
 |---|---|---|
-| E.1 | `run cargo test package=<crate> target=<name> <filter>`: dash-free tokens meshwork translates to `-p`/`--test`; no author text ever becomes a flag | yes — the measured 18-minute compile against a 5-minute timeout is the money leak |
-| E.2 | `lacks <path> <lit\|/regex/>` — the inverse of `contains`, same reader, same confinement | yes; 19 of leras's 43 shell verifies |
-| E.3 | `contains <dir>/ <pat>` (recursive, confined) and `exists <glob>` (one `*` segment) | rule separately; both widen the read surface within the repo and each needs its own class check |
+| E.1 | `run cargo test package=<crate> target=<name> <filter>`: dash-free tokens meshwork translates to `-p`/`--test`; no author text ever becomes a flag | **in, as dash-free tokens** rather than an allowlist of literal flags: "no leading dashes anywhere" stays a structural class check, not a list to maintain. A typed `-p` refuses with the replacement spelling named |
+| E.2 | `lacks <path> <lit\|/regex/>` — the inverse of `contains`, same reader, same confinement | **in, and a missing path refuses** rather than passing green — otherwise deleting the file closes the task. 19 of leras's 43 shell verifies are this shape |
+| E.3 | `contains <dir>/ <pat>` (recursive, confined) and `exists <glob>` (one `*` segment) | **`exists <glob>` in; recursive `contains <dir>/` out.** The glob is existence-only and bounded. A recursive read is unbounded inside the close gate and defeats `verify-self-satisfying`, which keys on the task's own file being named — a directory containing it matches without naming it |
 
 This task carries `answers: leras#le-yppwtpq`; the ask closes on a dated ANSWERED marker in
 leras's file, written when the ruling lands — including a ruling of "won't build".
@@ -221,15 +231,15 @@ leras's file, written when the ruling lands — including a ruling of "won't bui
 
 | | |
 |---|---|
-| **R-F** | `covers:` key + hash, `cover`/`spec list`/`spec audit`, `gestalt/` into a repo, `MW-S*`→`MW-T*` · argued in `PROPOSAL-spec-traceability.md` and `DRAFT-tasks-weft.md` §3.8 · **unruled** |
+| **R-F** | `covers:` key + hash, `cover`/`spec list`/`spec audit`, `gestalt/` into a repo, `MW-S*`→`MW-T*` · argued in `PROPOSAL-spec-traceability.md` and `DRAFT-tasks-weft.md` §3.8 · **R-F RULED 2026-09-20** — the lane builds, ungated, with its own clause syntax; each item's ruling is the last column below. Recorded as REQUIREMENTS §T (`MW-T1`–`MW-T6`), DESIGN §15.18, TRACE rows `planned` |
 
-| item | decision | recommendation |
+| item | decision | ruling |
 |---|---|---|
-| F.1 | a `covers:` frontmatter key carrying `ref` + content `sha`, projected as a `covers` table (not an `edges` row: the target is a clause, not a task) | yes, **after** the weft's WF2 first-run numbers say pointer rot is real |
-| F.2 | `cover <task> <ref>` and `cover --repin` write the pin; hand-written pins are lint errors | yes with F.1 |
-| F.3 | `spec list <doc>`, `spec audit <doc>`, portfolio variant | after `spec-drift` has fired on a real task at least once |
-| F.4 | clause refs are `docs:` refs (`repo#path#§-anchor`, the slug-prefix rule in `src/docs.rs`); no new `{#sp-slug}` syntax in v1 | yes; the anchor rule already survives heading edits |
-| F.5 | `gestalt/` becomes a registered repo or moves into the portfolio repo | the owner's, outside the tool |
+| F.1 | a `covers:` frontmatter key carrying `ref` + content `sha`, projected as a `covers` table (not an `edges` row: the target is a clause, not a task) | **in, and not gated on a falsifier.** The weft's WF2 is itself unpromoted (`portfolio#po-add2zf4` open at seq 80, "one owner word"), so gating on it was a deferral chain rather than a measurement |
+| F.2 | `cover <task> <ref>` and `cover --repin` write the pin; hand-written pins are lint errors | **in with F.1** |
+| F.3 | `spec list <doc>`, `spec audit <doc>`, portfolio variant | **in with F.1** — not held for `spec-drift` to fire on a real task first |
+| F.4 | clause refs are `docs:` refs (`repo#path#§-anchor`, the slug-prefix rule in `src/docs.rs`); no new `{#sp-slug}` syntax in v1 | **out — clause refs get their own syntax.** A clause pin must survive a heading edit, which a slug does not; and the `docs:` resolver has a live defect (`sazed#sa-rj7vxkt`: `anchor-missing` on nine tasks whose GitHub slugs are correct, emoji and em-dashes collapsing to double hyphens). The format gains a second pointer spelling deliberately, so spec refs do not inherit that resolver |
+| F.5 | `gestalt/` becomes a registered repo or moves into the portfolio repo | **left where it is, decided later.** The content hash is computed over clause text read from disk, so `covers:` and `spec-drift` work against an unversioned corpus; what is lost is the diff — drift is detected, not attributed. Independently: 22 design docs cited by three repos have no history |
 
 ---
 

@@ -118,7 +118,7 @@ Keywords MUST / SHOULD / MAY per RFC 2119. IDs are stable; cite as `MW-A1`.
 - **MW-S5 (MUST)** `[stats] window_days` (default 7) is the only parameter; it travels as `clock.window_days`, so the published SQL is registered unchanged, and `stats --window` overrides it per call.
 - **MW-S6 (MUST)** `prime` renders the repo's `pulse` row at the top of `weather` (before the doing/blocked lines) as ≤ 5 lines, ≤ 800 bytes, zero-valued lines omitted, every count with its denominator, cut loud under the existing budget; and a `cites N closed tasks` tail on the next block when `mentions` reports one.
 - **MW-S7 (MUST)** The pulse rendered by `prime` equals `SELECT * FROM pulse` for the same store and `MESHWORK_TODAY`, enforced by a differential test in the gate.
-- **MW-S8 (SHOULD)** A `stats [--window] [--json]` verb and `portfolio stats` print the proposal's §5.3 tables as canned `SELECT`s over the views. **§6 ruling required** (R-D, mw-xg67266).
+- **MW-S8 (SHOULD)** A `stats [--window] [--json]` verb and `portfolio stats` print the proposal's §5.3 tables as canned `SELECT`s over the views; the surface itself is MW-M1.
 - **MW-S9 (SHOULD)** `lint` gains `handoff-cites-closed`, `implicit-edge`, `discovered-cycle`, `seq-collision`, `close-attempts` — warnings.
 - **MW-S10 (MUST)** `set --handoff` mints a log line (`- <stamp> handoff`) so a handoff has an author and an age; the line form lands in FORMAT.md's log grammar; `show` gains the proposal's §5.5 derived lines.
 - **MW-S11 (MUST)** No metric is a velocity, a target, or a forecast. Flow is reported as counts in a named window; no line is extrapolated past `clock.today`.
@@ -127,6 +127,40 @@ Keywords MUST / SHOULD / MAY per RFC 2119. IDs are stable; cite as `MW-A1`.
 - **MW-S14 (MUST)** Reads never prune. `q`, `stats`, and `portfolio q`/`portfolio stats` do not touch `sequence.md`; `next` and `ready` keep pruning. Narrows mw-chcqk6g.
 - **MW-S15 (MUST)** Zero network; local checkouts only; `prime`'s scope widens by nothing beyond the union read the inbox already performs.
 - **MW-S16 (MUST)** The closure convention is pinned in FORMAT.md §Views and every view obeys it: `done` means *current* status — a reopened task is not a closure — and a date-only stamp is midnight UTC.
+
+### L. The session ritual — the inbox, the ask lifecycle, the write surface (owner ruling 2026-09-20, mw-vffwacx; argued in `FIELD-STUDY-session-transcripts.md` §2.1–§2.3)
+
+- **MW-L1 (MUST)** `add` and `set` accept `--to`, `--answers` and `--relates`; `set` additionally accepts `--body`, `--parent`, `--from`, and `--docs <old> <new>` replacing a ref in place. Each writes frontmatter in the invoking repo's own store and transmits nothing. DESIGN §15.12 fences transport, not flags.
+- **MW-L2 (MUST)** An ask surfaces in the addressee's `prime` and `ready` until its answering task is `done`. While that task is `open`, `doing` or `blocked` the ask renders `answered-by <gid> (<status>)`. A `dropped` answer re-surfaces the ask: declining to answer leaves it owed.
+- **MW-L3 (MUST)** `prime` renders up to ten inbound asks, oldest first, and where more exist names the verb that lists them all. A bare "… and N more addressed" is a defect.
+- **MW-L4 (MUST)** An inbound ask past the triage age leads `prime`'s next block, with the local `next →` rendered below it. The order is computed per render; no state records that an ask has led, and no ask is suppressed by having led.
+- **MW-L5 (MUST)** A task carrying `to:` does not appear in its own repo's `ready` or `next`. It lists under an `asks out` line carrying the addressee, the age, and the answering task with its status when one exists; `show` on such a task prints the same.
+- **MW-L6 (MUST)** `prime`'s footer states, in two lines inside the MW-D3 budget, that a spoken instruction becomes a task before the work starts and the answer is an id; that asks are `to:` lines in the author's own store; that owner-scoped fields raise a conflict rather than an edit; and that a ruling counts only from the current transcript.
+- **MW-L7 (MUST)** Nothing in §L transmits, delivers, or writes into another repo's store. Surfacing stays a read-time join over the union (§15.12).
+
+### M. Verbs on the §6 surface (owner ruling 2026-09-20, mw-xg67266)
+
+- **MW-M1 (MUST)** `stats [--window <n>d] [--json]` and `portfolio stats` print canned `SELECT`s over the §S views — no language, no new data, no ordering effect (MW-S12).
+- **MW-M2 (MUST)** `asks` reports inbound and outbound asks, unsuppressed, each with its answered-by state and age. It is the verb MW-L3's line and MW-L5's `asks out` line name.
+- **MW-M3 (MUST)** `portfolio search <term>` performs the same literal substring search as `search` across every registered store. It is a read: it never prunes `sequence.md` (MW-S14).
+- **MW-M4 (MUST)** `show` states how many comments a task carries alongside the one it renders. No flag is added for the rest (§3).
+- Each verb gains its DESIGN §6 row in the commit that ships it, with `e2e::cli_surface_frozen` re-blessed against a reviewed diff. §6 is never edited ahead of the code.
+
+### N. The verify grammar (owner ruling 2026-09-20, mw-t41d6ze; a §12b trust-boundary decision)
+
+- **MW-N1 (MUST)** `run cargo test` accepts `package=<crate>` and `target=<name>` tokens, which the executor translates to `-p` and `--test` in the spawned argv. The tokens carry no leading dash and pass the existing character class: no author text ever becomes a flag.
+- **MW-N2 (MUST)** A `run` argument leading with a dash still refuses, and the refusal names the dash-free spelling where one exists.
+- **MW-N3 (MUST)** `lacks <path> <literal|/regex/>` evaluates natively — no process — under the same confinement as `contains`. A path that does not exist **refuses**; absence of the file is never absence of the pattern.
+- **MW-N4 (MUST)** `exists` accepts one `*` inside a single path segment, resolved through `src/paths.rs` like every other DSL path. Recursive `contains <dir>/` is rejected (§3).
+
+### T. Spec traceability (owner ruling 2026-09-20, mw-xvv7ck1; argued in `PROPOSAL-spec-traceability.md`)
+
+- **MW-T1 (MUST)** A `covers:` frontmatter key carries entries of a clause `ref` plus the `sha` of that clause's text, projected as a `covers` table — never an `edges` row, because the target is a clause, not a task.
+- **MW-T2 (MUST)** A clause ref uses its own syntax, distinct from a `docs:` ref, identifying the clause independently of its heading text so that editing a heading does not break a pin.
+- **MW-T3 (MUST)** `cover <task> <ref>` writes a pin and `cover --repin` updates it. A hand-written `covers:` pin is a lint error.
+- **MW-T4 (MUST)** `spec-drift` fires when a pinned clause's current text hashes differently from its pin.
+- **MW-T5 (SHOULD)** `spec list <doc>`, `spec audit <doc>` and a portfolio variant report coverage and drift over a spec document.
+- **MW-T6 (MUST)** The hash is computed over clause text as read from disk. Version control is not required for a pin to detect drift; attributing a change to a commit is outside the pin.
 
 ## 3. Non-goals (normative — this list is the anti-Jira, anti-nerdsnipe contract)
 
@@ -139,6 +173,8 @@ Ruled out of the reject list (owner 2026-08-06, mw-tb6gdr9): **advisory work cla
 Scope ruling (owner ask 2026-08-21, mw-5xdyxep): **full-text search** (`search <term>`, DESIGN §6) is NOT the rejected "bespoke query language". That fence bans query *languages* — SQL stays the only one — and a canned-SQL verb over the §4 projection is the `ready`/`blocked` pattern, not a language: the term is a literal substring, no pattern syntax, no operators. The verb exists because the projection alone failed discoverability in the field: sessions fell back to `grep -r` over the store, losing every join against status and edges.
 
 Scope ruling (owner lane commit 2026-08-17, mw-hfvtx0s): **addressed tasks** (`to:`/`answers:` frontmatter, DESIGN §15.12) are NOT the rejected notifications/daemon/sync. Those fences ban things that *run* or *push*; an addressed task is data in its author's store, surfaced by the addressee's own read-time query over the portfolio union — nothing executes, nothing is delivered, nothing crosses a repo boundary in git. The fence text above holds verbatim.
+
+Scope ruling (owner 2026-09-20, mw-vffwacx / mw-xg67266 / mw-t41d6ze / mw-xvv7ck1): **a flag that writes local frontmatter** (§L) is NOT the transport DESIGN §15.12 fences — `--to`/`--answers` set a field in the author's own store and deliver nothing; and **three verbs join §6** — `stats`, `asks`, `portfolio search` — each a canned `SELECT` over the §S views in the `ready`/`search` pattern, not a language. Rejected in the same ruling and added to this list: **recursive `contains <dir>/`** in the verify grammar (an unbounded read inside the close gate, and it defeats `verify-self-satisfying`, which keys on the task's own file being named — a directory containing it matches without naming it); **`show --comments <N>`** (MW-M4 states the count instead); and **bands over categories, declared in a per-repo config file**, as the prioritization mechanism — `mw-v4d2hwt` studies a derived, term-by-term rubric in its place. An **authored effort field** stays rejected under the estimates fence above until that spike brings numbers to a ruling.
 
 Scope ruling (owner 2026-09-08, mw-w2920xb): three clauses on the derived projection (§S). **Log-derived lifecycle statistics** — queue, service and age hours computed from `## log` stamps the tool already writes — are NOT the rejected time tracking or estimates: nothing is authored, nothing is predicted, the numbers are what happened. **Ordering the ready set** by a computed key is NOT sprint semantics: no iteration, no commitment, no ceremony — a deterministic sort over data the store already holds. **Period counts with their denominators** (`flow`: filed, closed, reopened in a named window) are NOT the rejected burndown: no chart, no projection, no target, no line past today. The fence text above holds verbatim; MW-S11–S13 are the enforcement.
 
