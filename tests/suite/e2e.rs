@@ -117,6 +117,7 @@ include!("e2e_registry.rs");
 include!("e2e_render_sanitized.rs");
 include!("e2e_search.rs");
 include!("e2e_set.rs");
+include!("e2e_set_fields.rs");
 include!("e2e_show_docs.rs");
 include!("e2e_sigpipe.rs");
 include!("e2e_verify_migration.rs");

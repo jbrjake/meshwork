@@ -177,8 +177,8 @@ fn flag_forgiveness(arg: &str) -> Option<String> {
     let field = arg.trim_start_matches('-');
     match field {
         "to" | "answers" | "relates" => Some(format!(
-            "error: `--{field}` is frontmatter-only — write `{field}: …` in the task file \
-             (hand-edits are legal), or file the task with `meshwork add --batch -` carrying it\n\
+            "error: `--{field}` is not a flag on this verb — set it at creation \
+             (`meshwork add … --{field}`) or later (`meshwork set <id> --{field}`)\n\
              (nothing is sent: the key is data in this store, read by the other side)"
         )),
         "needs" => Some(

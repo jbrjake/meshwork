@@ -332,10 +332,18 @@ fn cli_surface_frozen() {
     assert!(show_help.contains("--docs") && show_help.contains("--comments"));
 
     // set carries the ruled field set: seq/docs/handoff (mw-0f4j) +
-    // cat/verify/title (mw-f1x71yg, §6 ruling 2026-08-10).
+    // cat/verify/title (mw-f1x71yg, §6 ruling 2026-08-10) + body/parent/
+    // from/relates/to/answers (MW-L1, ruling 2026-09-20).
     let set_help = stdout_of(&meshwork(&repo).args(["set", "--help"]).assert().success());
-    for flag in ["--seq", "--docs", "--handoff", "--cat", "--verify", "--title"] {
+    for flag in [
+        "--seq", "--docs", "--handoff", "--cat", "--verify", "--title", "--body", "--parent",
+        "--from", "--relates", "--to", "--answers",
+    ] {
         assert!(set_help.contains(flag), "{flag} in set --help:\n{set_help}");
+    }
+    let add_help = stdout_of(&meshwork(&repo).args(["add", "--help"]).assert().success());
+    for flag in ["--relates", "--to", "--answers"] {
+        assert!(add_help.contains(flag), "{flag} in add --help:\n{add_help}");
     }
     // Prose fields advertise the shell-safe spellings (mw-rz4ey2h ruling).
     assert!(set_help.contains("@FILE"), "{set_help}");

@@ -146,16 +146,18 @@ fn did_you_mean_inbox_verbs() {
     );
     assert!(err.contains("single-repo") && err.contains("portfolio q"), "{err}");
 
+    // `set` carries these flags now (MW-L1); a verb that does not names
+    // the two that do, never clap's `-- --to` tip.
     let id = add_task(&repo, "Flagged");
     for flag in ["--to", "--answers", "--relates"] {
-        let err = stderr_of(&meshwork(&repo).args(["set", &id, flag, "x"]).assert().code(2));
+        let err = stderr_of(&meshwork(&repo).args(["show", &id, flag, "x"]).assert().code(2));
         assert!(
-            err.contains("frontmatter-only") && err.contains("add --batch"),
+            err.contains("not a flag on this verb") && err.contains(&format!("set <id> {flag}")),
             "{flag}: {err}"
         );
         assert!(!err.contains("-- --"), "clap's tip is gone: {err}");
     }
-    let err = stderr_of(&meshwork(&repo).args(["set", &id, "--body", "x"]).assert().code(2));
+    let err = stderr_of(&meshwork(&repo).args(["show", &id, "--body", "x"]).assert().code(2));
     assert!(err.contains("--body") && err.contains("add"), "{err}");
 
     let out = meshwork(&repo)

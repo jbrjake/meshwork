@@ -263,9 +263,121 @@ pub fn append_section_entry(text: &str, section: &str, entry: &str) -> String {
     out
 }
 
+/// Replace the block-list item `old` under `key:` with `new`, keeping the
+/// item's trailing ` # …` hand comment and every other line byte-for-byte
+/// (MW-L1: `set --docs <old> <new>` — a bad anchor is fixed in place, not
+/// appended beside). An inline `key: [a, b]` list is rewritten whole.
+///
+/// # Errors
+/// When fences are missing, or `old` is not an item of the list.
+pub fn replace_block_item(text: &str, key: &str, old: &str, new: &str) -> Result<String, String> {
+    let (fm, tail) = split_frontmatter(text)?;
+    let prefix = format!("{key}:");
+    let fm_lines: Vec<&str> = fm.lines().collect();
+    let Some(at) = fm_lines.iter().position(|l| l.starts_with(&prefix)) else {
+        return Err(format!("{key}: {old} is not among the task's {key} links"));
+    };
+    let inline = fm_lines[at][prefix.len()..].trim();
+    if let Some(list) = inline.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
+        let mut items: Vec<String> = list
+            .split(',')
+            .map(|s| s.trim().trim_matches('"').to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        let Some(slot) = items.iter().position(|i| i == old) else {
+            return Err(format!("{key}: {old} is not among the task's {key} links"));
+        };
+        items[slot] = new.to_string();
+        return set_list(text, key, &items);
+    }
+    let end = block_end(&fm_lines, at);
+    let mut lines: Vec<String> = fm_lines.iter().map(ToString::to_string).collect();
+    let slot = (at + 1..end).find(|i| {
+        let item = fm_lines[*i].trim_start().strip_prefix("- ").unwrap_or("");
+        item.split(" #").next().unwrap_or(item).trim() == old
+    });
+    let Some(i) = slot else {
+        return Err(format!("{key}: {old} is not among the task's {key} links"));
+    };
+    let comment = fm_lines[i]
+        .find(" #")
+        .map_or(String::new(), |c| fm_lines[i][c..].to_string());
+    lines[i] = format!("  - {new}{comment}");
+    Ok(format!("---\n{}{tail}", lines.join("\n")))
+}
+
+/// Replace the description — everything between the closing fence and the
+/// first unfenced `## log` / `## comments` heading — with `body`; an empty
+/// body leaves no description at all. The tail sections are untouched
+/// (MW-L1: `set --body`; six hand-edits per description-size warning
+/// before this existed).
+///
+/// # Errors
+/// When fences are missing, like [`set_scalar`].
+pub fn set_body(text: &str, body: &str) -> Result<String, String> {
+    let (fm, rest) = split_frontmatter(text)?;
+    // `rest` starts at the closing fence; the tail is what follows it.
+    let after_fence = rest
+        .strip_prefix("\n---\n")
+        .or_else(|| rest.strip_prefix("\n---"))
+        .unwrap_or("");
+    let lines: Vec<&str> = after_fence.lines().collect();
+    let fenced = crate::parse::fenced_lines(&lines);
+    let tail_at = (0..lines.len())
+        .find(|i| !fenced[*i] && matches!(lines[*i].trim_end(), "## log" | "## comments"));
+    let tail = tail_at.map_or(String::new(), |i| lines[i..].join("\n") + "\n");
+    let body = body.trim_matches('\n');
+    let description = if body.is_empty() {
+        String::new()
+    } else {
+        format!("{body}\n\n")
+    };
+    let sep = if tail.is_empty() && description.is_empty() {
+        ""
+    } else {
+        "\n"
+    };
+    Ok(format!("---\n{fm}\n---\n{sep}{description}{tail}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn body_replaces_between_fence_and_tail() {
+        let text = "---\nid: x\n---\n\nOld body.\n\n```\n## log\n```\nmore\n\n## log\n- 2026-09-01 created\n\n## comments\n- 2026-09-02 [jon] hi\n";
+        let out = set_body(text, "New body.\n\nTwo.").unwrap();
+        assert_eq!(
+            out,
+            "---\nid: x\n---\n\nNew body.\n\nTwo.\n\n## log\n- 2026-09-01 created\n\n## comments\n- 2026-09-02 [jon] hi\n"
+        );
+        let cleared = set_body(&out, "").unwrap();
+        assert!(
+            cleared.starts_with("---\nid: x\n---\n\n## log\n"),
+            "{cleared}"
+        );
+        assert_eq!(
+            set_body("---\nid: x\n---\n", "Only.").unwrap(),
+            "---\nid: x\n---\n\nOnly.\n\n"
+        );
+    }
+
+    #[test]
+    fn block_item_replaces_in_place_keeping_comments() {
+        let text = "---\nid: x\ndocs:\n  - A.md#§-one # why\n  - B.md\nverify: \"true\"\n---\n";
+        let out = replace_block_item(text, "docs", "A.md#§-one", "C.md#§-three").unwrap();
+        assert_eq!(
+            out,
+            "---\nid: x\ndocs:\n  - C.md#§-three # why\n  - B.md\nverify: \"true\"\n---\n"
+        );
+        assert!(replace_block_item(text, "docs", "Z.md", "C.md").is_err());
+        let inline = "---\nid: x\ndocs: [A.md, B.md]\n---\n";
+        assert_eq!(
+            replace_block_item(inline, "docs", "B.md", "C.md").unwrap(),
+            "---\nid: x\ndocs: [A.md, C.md]\n---\n"
+        );
+    }
 
     const BLANK_BEARING: &str = "---\nid: x\nstatus: open\nhandoff: |\n  one\n\n  two\n\
                                  docs:\n  - A.md\n\n  - B.md\nverify: \"true\"\n---\n\nbody\n";

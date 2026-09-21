@@ -63,8 +63,8 @@ don't improvise any of them.
   repo and the shim supplies the session author; never guess its file path.
   The union verbs are `portfolio ready` / `next` / `q`; register repos once
   in the portfolio's `repos.toml`.
-- `to:`, `answers:` and `relates:` have no flag; they ride an `add --batch -`
-  document (`--dry-run` prints the would-be file):
+- `--to`, `--answers` and `--relates` ride `add` and `set`; several tasks,
+  or handles, go in an `add --batch -` document (`--dry-run` prints it):
   ```
   ---
   title: <imperative>
@@ -80,8 +80,9 @@ don't improvise any of them.
   --cat a/b --verify '<predicate>'`; several tasks, or structured
   frontmatter, is one `add --batch -` document — `id:` omitted, a local
   `handle:` usable as `@handle` in needs/parent/from/relates, atomic: all
-  files or none. Later: `set <id> --seq/--docs/--handoff/--verify/--cat/
-  --title`; edges: `dep add <a> --needs <b>`.
+  files or none. Later: `set <id> --seq/--handoff/--verify/--cat/--title/
+  --body/--parent/--from/--relates/--to/--answers`, `--docs <link>` to
+  append or `--docs <old> <new>` to replace; edges: `dep add <a> --needs <b>`.
 - Titles are imperative work orders ("Fix the door check"), never a finding.
   Every task carries `verify:` and `docs:` (`path#§-anchor`); lint warns.
 - Hand-edits are legal, then `lint` (`--fix` mends mechanical damage;

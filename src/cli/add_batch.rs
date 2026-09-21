@@ -156,21 +156,11 @@ fn validate_task(
 }
 
 /// An ask whose `to:` names no registered repo can never surface anywhere
-/// — say so at file time, not never (mw-r6g9bhe). A warning, not a
-/// refusal: the registry may lag the repo. No registry, no verdict.
+/// — say so at file time, not never (mw-r6g9bhe); the same door as
+/// `add --to` and `set --to`.
 fn warn_unresolvable_to(task: &crate::parse::Task, n: usize) {
-    let Some(to) = task.to.as_deref() else {
-        return;
-    };
-    let repo = to.split('#').next().unwrap_or(to);
-    let Ok(Some(registry)) = crate::registry::quiet_load() else {
-        return;
-    };
-    if registry.resolve(repo).is_none() {
-        eprintln!(
-            "warning: batch task {n}: to: {to} — no registered repo named `{repo}`; \
-             the ask will never surface until the registry knows it"
-        );
+    if let Some(to) = task.to.as_deref() {
+        super::add::warn_unresolvable_to(to, &format!("batch task {n}: "));
     }
 }
 

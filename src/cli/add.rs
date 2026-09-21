@@ -14,7 +14,7 @@ pub(crate) struct AddArgs {
     /// Several tasks at once from a file ("-" = stdin): concatenated task
     /// documents, `id:` omitted, local `handle:` names usable as @refs in
     /// needs/parent/from/relates — atomic, all files or none.
-    #[arg(long, value_name = "FILE", conflicts_with_all = ["title", "cat", "label", "needs", "parent", "from", "verify", "seq", "docs", "body"])]
+    #[arg(long, value_name = "FILE", conflicts_with_all = ["title", "cat", "label", "needs", "parent", "from", "relates", "to", "answers", "verify", "seq", "docs", "body"])]
     batch: Option<String>,
     /// Print the would-be task file(s), write nothing.
     #[arg(long)]
@@ -34,6 +34,16 @@ pub(crate) struct AddArgs {
     /// Provenance: the task this one was discovered from.
     #[arg(long = "from", value_name = "ID")]
     from: Option<String>,
+    /// Soft link to a related task (`repo#id` crosses repos); repeatable.
+    #[arg(long = "relates", value_name = "ID")]
+    relates: Vec<String>,
+    /// Address this task to another repo as an ask (`repo` or `repo#id`);
+    /// it stays in this store and surfaces in theirs.
+    #[arg(long = "to", value_name = "REPO")]
+    to: Option<String>,
+    /// The ask (`repo#id`) this task answers; nothing is sent.
+    #[arg(long = "answers", value_name = "GID")]
+    answers: Option<String>,
     /// The close gate: a verify predicate — `exists`/`absent`/`contains`/
     /// `run cargo …`, or `all(…)`; `verify --help` has the grammar. Text
     /// that is not keyword-led is legacy shell behind the approval gate.
@@ -81,7 +91,12 @@ pub(crate) fn run(args: &AddArgs, json: bool) -> Result<(), String> {
     let mut targets: Vec<(&str, &str)> = args.needs.iter().map(|n| ("needs", n.as_str())).collect();
     targets.extend(args.parent.iter().map(|p| ("parent", p.as_str())));
     targets.extend(args.from.iter().map(|f| ("discovered-from", f.as_str())));
+    targets.extend(args.relates.iter().map(|r| ("relates", r.as_str())));
+    targets.extend(args.answers.iter().map(|a| ("answers", a.as_str())));
     check_edge_targets(&tasks_dir, &targets, &[])?;
+    if let Some(to) = &args.to {
+        warn_unresolvable_to(to, "");
+    }
     warn_docs(&root, &args.docs);
     let fm = render_frontmatter(args, &id, &title, &today);
 
@@ -157,6 +172,8 @@ fn reject_control_fields(args: &AddArgs, title: &str) -> Result<(), String> {
         ("category", &args.cat),
         ("parent", &args.parent),
         ("discovered-from", &args.from),
+        ("to", &args.to),
+        ("answers", &args.answers),
         ("verify", &args.verify),
     ] {
         if let Some(value) = value {
@@ -166,6 +183,7 @@ fn reject_control_fields(args: &AddArgs, title: &str) -> Result<(), String> {
     for (field, values) in [
         ("label", &args.label),
         ("needs", &args.needs),
+        ("relates", &args.relates),
         ("docs link", &args.docs),
     ] {
         for value in values {
@@ -195,6 +213,15 @@ fn render_frontmatter(args: &AddArgs, id: &str, title: &str, today: &str) -> Str
     }
     if let Some(from) = &args.from {
         let _ = writeln!(fm, "discovered-from: {}", yaml_scalar(from));
+    }
+    if !args.relates.is_empty() {
+        let _ = writeln!(fm, "relates: [{}]", scalar_list(&args.relates));
+    }
+    if let Some(to) = &args.to {
+        let _ = writeln!(fm, "to: {}", yaml_scalar(to));
+    }
+    if let Some(answers) = &args.answers {
+        let _ = writeln!(fm, "answers: {}", yaml_scalar(answers));
     }
     if let Some(verify) = &args.verify {
         let _ = writeln!(fm, "verify: {}", yaml_scalar(verify));
@@ -259,6 +286,23 @@ fn warn_crossrepo_target(field: &str, repo: &str, id: &str) {
                 );
             }
         }
+    }
+}
+
+/// An ask whose `to:` names no registered repo can never surface anywhere
+/// — say so at file time, not never (mw-r6g9bhe). A warning, not a
+/// refusal: the registry may lag the repo. No registry, no verdict.
+/// `prefix` names the document in a batch (`batch task 3: `), or nothing.
+pub(crate) fn warn_unresolvable_to(to: &str, prefix: &str) {
+    let repo = to.split('#').next().unwrap_or(to);
+    let Ok(Some(registry)) = crate::registry::quiet_load() else {
+        return;
+    };
+    if registry.resolve(repo).is_none() {
+        eprintln!(
+            "warning: {prefix}to: {to} — no registered repo named `{repo}`; the ask can never \
+             surface there (register the repo in repos.toml, or fix the name)"
+        );
     }
 }
 
