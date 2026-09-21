@@ -51,9 +51,10 @@ don't improvise any of them.
 ## The inbox and sibling stores
 
 - An ask is a task in YOUR store carrying `to: <repo>`; nothing is sent. It
-  surfaces in that repo's `prime`/`ready` until a non-dropped task anywhere
-  carries `answers: <its gid>`. Prime lists the unclaimed asks; the whole
-  inbox, open answers included, is one query over the `asks` view:
+  surfaces in that repo's `prime`/`ready` until a task carrying
+  `answers: <its gid>` is done; a live answer shows as `answered-by`. Your
+  own asks leave your `ready` for its `asks out` line. The whole inbox,
+  open answers included, is one query over the `asks` view:
   `portfolio q "SELECT gid, title, age_h, answer_gid, answer_status FROM asks WHERE to_repo = '<me>' AND unanswered"`.
   A per-repo `q … WHERE addressed_to = '<me>'` is your OUTBOUND asks, not
   the inbox.

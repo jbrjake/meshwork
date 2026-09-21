@@ -82,6 +82,12 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
                 .map(|(_, moved)| moved);
             let commits = commits_for(&root, &args.id);
             let (repo, lineage, cites) = derived(&task.id)?;
+            // An ask carries its answer's state (MW-L5) — the one union
+            // read `show` ever makes, and only on a task that has `to:`.
+            let answered_by = task
+                .to
+                .as_ref()
+                .and_then(|_| crate::addressed::answer_for(&root, &format!("{repo}#{}", task.id)));
             let excerpts = if args.docs {
                 task.docs
                     .iter()
@@ -94,6 +100,7 @@ pub(crate) fn run(args: &ShowArgs, json: bool) -> Result<(), String> {
                 repo: &repo,
                 lineage: &lineage,
                 cites: &cites,
+                answered_by: answered_by.as_ref(),
             };
             if json {
                 emit_json(
@@ -141,6 +148,8 @@ struct Derived<'a> {
     repo: &'a str,
     lineage: &'a Lineage,
     cites: &'a [String],
+    /// The task answering this ask, when it has `to:` and one exists.
+    answered_by: Option<&'a crate::addressed::Answer>,
 }
 
 /// The two derived rows for `id`: one query session with `lineage` and
@@ -239,6 +248,21 @@ fn render_text(
     // render-time only, the file keeps its bytes.
     let clean = crate::cli::sanitize;
     println!("{} — {} [{}]", t.id, clean(&t.title), t.status.as_str());
+    render_frontmatter(t, views);
+    println!("file: {rel}");
+    if let Some(voice) = t.handoff.as_deref().filter(|h| !h.trim().is_empty()) {
+        println!();
+        for line in voice.lines() {
+            println!("\u{bb} {}", clean(line));
+        }
+    }
+    render_tail(t, shown_from, commits, stray, views);
+}
+
+/// The frontmatter keys, one `k: v` line each, in projection order; an
+/// ask additionally reads as its addressee, age and answer state.
+fn render_frontmatter(t: &Task, views: &Derived) {
+    let clean = crate::cli::sanitize;
     let kv = |k: &str, v: Option<String>| {
         if let Some(v) = v {
             println!("{k}: {}", clean(&v));
@@ -252,6 +276,21 @@ fn render_text(
     kv("relates", join_nonempty(&t.relates));
     kv("to", t.to.clone());
     kv("answers", t.answers.clone());
+    if let Some(to) = t.to.as_deref() {
+        // The sender's view of its own ask: addressee, age, answer state
+        // — the same words as the `asks out` line (MW-L5).
+        let today = crate::clock::today();
+        let age = t
+            .created
+            .as_deref()
+            .and_then(|c| crate::clock::days_between(c, &today))
+            .map_or(String::new(), |d| format!(" ({}d)", d.max(0)));
+        println!(
+            "ask: \u{2192} {}{age}{}",
+            clean(to),
+            crate::addressed::answered_suffix(views.answered_by, " \u{b7} ")
+        );
+    }
     kv("verify", t.verify.clone());
     kv("seq", t.seq.map(|s| s.to_string()));
     kv("created", t.created.clone());
@@ -265,13 +304,18 @@ fn render_text(
     for a in &t.attachments {
         println!("attachment: {}", clean(a));
     }
-    println!("file: {rel}");
-    if let Some(voice) = t.handoff.as_deref().filter(|h| !h.trim().is_empty()) {
-        println!();
-        for line in voice.lines() {
-            println!("\u{bb} {}", clean(line));
-        }
-    }
+}
+
+/// Everything below the file line: body, the stray-tail marker, log,
+/// comments, commits, and the derived lines.
+fn render_tail(
+    t: &Task,
+    shown_from: usize,
+    commits: &[(String, String)],
+    stray: Option<usize>,
+    views: &Derived,
+) {
+    let clean = crate::cli::sanitize;
     if !t.description.is_empty() {
         println!("\n{}", clean(&t.description));
     }
@@ -423,6 +467,7 @@ fn emit_json(
             "created": t.created, "blocked_reason": t.blocked_reason,
             "claimed_by": t.claimed_by, "waived": t.waived, "handoff": t.handoff,
             "to": t.to, "answers": t.answers,
+            "answered_by": super::query::answer_json(views.answered_by),
             "description": t.description, "log": t.log,
             "comments": { "total": t.comments.len(), "shown": shown },
             "commits": commits.iter().take(COMMIT_CAP)

@@ -73,10 +73,10 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-S15 | `e2e::offline_all` (the view sessions run under it) | planned |
 | MW-S16 | `conformance::views_golden` (a reopened task in the fixture is not a closure) | done |
 | MW-L1 | `e2e::add_set_frontmatter_flags`, `e2e::set_docs_replace`, `e2e::cli_surface_frozen` | planned |
-| MW-L2 | `e2e::ask_surfaced_until_answer_done`, `e2e::ask_resurfaces_on_dropped_answer` | planned |
+| MW-L2 | `e2e::ask_surfaced_until_answer_done`, `e2e::ask_resurfaces_on_dropped_answer` | done |
 | MW-L3 | `e2e::prime_inbox_ten_and_verb` | planned |
 | MW-L4 | `e2e::prime_stale_ask_leads_next` | planned |
-| MW-L5 | `e2e::outbound_asks_out_of_ready`, `e2e::asks_out_line_answered_state` | planned |
+| MW-L5 | `e2e::outbound_asks_out_of_ready`, `e2e::asks_out_line_answered_state` | done |
 | MW-L6 | `e2e::prime_footer_rules` (rendered inside the MW-D3 budget) | planned |
 | MW-L7 | `arch::no_cross_store_writes`, `e2e::offline_all` | planned |
 | MW-M1 | `e2e::stats_verb`, `e2e::portfolio_stats` | planned |

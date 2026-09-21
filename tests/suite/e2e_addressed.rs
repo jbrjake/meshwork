@@ -5,8 +5,9 @@
 // transport, no write into the other repo's store, no CLI change.
 
 /// The conformance scenario the task names: a `to:`-addressed task
-/// appears in the addressee's prime/ready view and drops out when
-/// answered; a dropped answer un-answers.
+/// appears in the addressee's prime/ready view; an answer filed through
+/// the batch path attaches to it while live (MW-L2 — only a done answer
+/// retires it, `e2e_asks.rs`), and a dropped answer un-answers.
 #[test]
 fn addressed_task_surfaces_and_drops_when_answered() {
     let (dir, portfolio) = portfolio_fixture();
@@ -70,9 +71,12 @@ fn addressed_task_surfaces_and_drops_when_answered() {
         .unwrap()
         .to_string();
 
-    // Answered → the ask drops out of the addressee's view.
+    // An open answer attaches to the ask but does not retire it (MW-L2).
     let out = ready_beta();
-    assert!(!out.contains("az-a5k001"), "answered ask must drop: {out}");
+    assert!(
+        out.contains("az-a5k001") && out.contains(&format!("answered-by beta#{answer_id} (open)")),
+        "an open answer is an intent, not an answer: {out}"
+    );
 
     // A dropped answer un-answers — the ask resurfaces.
     meshwork(&beta)

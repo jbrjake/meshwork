@@ -47,15 +47,19 @@ fn schema_help() -> String {
 
 /// Rows a listing shows by default (MW-D2).
 pub(crate) const LISTING_CAP: usize = 20;
-/// Incoming asks stay a footnote, never a second worklist (MW-D2 spirit).
+/// Incoming and outgoing asks stay a footnote each, never a second
+/// worklist (MW-D2 spirit).
 const ADDRESSED_CAP: usize = 5;
 
 /// The normative `ready` SQL (DESIGN §5, MW-B6) minus its `LIMIT 20`: the
 /// cap is applied at render time because the `… and N more` marker needs
-/// the true total (MW-D2). Semantics are otherwise verbatim.
+/// the true total (MW-D2). Semantics are otherwise verbatim — including
+/// the `addressed_to` clause: an ask is owed by its addressee, not worked
+/// here (MW-L5).
 pub(crate) const READY_SQL: &str = "\
 SELECT t.id, t.title, t.claimed_by, t.verify FROM tasks t
 WHERE t.status = 'open'
+  AND t.addressed_to IS NULL
   AND NOT EXISTS (
     SELECT 1 FROM edges e
     LEFT JOIN tasks d ON e.dst_gid = d.gid
@@ -74,8 +78,15 @@ ORDER BY coalesce(t.seq, 999999), t.created";
 /// predicate needs; anything else already blocks conservatively as NULL,
 /// and an injected open task would leak into listings).
 pub(crate) fn local_session() -> Result<(SessionContext, String), String> {
-    let (ctx, repo, _) = local_session_inner()?;
-    Ok((ctx, repo))
+    let (ctx, store, _) = local_session_inner()?;
+    Ok((ctx, store.repo))
+}
+
+/// [`local_session`] keeping the parsed store — for verbs that also read
+/// what the projection does not carry (the outbound asks' answer state).
+pub(crate) fn local_session_store() -> Result<(SessionContext, crate::store::RepoStore), String> {
+    let (ctx, store, _) = local_session_inner()?;
+    Ok((ctx, store))
 }
 
 /// The `q` session: the six tables plus, when the query names one, `clock`
@@ -83,22 +94,30 @@ pub(crate) fn local_session() -> Result<(SessionContext, String), String> {
 /// (MW-S5). Registration plans every view body, so a query over the six
 /// tables alone never pays for it.
 pub(crate) fn query_session(sql: &str) -> Result<(SessionContext, String), String> {
-    let (ctx, repo, window_days) = local_session_inner()?;
+    let (ctx, store, window_days) = local_session_inner()?;
     if crate::views::mentioned(sql) {
         let clock = crate::views::Clock::resolve(window_days)?;
         crate::views::register_blocking(&ctx, &clock, sql)?;
     }
-    Ok((ctx, repo))
+    Ok((ctx, store.repo))
 }
 
-fn local_session_inner() -> Result<(SessionContext, String, i64), String> {
+fn local_session_inner() -> Result<(SessionContext, crate::store::RepoStore, i64), String> {
     let root = crate::cli::require_store_root()?;
     let store = crate::store::load_repo(&root).map_err(|e| e.to_string())?;
-    let repo = store.repo.clone();
     let window_days = store.config.window_days();
     let foreign = terminal_foreign(&store)?;
-    let ctx = crate::tables::session_for(&[store], &foreign).map_err(|e| e.to_string())?;
-    Ok((ctx, repo, window_days))
+    let ctx = crate::tables::session_for(std::slice::from_ref(&store), &foreign)
+        .map_err(|e| e.to_string())?;
+    Ok((ctx, store, window_days))
+}
+
+/// `{gid, status}` for an answer, or null — one JSON shape on every verb.
+pub(crate) fn answer_json(answer: Option<&crate::addressed::Answer>) -> serde_json::Value {
+    answer.map_or(
+        serde_json::Value::Null,
+        |a| serde_json::json!({ "gid": a.gid, "status": a.status.as_str() }),
+    )
 }
 
 /// The foreign thin rows a single-repo session injects: the store's
@@ -163,9 +182,18 @@ pub(crate) fn sql_rows_local(sql: &str) -> Result<Vec<Vec<String>>, String> {
 }
 
 pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
-    let (ctx, repo) = local_session()?;
+    let (ctx, store) = local_session_store()?;
+    let repo = store.repo.clone();
     let (_, batches) = run_query(&ctx, READY_SQL)?;
-    let inbox = crate::addressed::inbox(&repo);
+    // One union read serves the inbox and the outbound asks' answer state;
+    // with no registry the inbox is empty and the asks out are the store's
+    // own files (MW-L5 needs no join).
+    let union = crate::addressed::union();
+    let inbox = union
+        .as_deref()
+        .map_or_else(Vec::new, |s| crate::addressed::inbox_of(s, &repo));
+    let asks_out = crate::addressed::outbound(&store, union.as_deref());
+    let today = crate::clock::today();
     let rows = string_rows(&batches);
     let total = rows.len();
     let cap = if args.all {
@@ -175,22 +203,7 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
     };
 
     if json {
-        let shown: Vec<_> = rows[..cap]
-            .iter()
-            .map(|r| {
-                serde_json::json!({ "id": r[0], "title": r[1],
-                    "claimed_by": (!r[2].is_empty()).then(|| r[2].clone()),
-                    "needs_verify": r[3].is_empty() })
-            })
-            .collect();
-        let addressed: Vec<_> = inbox
-            .iter()
-            .map(|a| serde_json::json!({ "gid": a.gid, "title": a.title }))
-            .collect();
-        crate::cli::emit_json(
-            "ready",
-            &serde_json::json!({ "total": total, "rows": shown, "addressed": addressed }),
-        );
+        ready_json(&rows[..cap], total, &inbox, &asks_out, &today);
     } else {
         for row in &rows[..cap] {
             // An open task carrying a claim is a merge artifact — annotate,
@@ -220,10 +233,10 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
         if total == 0 {
             println!("nothing ready");
         }
+        print_asks_out(&asks_out, args.all, &today);
         // Incoming asks — the read-time join (mw-hfvtx0s). Foreign gids
         // appear ONLY here, labeled; the main list stays local-only.
         if !inbox.is_empty() {
-            let today = crate::clock::today();
             let shown = if args.all {
                 inbox.len()
             } else {
@@ -234,7 +247,12 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
                 let age = a
                     .age_days(&today)
                     .map_or(String::new(), |d| format!("  ({d}d)"));
-                println!("{}  {}{age}", a.gid, crate::cli::sanitize(&a.title));
+                println!(
+                    "{}  {}{age}{}",
+                    a.gid,
+                    crate::cli::sanitize(&a.title),
+                    crate::addressed::answered_suffix(a.answer.as_ref(), "  ")
+                );
             }
             // The footnote names what lists the rest (mw-0a084qy) — a
             // count with nothing to run was never followed.
@@ -248,6 +266,74 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// The `ready --json` payload: the capped rows, the true total, the inbox
+/// and this repo's asks out, each ask with its answer's state.
+fn ready_json(
+    rows: &[Vec<String>],
+    total: usize,
+    inbox: &[crate::addressed::Ask],
+    asks_out: &[crate::addressed::Outbound],
+    today: &str,
+) {
+    let shown: Vec<_> = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({ "id": r[0], "title": r[1],
+                "claimed_by": (!r[2].is_empty()).then(|| r[2].clone()),
+                "needs_verify": r[3].is_empty() })
+        })
+        .collect();
+    let addressed: Vec<_> = inbox
+        .iter()
+        .map(|a| {
+            serde_json::json!({ "gid": a.gid, "title": a.title,
+                "answered_by": answer_json(a.answer.as_ref()) })
+        })
+        .collect();
+    let out: Vec<_> = asks_out
+        .iter()
+        .map(|a| {
+            serde_json::json!({ "id": a.id, "title": a.title, "to": a.to,
+                "created": a.created, "age_days": a.age_days(today),
+                "answered_by": answer_json(a.answer.as_ref()) })
+        })
+        .collect();
+    crate::cli::emit_json(
+        "ready",
+        &serde_json::json!({ "total": total, "rows": shown, "addressed": addressed,
+            "asks_out": out }),
+    );
+}
+
+/// This repo's own asks — owed elsewhere, listed apart from the worklist
+/// (MW-L5): addressee, age, and the answering task with its status.
+fn print_asks_out(asks_out: &[crate::addressed::Outbound], all: bool, today: &str) {
+    if asks_out.is_empty() {
+        return;
+    }
+    let shown = if all {
+        asks_out.len()
+    } else {
+        ADDRESSED_CAP.min(asks_out.len())
+    };
+    println!("asks out ({}):", asks_out.len());
+    for a in asks_out.iter().take(shown) {
+        let age = a
+            .age_days(today)
+            .map_or(String::new(), |d| format!("  ({d}d)"));
+        println!(
+            "{}  \u{2192} {}  {}{age}{}",
+            a.id,
+            crate::cli::sanitize(&a.to),
+            crate::cli::sanitize(&a.title),
+            crate::addressed::answered_suffix(a.answer.as_ref(), "  ")
+        );
+    }
+    if asks_out.len() > shown {
+        println!("… and {} more asks out (--all)", asks_out.len() - shown);
+    }
 }
 
 pub(crate) fn q(args: &QArgs, json: bool) -> Result<(), String> {

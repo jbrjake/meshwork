@@ -107,6 +107,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     let inbox = union
         .as_deref()
         .map_or_else(Vec::new, |s| crate::addressed::inbox_of(s, &store.repo));
+    let asks_out = crate::addressed::outbound(&store, union.as_deref());
     let mut pulse =
         crate::pulse::compute(std::slice::from_ref(&store), &foreign, &clock, &store.repo);
     if let Some(stores) = &union {
@@ -134,6 +135,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
             cites: &cited,
             dones: &dones,
             inbox: &inbox,
+            asks_out: &asks_out,
             today: &today,
             provenance: provenance_line(&root).as_deref(),
         });
@@ -156,6 +158,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         window_days: store.config.window_days(),
         weather: &weather,
         inbox: &inbox,
+        asks_out: &asks_out,
         today: &today,
         repo: &store.repo,
         next_block: &next_block,
@@ -212,6 +215,7 @@ struct PrimeJson<'a> {
     cites: &'a [String],
     dones: &'a [(String, &'a str, &'a str)],
     inbox: &'a [crate::addressed::Ask],
+    asks_out: &'a [crate::addressed::Outbound],
     today: &'a str,
     provenance: Option<&'a str>,
 }
@@ -247,7 +251,17 @@ fn emit_prime_json(v: &PrimeJson) {
         .iter()
         .map(|a| {
             serde_json::json!({ "gid": a.gid, "title": a.title,
-                "created": a.created, "age_days": a.age_days(v.today) })
+                "created": a.created, "age_days": a.age_days(v.today),
+                "answered_by": super::query::answer_json(a.answer.as_ref()) })
+        })
+        .collect();
+    let asks_out: Vec<_> = v
+        .asks_out
+        .iter()
+        .map(|a| {
+            serde_json::json!({ "id": a.id, "title": a.title, "to": a.to,
+                "created": a.created, "age_days": a.age_days(v.today),
+                "answered_by": super::query::answer_json(a.answer.as_ref()) })
         })
         .collect();
     let asks = serde_json::json!({
@@ -262,7 +276,7 @@ fn emit_prime_json(v: &PrimeJson) {
             "rollup": rollup_rows, "rollup_total": v.rollup.len(),
             "weather": v.weather, "pulse": super::pulse::json(v.pulse),
             "next": next_row, "recently_done": done_rows,
-            "addressed": addressed, "asks": asks,
+            "addressed": addressed, "asks_out": asks_out, "asks": asks,
         }),
     );
 }

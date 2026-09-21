@@ -25,6 +25,8 @@ const VOICE_LINES: usize = 6;
 const DONE_ROWS: usize = 5;
 /// Dependents named on a blocks-line before collapsing to +N.
 const BLOCKS_NAMED: usize = 3;
+/// Outbound asks listed before the footnote names `ready --all`.
+const ASKS_OUT_ROWS: usize = 5;
 
 /// A category's first two segments — `engine/spill/budget` rolls up into
 /// `engine/spill` (§7b: display grain, not a model change).
@@ -314,9 +316,53 @@ fn inbox_lines(
     out.push(format!("addressed to this repo ({}):", inbox.len()));
     for a in inbox {
         let age = crate::addressed::age_suffix(a, today);
+        let answered = crate::addressed::answered_suffix(a.answer.as_ref(), " \u{b7} ");
         out.push(clamp_bytes(
-            &format!("- {} {}{age}", a.gid, a.title),
+            &format!("- {} {}{age}{answered}", a.gid, a.title),
             LINE_CLAMP,
+        ));
+    }
+    out
+}
+
+/// This repo's own asks (MW-L5) — owed elsewhere, so out of the worklist
+/// and listed apart with the addressee, the age and the answer's state.
+/// Cut with the inbox: one line with the count, the oldest age and the
+/// verb that lists them.
+fn asks_out_lines(
+    asks: &[crate::addressed::Outbound],
+    today: &str,
+    collapsed: bool,
+) -> Vec<String> {
+    let mut out = Vec::new();
+    if asks.is_empty() {
+        return out;
+    }
+    if collapsed {
+        let oldest = asks
+            .iter()
+            .filter_map(|a| a.age_days(today))
+            .max()
+            .map_or(String::new(), |d| format!(", oldest {d}d"));
+        out.push(format!(
+            "asks out: {}{oldest} \u{2014} ready --all",
+            asks.len()
+        ));
+        return out;
+    }
+    out.push(format!("asks out ({}):", asks.len()));
+    for a in asks.iter().take(ASKS_OUT_ROWS) {
+        let age = a.age_suffix(today);
+        let answered = crate::addressed::answered_suffix(a.answer.as_ref(), " \u{b7} ");
+        out.push(clamp_bytes(
+            &format!("- {} \u{2192} {}{age} {}{answered}", a.id, a.to, a.title),
+            LINE_CLAMP,
+        ));
+    }
+    if asks.len() > ASKS_OUT_ROWS {
+        out.push(format!(
+            "\u{2026} and {} more (ready --all)",
+            asks.len() - ASKS_OUT_ROWS
         ));
     }
     out
@@ -425,6 +471,7 @@ pub(super) struct Digest<'a> {
     pub(super) window_days: i64,
     pub(super) weather: &'a [String],
     pub(super) inbox: &'a [crate::addressed::Ask],
+    pub(super) asks_out: &'a [crate::addressed::Outbound],
     pub(super) today: &'a str,
     pub(super) repo: &'a str,
     pub(super) next_block: &'a [String],
@@ -447,6 +494,7 @@ pub(super) fn assemble(d: &Digest, cuts: &super::pulse::Cuts) -> Vec<String> {
         lines.extend(d.weather.iter().cloned());
     }
     lines.append(&mut inbox_lines(d.inbox, d.today, d.repo, cuts.inbox));
+    lines.append(&mut asks_out_lines(d.asks_out, d.today, cuts.inbox));
     lines.extend(d.next_block.iter().cloned());
     let shown = d.also_ready.len().min(cuts.also_ready);
     if shown > 0 {
