@@ -1,7 +1,7 @@
 ---
 id: mw-ge51hf1
 title: Point smoke's fast tier at the lib target — cargo test --bins runs zero tests since the crate split
-status: open
+status: done
 category: core/hygiene
 verify: contains scripts/smoke.sh /cargo test --lib/
 docs:
@@ -14,3 +14,5 @@ scripts/smoke.sh calls its last section "fast unit tests" and runs `cargo test -
 
 ## log
 - 2026-09-21T15:35Z created
+- 2026-09-21T16:36Z open→doing — claimed by claude (b80d763e-77c7-4aa5-8ead-40c1daaa1288)
+- 2026-09-21T16:39Z doing→done — verify exit 0 @ 0eed1b1+4
