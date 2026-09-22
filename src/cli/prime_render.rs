@@ -288,20 +288,14 @@ pub(super) fn next_block_lines(
 /// Incoming asks (mw-hfvtx0s) — between weather and next: they inform
 /// the session before it commits to a task, but never displace next.
 /// Each row carries its age; the headline carries the oldest.
-fn inbox_lines(
-    inbox: &[crate::addressed::Ask],
-    today: &str,
-    repo: &str,
-    collapsed: bool,
-) -> Vec<String> {
+fn inbox_lines(inbox: &[crate::addressed::Ask], today: &str, collapsed: bool) -> Vec<String> {
     let mut out = Vec::new();
     if inbox.is_empty() {
         return out;
     }
     // Whole, or a pointer (mw-0a084qy): every ask while it fits; when it
-    // cannot, the count, the oldest age and the exact statement that
-    // lists them — never a `… and N more` with nothing to run. The
-    // statement is not clamped: cut, it would run nothing.
+    // cannot, the count, the oldest age and the verb that lists them —
+    // never a `… and N more` with nothing to run.
     if collapsed {
         let s = if inbox.len() == 1 { "" } else { "s" };
         let oldest = crate::addressed::oldest_age_days(inbox, today)
@@ -309,7 +303,7 @@ fn inbox_lines(
         out.push(format!(
             "addressed to this repo: {} ask{s}{oldest} \u{2014} {}",
             inbox.len(),
-            crate::addressed::list_statement(repo)
+            crate::addressed::LIST_VERB
         ));
         return out;
     }
@@ -473,7 +467,6 @@ pub(super) struct Digest<'a> {
     pub(super) inbox: &'a [crate::addressed::Ask],
     pub(super) asks_out: &'a [crate::addressed::Outbound],
     pub(super) today: &'a str,
-    pub(super) repo: &'a str,
     pub(super) next_block: &'a [String],
     pub(super) also_ready: &'a [String],
     pub(super) ready_total: usize,
@@ -493,7 +486,7 @@ pub(super) fn assemble(d: &Digest, cuts: &super::pulse::Cuts) -> Vec<String> {
         lines.append(&mut pulse_lines);
         lines.extend(d.weather.iter().cloned());
     }
-    lines.append(&mut inbox_lines(d.inbox, d.today, d.repo, cuts.inbox));
+    lines.append(&mut inbox_lines(d.inbox, d.today, cuts.inbox));
     lines.append(&mut asks_out_lines(d.asks_out, d.today, cuts.inbox));
     lines.extend(d.next_block.iter().cloned());
     let shown = d.also_ready.len().min(cuts.also_ready);

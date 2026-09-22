@@ -131,16 +131,9 @@ pub fn headline_tail(asks: &[Ask], today: &str) -> Option<String> {
     Some(format!("{} ask{s} unanswered{oldest}", asks.len()))
 }
 
-/// The statement that lists the asks addressed to `me`, oldest first —
-/// what a digest points at when it cannot spend the bytes to list them
-/// itself (the `asks` view over the union).
-#[must_use]
-pub fn list_statement(me: &str) -> String {
-    format!(
-        "portfolio q \"SELECT gid, title FROM asks WHERE to_repo = '{me}' AND unanswered \
-         ORDER BY age_h DESC\""
-    )
-}
+/// The verb that lists every ask, in and out, uncapped — what a digest
+/// points at when it cannot spend the bytes to list them itself (MW-M2).
+pub const LIST_VERB: &str = "meshwork asks";
 
 /// ` (Dd)` for an inbox row, or nothing when the age is unknown.
 #[must_use]

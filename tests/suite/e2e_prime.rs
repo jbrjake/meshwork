@@ -241,7 +241,7 @@ fn write_asks(alpha: &Path, n: usize, day: &str, pad: usize) -> Vec<String> {
 
 /// mw-0a084qy: the inbox is either whole or a pointer. Every inbound ask
 /// prints while it fits the budget; when it cannot, one line carries the
-/// count, the oldest age and the exact `portfolio q` that lists them —
+/// count, the oldest age and the verb that lists them (`asks`, MW-M2) —
 /// never a `… and N more` with nothing to run. `ready` names the verb in
 /// its footnote and lifts the cap under `--all`.
 #[test]
@@ -269,7 +269,7 @@ fn prime_inbox_lists_all_or_names_the_verb() {
     // ready: the cap holds, the footnote names the verb; --all lifts it.
     let ready = at(&["ready"]);
     assert!(ready.contains("… and 2 more addressed"), "{ready}");
-    assert!(ready.contains("portfolio q"), "{ready}");
+    assert!(ready.contains("meshwork asks"), "{ready}");
     let all = at(&["ready", "--all"]);
     for gid in &gids {
         assert!(all.contains(gid), "{gid} under --all:\n{all}");
@@ -293,7 +293,7 @@ fn prime_inbox_lists_all_or_names_the_verb() {
         "{out}"
     );
     assert!(
-        out.contains("portfolio q \"SELECT gid, title FROM asks WHERE to_repo = 'beta' AND unanswered ORDER BY age_h DESC\""),
+        out.contains("addressed to this repo: 40 asks, oldest 37d \u{2014} meshwork asks"),
         "{out}"
     );
     assert!(

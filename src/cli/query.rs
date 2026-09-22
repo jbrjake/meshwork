@@ -260,7 +260,7 @@ pub(crate) fn ready(args: &ReadyArgs, json: bool) -> Result<(), String> {
                 println!(
                     "… and {} more addressed (--all, or {})",
                     inbox.len() - shown,
-                    crate::addressed::list_statement(&repo)
+                    crate::addressed::LIST_VERB
                 );
             }
         }

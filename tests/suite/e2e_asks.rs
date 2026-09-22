@@ -199,3 +199,66 @@ fn asks_out_line_answered_state() {
     assert!(!prime.contains("owed by me"), "a done answer is no longer owed:\n{prime}");
     assert!(prime.contains(&format!("answered-by alpha#{answer} (done)")), "{prime}");
 }
+
+/// MW-M2: `asks` is the inbox in full — every inbound ask past `ready`'s
+/// cap, every outbound one, each in `ready`'s spelling with its age and
+/// its answer's state — and the verb the capped surfaces name. The
+/// did-you-mean for `inbox`/`addressed` points at it.
+#[test]
+fn asks_verb_in_and_out() {
+    let (dir, portfolio) = portfolio_fixture();
+    let alpha = dir.path().join("alpha");
+    let beta = dir.path().join("beta");
+    let gids = write_asks(&alpha, 7, "2026-08-", 0);
+    write_ask(&beta, "bz-a5k040", "alpha", "2026-08-30");
+    let answer = file_answer(&alpha, &portfolio, "beta#bz-a5k040");
+
+    let out = at(&beta, &portfolio, &["asks"]);
+    assert!(out.starts_with("asks in (7):\n"), "{out}");
+    for gid in &gids {
+        assert!(out.contains(gid), "{gid} uncapped:\n{out}");
+    }
+    assert!(
+        out.contains(&format!(
+            "asks out (1):\n  bz-a5k040  \u{2192} alpha  Ask bz-a5k040 of alpha  (8d)  \
+             answered-by alpha#{answer} (open)\n"
+        )),
+        "{out}"
+    );
+    let ready = at(&beta, &portfolio, &["ready"]);
+    assert!(ready.contains("… and 2 more addressed (--all, or meshwork asks)"), "{ready}");
+
+    let v: serde_json::Value = serde_json::from_str(&at(&beta, &portfolio, &["asks", "--json"])).unwrap();
+    assert_eq!(v["verb"], "asks");
+    assert_eq!(v["data"]["registry"], true);
+    assert_eq!(v["data"]["in"].as_array().map(Vec::len), Some(7), "{v}");
+    assert_eq!(v["data"]["in"][0]["gid"], gids[0], "oldest first: {v}");
+    assert!(v["data"]["in"][0]["age_days"].as_i64().unwrap() > 0, "{v}");
+    assert_eq!(v["data"]["out"][0]["id"], "bz-a5k040");
+    assert_eq!(v["data"]["out"][0]["to"], "alpha");
+    assert_eq!(v["data"]["out"][0]["age_days"], 8);
+    assert_eq!(v["data"]["out"][0]["answered_by"]["gid"], format!("alpha#{answer}"));
+    assert_eq!(v["data"]["out"][0]["answered_by"]["status"], "open");
+
+    // A done answer retires the inbound ask and settles the outbound one.
+    at(&alpha, &portfolio, &["close", &answer]);
+    let out = at(&beta, &portfolio, &["asks"]);
+    assert!(out.contains(&format!("answered-by alpha#{answer} (done)")), "{out}");
+
+    // Without a registry the inbox is empty and says why; the outbound
+    // side needs no join.
+    let alone = stdout_of(
+        &meshwork(&beta)
+            .env("HOME", dir.path())
+            .env_remove("MESHWORK_PORTFOLIO")
+            .env("MESHWORK_TODAY", "2026-09-07")
+            .arg("asks")
+            .assert()
+            .success(),
+    );
+    assert!(alone.contains("asks in (0):\n  (none \u{2014} no registry"), "{alone}");
+    assert!(alone.contains("asks out (1):\n  bz-a5k040"), "{alone}");
+
+    let err = stderr_of(&meshwork(&beta).arg("inbox").assert().failure());
+    assert!(err.contains("did you mean `asks`"), "{err}");
+}

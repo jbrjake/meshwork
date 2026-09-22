@@ -165,7 +165,6 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         inbox: &inbox,
         asks_out: &asks_out,
         today: &today,
-        repo: &store.repo,
         next_block: &next_block,
         also_ready: &also_ready,
         ready_total: ready.len(),

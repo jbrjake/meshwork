@@ -4,6 +4,7 @@
 
 mod add;
 mod add_batch;
+mod asks;
 mod close;
 mod dep;
 mod graph;
@@ -85,6 +86,8 @@ enum Cmd {
     /// The derived projection as tables: pulse, weekly flow, close hazard,
     /// spans, lanes, top-10s, mention health, placement.
     Stats(stats::StatsArgs),
+    /// Every inbound and outbound ask, uncapped, with its answer's state and age.
+    Asks,
     /// The ≤6KB session-start digest.
     Prime,
     /// Structural checks; --fix repairs merge damage.
@@ -145,9 +148,10 @@ fn verb_forgiveness(verb: &str) -> Option<String> {
             "prime",
             "`meshwork prime` names the next task; `meshwork ready` lists what is actionable",
         ),
-        "inbox" | "addressed" | "asks" => (
-            "prime",
-            "incoming asks render under `addressed to this repo` in `meshwork prime` and `meshwork ready`",
+        "inbox" | "addressed" => (
+            "asks",
+            "`meshwork asks` lists every inbound and outbound ask with its answer's state; \
+             `meshwork prime` and `meshwork ready` show the first few",
         ),
         "help" => (
             "--help",
@@ -327,6 +331,7 @@ pub fn run() -> i32 {
         Cmd::Q(args) => query::q(args, cli.json),
         Cmd::Search(args) => search::run(args, cli.json),
         Cmd::Stats(args) => stats::run(args, cli.json),
+        Cmd::Asks => asks::run(cli.json),
         Cmd::Lint(args) => lint::run(args, cli.json),
         Cmd::Dep(args) => dep::run(args, cli.json),
         Cmd::Blocked(args) => graph::blocked(args, cli.json),

@@ -304,7 +304,7 @@ fn cli_surface_frozen() {
         [
             "init", "add", "set", "show", "comment", "attach", "start", "block", "drop", "reopen",
             "close", "verify", "dep", "ready", "blocked", "tree", "why", "q", "search", "stats",
-            "prime", "lint", "mirror", "portfolio", "import",
+            "asks", "prime", "lint", "mirror", "portfolio", "import",
         ],
         "DESIGN §6, frozen:\n{help}"
     );
