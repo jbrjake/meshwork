@@ -79,7 +79,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-L5 | `e2e::outbound_asks_out_of_ready`, `e2e::asks_out_line_answered_state` | done |
 | MW-L6 | `e2e::prime_footer_rules` (rendered inside the MW-D3 budget) | done |
 | MW-L7 | `arch::no_cross_store_writes`, `e2e::offline_all` | planned |
-| MW-M1 | `e2e::stats_verb`, `e2e::portfolio_stats` | planned |
+| MW-M1 | `e2e::stats_tables`, `e2e::portfolio_stats`, gate §7 (`perf::stats_1k_cold`) | done |
 | MW-M2 | `e2e::asks_verb_in_and_out` | planned |
 | MW-M3 | `e2e::portfolio_search`, `e2e::portfolio_search_never_prunes` | planned |
 | MW-M4 | `e2e::show_comment_count` | planned |

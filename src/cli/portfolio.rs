@@ -32,6 +32,8 @@ enum PortfolioAction {
     },
     /// Renumber seq weights when gaps exhaust.
     Seq,
+    /// The derived projection as tables over the union, one pulse row per repo.
+    Stats(super::stats::StatsArgs),
 }
 
 pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
@@ -40,7 +42,28 @@ pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
         PortfolioAction::Q { sql } => q(sql, json),
         PortfolioAction::Next => next(json),
         PortfolioAction::Seq => seq(json),
+        PortfolioAction::Stats(stats_args) => stats(stats_args, json),
     }
+}
+
+/// `portfolio stats` — a pure read like `q` (MW-S14): sequence.md is never
+/// touched. The union has no config of its own, so the window is the flag
+/// or the default; the inbound half of the asks counts is real here and
+/// only here, because only the union sees every store.
+fn stats(args: &super::stats::StatsArgs, json: bool) -> Result<(), String> {
+    let (ctx, p) = union_session(false)?;
+    let window_days = args.window_days(crate::views::DEFAULT_WINDOW_DAYS)?;
+    let report = super::stats::collect(&ctx, window_days, true)?;
+    if !json {
+        report_skips(&p.skipped);
+    }
+    super::stats::emit(
+        &report,
+        "portfolio stats",
+        json,
+        Some(("skipped", skips_json(&p.skipped))),
+    );
+    Ok(())
 }
 
 /// Everything a portfolio verb starts from: registry, loaded stores, the

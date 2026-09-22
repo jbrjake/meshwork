@@ -127,6 +127,35 @@ fn q_pulse_1k_cold() {
     );
 }
 
+/// The `stats` budget (PROPOSAL-analytics §7, mw-549rh9w): every table
+/// cold at 1K tasks ≤ 1 s — the projection registered, ten canned
+/// queries planned and run, process start included.
+#[test]
+#[ignore = "gate §7 runs perf:: on release builds (MW-C4)"]
+fn stats_1k_cold() {
+    if cfg!(debug_assertions) {
+        eprintln!("perf::stats_1k_cold: budgets are release-only; skipping in debug");
+        return;
+    }
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path().join("synth1k");
+    synth_store(&repo, "pf", 1000, &mut Lcg(11));
+    git_init(&repo);
+
+    let mut samples = Vec::new();
+    for _ in 0..REPS {
+        let t = Instant::now();
+        meshwork_at(&repo).arg("stats").assert().success();
+        samples.push(t.elapsed().as_millis());
+    }
+    let med = median_ms(samples);
+    println!("perf-median stats_1k_cold {med}");
+    assert!(
+        med < 1000,
+        "the derived projection: cold stats at 1K tasks — {med}ms >= 1000ms"
+    );
+}
+
 /// MW-C4: `portfolio ready` over 20 registered repos (50 tasks each).
 #[test]
 #[ignore = "gate §7 runs perf:: on release builds (MW-C4)"]

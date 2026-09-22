@@ -19,6 +19,7 @@ mod query;
 mod search;
 mod set;
 mod show;
+mod stats;
 mod stubs;
 mod transition;
 mod verify;
@@ -81,6 +82,9 @@ enum Cmd {
     Q(query::QArgs),
     /// Case-insensitive text search over titles, bodies, handoffs, comments, and logs.
     Search(search::SearchArgs),
+    /// The derived projection as tables: pulse, weekly flow, close hazard,
+    /// spans, lanes, top-10s, mention health, placement.
+    Stats(stats::StatsArgs),
     /// The ≤6KB session-start digest.
     Prime,
     /// Structural checks; --fix repairs merge damage.
@@ -322,6 +326,7 @@ pub fn run() -> i32 {
         Cmd::Ready(args) => query::ready(args, cli.json),
         Cmd::Q(args) => query::q(args, cli.json),
         Cmd::Search(args) => search::run(args, cli.json),
+        Cmd::Stats(args) => stats::run(args, cli.json),
         Cmd::Lint(args) => lint::run(args, cli.json),
         Cmd::Dep(args) => dep::run(args, cli.json),
         Cmd::Blocked(args) => graph::blocked(args, cli.json),
