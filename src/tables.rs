@@ -15,13 +15,15 @@ use std::sync::Arc;
 
 /// The queryable table names, registration order — the single list the
 /// `q` error path enumerates (mw-0ssk8dg).
-pub const TABLES: [&str; 6] = ["tasks", "edges", "labels", "comments", "log", "repos"];
+pub const TABLES: [&str; 7] = [
+    "tasks", "edges", "labels", "comments", "log", "repos", "covers",
+];
 
 /// Every queryable table with its columns in projection order — what
 /// `q --help` prints, so nobody reverse-engineers the graph with
 /// `SELECT *` (mw-myas0dd). Pinned to the registered Arrow schemas by
 /// `schema_listing_matches_registration`.
-pub const SCHEMA: [(&str, &[&str]); 6] = [
+pub const SCHEMA: [(&str, &[&str]); 7] = [
     (
         "tasks",
         &[
@@ -57,6 +59,7 @@ pub const SCHEMA: [(&str, &[&str]); 6] = [
         &["gid", "ord", "date", "from_status", "to_status", "note"],
     ),
     ("repos", &["repo", "path", "remote", "present"]),
+    ("covers", &["gid", "ref", "sha", "resolved"]),
 ];
 
 #[cfg(test)]
@@ -84,9 +87,10 @@ mod schema_tests {
     }
 }
 
-/// Build a `SessionContext` with the six-table contract registered:
-/// `tasks`, `edges`, `labels`, `comments`, `log`, `repos` (DESIGN §4) —
-/// plus the `category_matches` UDF (MW-B4), so filtering stays plain SQL.
+/// Build a `SessionContext` with the seven-table contract registered:
+/// `tasks`, `edges`, `labels`, `comments`, `log`, `repos`, `covers`
+/// (DESIGN §4) — plus the `category_matches` UDF (MW-B4), so filtering
+/// stays plain SQL.
 ///
 /// `foreign` (mw-k7r5): registry-resolved cross-repo targets injected as
 /// thin task rows so the frozen dep predicate sees them. Callers pass
@@ -107,6 +111,7 @@ pub fn session_for(
     ctx.register_batch(TABLES[3], comments_batch(stores)?)?;
     ctx.register_batch(TABLES[4], log_batch(stores)?)?;
     ctx.register_batch(TABLES[5], repos_batch(stores)?)?;
+    ctx.register_batch(TABLES[6], covers_batch(stores)?)?;
     ctx.register_udf(category_matches_udf());
     Ok(ctx)
 }
@@ -423,6 +428,45 @@ fn edges_batch(
         Arc::new(BooleanArray::from(resolved)),
     ];
     Ok(RecordBatch::try_new(schema, columns)?)
+}
+
+/// One row per `covers:` entry (MW-T1): the pin as written, and whether
+/// its ref resolves to a clause on disk right now — a read through the
+/// registry for a `repo#path` ref, confined like every doc link. Never
+/// an `edges` row: the target is a clause, not a task.
+fn covers_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {
+    let schema = Arc::new(Schema::new(vec![
+        utf8(false, "gid"),
+        utf8(false, "ref"),
+        utf8(true, "sha"),
+        Field::new("resolved", DataType::Boolean, false),
+    ]));
+    let mut gid = Vec::new();
+    let mut reference = Vec::new();
+    let mut sha = Vec::new();
+    let mut resolved = Vec::new();
+    for store in stores {
+        for entry in &store.entries {
+            let ParsedTask::Valid(t) = &entry.parsed else {
+                continue;
+            };
+            for c in &t.covers {
+                gid.push(store.gid(&t.id));
+                reference.push(c.reference.clone());
+                sha.push(c.sha.clone());
+                resolved.push(crate::spec::resolve(&store.root, &c.reference).is_ok());
+            }
+        }
+    }
+    Ok(RecordBatch::try_new(
+        schema,
+        vec![
+            Arc::new(StringArray::from(gid)) as ArrayRef,
+            Arc::new(StringArray::from(reference)),
+            Arc::new(StringArray::from(sha)),
+            Arc::new(BooleanArray::from(resolved)),
+        ],
+    )?)
 }
 
 fn labels_batch(stores: &[RepoStore]) -> DfResult<RecordBatch> {

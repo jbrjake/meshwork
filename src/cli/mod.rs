@@ -6,6 +6,7 @@ mod add;
 mod add_batch;
 mod asks;
 mod close;
+mod cover;
 mod dep;
 mod graph;
 mod import;
@@ -71,6 +72,8 @@ enum Cmd {
     Verify(verify::VerifyArgs),
     /// Edge edits without opening the file.
     Dep(dep::DepArgs),
+    /// Pin a spec clause to a task: the ref plus the hash of its text now.
+    Cover(cover::CoverArgs),
     /// Open tasks with met deps and no live children (the queue).
     Ready(query::ReadyArgs),
     /// Blocked tasks with their reasons.
@@ -327,6 +330,7 @@ pub fn run() -> i32 {
         Cmd::Reopen(args) => transition::reopen(args, cli.json),
         Cmd::Close(args) => close::run(args, cli.json),
         Cmd::Verify(args) => verify::run(args, cli.json),
+        Cmd::Cover(args) => cover::run(args, cli.json),
         Cmd::Ready(args) => query::ready(args, cli.json),
         Cmd::Q(args) => query::q(args, cli.json),
         Cmd::Search(args) => search::run(args, cli.json),

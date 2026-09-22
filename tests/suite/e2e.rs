@@ -91,6 +91,7 @@ include!("e2e_asks.rs");
 include!("e2e_claim.rs");
 include!("e2e_comment_identity.rs");
 include!("e2e_commit_trace.rs");
+include!("e2e_cover.rs");
 include!("e2e_crossrepo.rs");
 include!("e2e_forgiveness.rs");
 include!("e2e_format_marker.rs");

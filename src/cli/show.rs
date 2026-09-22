@@ -301,6 +301,12 @@ fn render_frontmatter(t: &Task, views: &Derived) {
     for d in &t.docs {
         println!("doc: {}", clean(d));
     }
+    for c in &t.covers {
+        let pin = c.sha.as_deref().map_or("unpinned".to_string(), |s| {
+            format!("@{}", &s[..s.len().min(12)])
+        });
+        println!("covers: {} {pin}", clean(&c.reference));
+    }
     for a in &t.attachments {
         println!("attachment: {}", clean(a));
     }
@@ -463,6 +469,9 @@ fn emit_json(
             "category": t.category, "labels": t.labels, "needs": t.needs,
             "parent": t.parent, "discovered_from": t.discovered_from,
             "relates": t.relates, "verify": t.verify, "docs": t.docs,
+            "covers": t.covers.iter()
+                .map(|c| serde_json::json!({ "ref": c.reference, "sha": c.sha }))
+                .collect::<Vec<_>>(),
             "attachments": t.attachments, "seq": t.seq, "github": t.github,
             "created": t.created, "blocked_reason": t.blocked_reason,
             "claimed_by": t.claimed_by, "waived": t.waived, "handoff": t.handoff,

@@ -49,6 +49,11 @@ pub struct Task {
     pub verify: Option<String>,
     /// Repo-relative doc links with optional `#§-anchors` (MW-F1).
     pub docs: Vec<String>,
+    /// Clause pins (MW-T1): a clause ref and the hash of its text as
+    /// read when the pin was written; a hand-written entry may lack the
+    /// hash, which lint reports (`covers-malformed`) rather than the
+    /// parser refusing the file.
+    pub covers: Vec<Cover>,
     /// Repo-relative attachment paths under `docs/meshwork/attachments/` (MW-K2).
     pub attachments: Vec<String>,
     /// Per-repo order weight; portfolio overlay supersedes (MW-G4).
@@ -129,6 +134,42 @@ pub enum ParsedTask {
     Invalid(Invalid),
 }
 
+/// One `covers:` entry: a clause ref and, when the tool wrote it, the
+/// hash of the clause's text at that moment (MW-T1).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Cover {
+    /// The clause ref as written — `path#sp-<slug>` or `repo#path#sp-<slug>`.
+    pub reference: String,
+    /// The pinned hash; None when the entry was written without one.
+    pub sha: Option<String>,
+}
+
+/// The on-disk shapes a `covers:` entry may take: the map the tool
+/// writes, or a bare ref someone typed. Both parse; lint tells them apart.
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum CoverRaw {
+    Pinned {
+        #[serde(rename = "ref")]
+        reference: String,
+        #[serde(default)]
+        sha: Option<String>,
+    },
+    Bare(String),
+}
+
+impl From<CoverRaw> for Cover {
+    fn from(raw: CoverRaw) -> Self {
+        match raw {
+            CoverRaw::Pinned { reference, sha } => Cover { reference, sha },
+            CoverRaw::Bare(reference) => Cover {
+                reference,
+                sha: None,
+            },
+        }
+    }
+}
+
 /// Strict frontmatter model (DESIGN §2). `Option<Vec<_>>` tolerates
 /// hand-edited empty keys (`labels:` with no value) as None.
 #[derive(Debug, Deserialize)]
@@ -156,6 +197,8 @@ struct Frontmatter {
     verify: Option<String>,
     #[serde(default)]
     docs: Option<Vec<String>>,
+    #[serde(default)]
+    covers: Option<Vec<CoverRaw>>,
     #[serde(default)]
     attachments: Option<Vec<String>>,
     #[serde(default)]
@@ -190,6 +233,7 @@ pub(crate) const KNOWN_KEYS: &[&str] = &[
     "answers",
     "verify",
     "docs",
+    "covers",
     "attachments",
     "seq",
     "github",
@@ -273,6 +317,12 @@ fn parse_document(file_name: &str, id_hint: &str, check_name: bool, text: &str) 
         answers: fm.answers,
         verify: fm.verify,
         docs: fm.docs.unwrap_or_default(),
+        covers: fm
+            .covers
+            .unwrap_or_default()
+            .into_iter()
+            .map(Cover::from)
+            .collect(),
         attachments: fm.attachments.unwrap_or_default(),
         seq: fm.seq,
         github: fm.github,

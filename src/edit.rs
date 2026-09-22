@@ -144,6 +144,31 @@ pub fn set_block(text: &str, key: &str, block_lines: &[String]) -> Result<String
     replace_block(text, key, Some(&rendered), Some(&rendered))
 }
 
+/// Replace `key:` and the block under it with a block list of maps —
+/// each entry `  - k: v` then `    k: v` for its remaining pairs — or
+/// remove the key when `entries` is empty (MW-T1: `covers:` pins). Values
+/// pass through [`crate::write::yaml_scalar`].
+///
+/// # Errors
+/// When fences are missing, like [`set_scalar`].
+pub fn set_entry_list(
+    text: &str,
+    key: &str,
+    entries: &[Vec<(&str, String)>],
+) -> Result<String, String> {
+    if entries.is_empty() {
+        return remove_scalar(text, key);
+    }
+    let mut rendered = format!("{key}:");
+    for entry in entries {
+        for (i, (k, v)) in entry.iter().enumerate() {
+            let lead = if i == 0 { "  - " } else { "    " };
+            let _ = write!(rendered, "\n{lead}{k}: {}", crate::write::yaml_scalar(v));
+        }
+    }
+    replace_block(text, key, Some(&rendered), Some(&rendered))
+}
+
 /// Append one `  - item` to the indented block list under `key:`, creating
 /// the key when absent. Existing items — including their trailing `# …`
 /// hand comments — are preserved byte-for-byte (mw-0f4j: `set --docs`).

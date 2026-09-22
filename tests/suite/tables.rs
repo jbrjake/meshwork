@@ -194,3 +194,45 @@ async fn union_two_repos_one_code_path() {
     let count = sql_rows(&ctx, "SELECT count(*) FROM tasks WHERE repo='beta'").await;
     assert_eq!(count[0][0], "3");
 }
+
+/// MW-T1: `covers` is the seventh table — `gid, ref, sha, resolved`, one
+/// row per pin, registered in every session even when no task carries
+/// one, so a query over it never fails for want of the table.
+#[tokio::test]
+async fn covers_projection() {
+    let ctx = session(&["alpha", "beta"]);
+    let rows = sql_rows(&ctx, "SELECT gid, ref, sha, resolved FROM covers").await;
+    assert!(rows.is_empty(), "the fixtures carry no pins: {rows:?}");
+    let dir = tempfile::tempdir().unwrap();
+    let repo = dir.path().join("pinned");
+    copy_dir(&fixtures_root().join("beta"), &repo);
+    std::fs::create_dir_all(repo.join("docs")).unwrap();
+    std::fs::write(repo.join("docs/SPEC.md"), "## Gate {#sp-gate}\n\nbody\n").unwrap();
+    let sha = meshwork::spec::sha_hex("body");
+    std::fs::write(
+        repo.join("docs/meshwork/bz-c0v3-pinned.md"),
+        format!(
+            "---\nid: bz-c0v3\ntitle: Pinned\nstatus: open\ncovers:\n  - ref: docs/SPEC.md#sp-gate\n    sha: {sha}\n  - ref: docs/SPEC.md#sp-nope\n---\n"
+        ),
+    )
+    .unwrap();
+    let store = load_repo(&repo).unwrap();
+    let ctx = session_for(&[store], &[]).unwrap();
+    let rows = sql_rows(
+        &ctx,
+        "SELECT gid, ref, sha, resolved FROM covers ORDER BY ref",
+    )
+    .await;
+    assert_eq!(
+        rows,
+        [
+            [
+                "pinned#bz-c0v3",
+                "docs/SPEC.md#sp-gate",
+                sha.as_str(),
+                "true"
+            ],
+            ["pinned#bz-c0v3", "docs/SPEC.md#sp-nope", "", "false"],
+        ]
+    );
+}

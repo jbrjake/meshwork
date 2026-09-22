@@ -87,8 +87,8 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-N2 | `verify_dsl::run_dash_refused_names_spelling` | done |
 | MW-N3 | `verify_dsl::lacks_predicate`, `e2e::lacks_missing_path_refuses` | done |
 | MW-N4 | `verify_dsl::exists_single_segment_glob`, `verify_dsl::contains_dir_refused` | done |
-| MW-T1 | `parse::covers_key`, `tables::covers_projection` | planned |
-| MW-T2 | `format::clause_ref_survives_heading_edit` | planned |
-| MW-T3 | `e2e::cover_verb`, `lint::covers_hand_written` | planned |
+| MW-T1 | `parse::covers_key`, `tables::covers_projection` | done |
+| MW-T2 | `format::clause_ref_survives_heading_edit` | done |
+| MW-T3 | `e2e::cover_pins_hash`, `lint::covers_hand_written` | done |
 | MW-T4 | `lint::spec_drift` | planned |
 | MW-T6 | `lint::spec_drift_unversioned_corpus` | planned |

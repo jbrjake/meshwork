@@ -19,7 +19,7 @@ pub(crate) struct ReadyArgs {
 #[derive(clap::Args)]
 #[command(after_help = schema_help())]
 pub(crate) struct QArgs {
-    /// SQL over tasks / edges / labels / comments / log / repos.
+    /// SQL over tasks / edges / labels / comments / log / repos / covers.
     sql: String,
 }
 

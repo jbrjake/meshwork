@@ -299,3 +299,35 @@ fn log_line_grammar() {
         some("line one\nline two")
     );
 }
+
+/// MW-T1: `covers:` parses as `{ref, sha}` entries; a bare ref or an
+/// entry without a sha still parses (lint's finding, not the parser's
+/// refusal); `covers` is a known key, so nothing warns.
+#[test]
+fn covers_key() {
+    let text = "---\nid: sz-c0v3\ntitle: Pinned\nstatus: open\ncovers:\n  - ref: docs/SPEC.md#sp-gate\n    sha: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n  - ref: leras#docs/SPEC.md#sp-other\n  - docs/SPEC.md#sp-bare\n---\n";
+    let t = valid("sz-c0v3-pinned.md", text);
+    let refs: Vec<&str> = t.covers.iter().map(|c| c.reference.as_str()).collect();
+    assert_eq!(
+        refs,
+        [
+            "docs/SPEC.md#sp-gate",
+            "leras#docs/SPEC.md#sp-other",
+            "docs/SPEC.md#sp-bare"
+        ]
+    );
+    assert_eq!(t.covers[0].sha.as_deref().map(str::len), Some(64));
+    assert_eq!(t.covers[1].sha, None);
+    assert_eq!(t.covers[2].sha, None);
+    assert!(
+        t.warnings.iter().all(|w| !w.contains("covers")),
+        "a known key never warns: {:?}",
+        t.warnings
+    );
+    assert!(valid(
+        "sz-c0v4-none.md",
+        "---\nid: sz-c0v4\ntitle: None\nstatus: open\n---\n"
+    )
+    .covers
+    .is_empty());
+}

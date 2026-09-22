@@ -133,6 +133,50 @@ fn home_of(root: &Path, head: &str) -> Home {
     }
 }
 
+/// Read the document a link names — `path` or `repo#path`, with or
+/// without a trailing `#anchor` — and hand back its content and the
+/// anchor, if any. The read is confined to whichever repo the link names
+/// (mw-2pz0zqc): the link is a string from a merged task file.
+///
+/// # Errors
+/// The repo is unknown or unavailable, the path escapes, or the file
+/// does not read.
+pub fn read_linked(root: &Path, link: &str) -> Result<(String, Option<String>), LinkError> {
+    let (head, rest) = match link.split_once('#') {
+        Some((h, r)) => (h, Some(r)),
+        None => (link, None),
+    };
+    let (base, path, anchor) = match home_of(root, head) {
+        Home::Local => (root.to_path_buf(), head, rest),
+        Home::Sibling(sibling) => {
+            // `repo#path[#anchor]`: the rest splits once more.
+            let (p, a) = match rest.unwrap_or_default().split_once('#') {
+                Some((p, a)) => (p, Some(a)),
+                None => (rest.unwrap_or_default(), None),
+            };
+            (sibling, p, a)
+        }
+        Home::Failed(err) => return Err(err),
+    };
+    let on_disk = crate::paths::confine(&base, path).map_err(|_| LinkError::Escapes {
+        path: path.to_string(),
+    })?;
+    let content = std::fs::read_to_string(on_disk).map_err(|_| LinkError::Unreadable {
+        path: path.to_string(),
+    })?;
+    Ok((content, anchor.map(str::to_string)))
+}
+
+/// The content of the document a `path` or `repo#path` link names —
+/// [`read_linked`] for a link that carries no anchor (a clause ref's
+/// document part).
+///
+/// # Errors
+/// As [`read_linked`].
+pub fn read_target(root: &Path, link: &str) -> Result<String, LinkError> {
+    read_linked(root, link).map(|(content, _)| content)
+}
+
 /// Resolve one `docs:` link against the repo root.
 #[must_use]
 pub fn resolve(root: &Path, link: &str) -> Excerpt {
@@ -142,39 +186,11 @@ pub fn resolve(root: &Path, link: &str) -> Excerpt {
         truncated,
         error,
     };
-    let (head, rest) = match link.split_once('#') {
-        Some((h, r)) => (h, Some(r)),
-        None => (link, None),
+    let (content, anchor) = match read_linked(root, link) {
+        Ok(read) => read,
+        Err(err) => return make(String::new(), false, Some(err)),
     };
-    let (base, path, anchor) = match home_of(root, head) {
-        Home::Local => {
-            let (p, a) = (head, rest);
-            (root.to_path_buf(), p, a)
-        }
-        Home::Sibling(sibling) => {
-            // `repo#path[#anchor]`: the rest splits once more.
-            let (p, a) = match rest.unwrap_or_default().split_once('#') {
-                Some((p, a)) => (p, Some(a)),
-                None => (rest.unwrap_or_default(), None),
-            };
-            (sibling, p, a)
-        }
-        Home::Failed(err) => return make(String::new(), false, Some(err)),
-    };
-    // Confinement before any read: the link is a string from a merged
-    // task file (mw-2pz0zqc) — confined to whichever repo it names.
-    let Ok(on_disk) = crate::paths::confine(&base, path) else {
-        let err = LinkError::Escapes {
-            path: path.to_string(),
-        };
-        return make(String::new(), false, Some(err));
-    };
-    let Ok(content) = std::fs::read_to_string(on_disk) else {
-        let err = LinkError::Unreadable {
-            path: path.to_string(),
-        };
-        return make(String::new(), false, Some(err));
-    };
+    let anchor = anchor.as_deref();
     let section = match anchor {
         Some(a) => {
             let Some(s) = anchored_section(&content, a) else {

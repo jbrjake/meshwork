@@ -386,3 +386,36 @@ fn log_date_nullability() {
         "expected.json must project the first token as the date"
     );
 }
+
+/// MW-T2: a clause is named by its anchor id and hashed without its
+/// heading line, so retitling the heading breaks nothing and moves
+/// nothing; the words under it are what a pin is a pin of. A clause ref
+/// is its own syntax — a heading slug is not one.
+#[test]
+fn clause_ref_survives_heading_edit() {
+    use meshwork::spec::{clause, parse_ref, sha_hex};
+    let before = "# Spec\n\n## Close gate {#sp-close-gate}\n\nA task closes on exit 0.   \n\n\n## Next\n\nother\n";
+    let retitled = before.replace("## Close gate {", "## 4.1 The close gate, restated {");
+    let reworded = before.replace("exit 0", "exit 0 only");
+    let a = clause(before, "sp-close-gate").unwrap();
+    let b = clause(&retitled, "sp-close-gate").unwrap();
+    let c = clause(&reworded, "sp-close-gate").unwrap();
+    assert_eq!(
+        a.text, "A task closes on exit 0.",
+        "right-trimmed, outer blanks dropped"
+    );
+    assert_eq!(a.sha, sha_hex(&a.text));
+    assert_eq!(
+        a.sha, b.sha,
+        "a retitled heading is the same clause at the same hash"
+    );
+    assert_eq!(b.heading, "4.1 The close gate, restated");
+    assert_ne!(a.sha, c.sha, "changed words move the hash");
+    assert!(
+        clause(before, "sp-next").is_none(),
+        "an unanchored heading is no clause"
+    );
+    assert!(parse_ref("docs/SPEC.md#sp-close-gate").is_ok());
+    assert!(parse_ref("docs/SPEC.md#§-close-gate").is_err());
+    assert!(parse_ref("docs/SPEC.md#close-gate").is_err());
+}
