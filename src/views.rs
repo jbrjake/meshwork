@@ -217,8 +217,11 @@ fn needed(all: &[Statement], sql: Option<&str>) -> Vec<usize> {
 
 async fn materialize(ctx: &SessionContext, name: &str) -> datafusion::error::Result<()> {
     let df = ctx.sql(&format!("SELECT * FROM {name}")).await?;
-    let schema = Arc::new(df.schema().as_arrow().clone());
+    let planned = Arc::new(df.schema().as_arrow().clone());
     let batches = df.collect().await?;
+    // The batches' own schema: a recursive query's planned nullability
+    // can differ from what it produced, and the table insists they agree.
+    let schema = batches.first().map_or(planned, RecordBatch::schema);
     ctx.deregister_table(name)?;
     let table = datafusion::datasource::MemTable::try_new(schema, vec![batches])?;
     ctx.register_table(name, Arc::new(table))?;

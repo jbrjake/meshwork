@@ -9,13 +9,13 @@ publish = false
 # Dep posture mirrors sahjhan (MW-J1); serde_yaml_ng replaces archived serde_yaml (REQUIREMENTS J1 decision).
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-datafusion = "51"
+datafusion = "54"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml_ng = "0.10"
 # MW-E5 trust-gate hashes (mw-9rc4vs6); RustCrypto, already in the tree
 # transitively via datafusion — declared, never assumed.
-sha2 = "0.10"
+sha2 = "0.11"
 # verify-DSL `contains /regex/` execution (mw-dthxs3q); already in the
 # tree transitively via datafusion — declared, never assumed.
 regex = "1"

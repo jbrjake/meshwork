@@ -13,7 +13,9 @@ out=$(cargo test --release -- --ignored --nocapture --test-threads=1 perf:: 2>&1
   echo "check-perf: perf tests FAILED (gate §7 budget)"
   exit 1
 }
-medians=$(echo "$out" | grep '^perf-median ' || true)
+# --nocapture interleaves a test's stdout with the harness's own line, so
+# the marker is matched wherever it lands, never anchored to a line start.
+medians=$(echo "$out" | grep -o 'perf-median [A-Za-z0-9_]* [0-9]*' || true)
 if [ -z "$medians" ]; then
   echo "check-perf: no perf-median lines found"
   exit 1
