@@ -7,7 +7,7 @@ seq: 760
 verify: run cargo test e2e::spec_audit
 docs:
   - docs/PROPOSAL-spec-traceability.md#§-c-coverage-and-rulings
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 With R-F item F.3, after `spec-drift` has fired on a real task at least once: `spec list <doc>`
@@ -17,3 +17,5 @@ in one report; `portfolio spec audit` unions it. MW-J5's traceability matrix as 
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-22T14:23Z open→doing — claimed by claude (25ed6f72-cf72-4c6f-9164-86d9af1be3d2)
+- 2026-09-22T14:29Z doing→done — verify exit 0 @ e49dcc7+5
