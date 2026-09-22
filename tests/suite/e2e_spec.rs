@@ -143,3 +143,59 @@ fn portfolio_spec_audit() {
         .failure()
         .stderr(predicates::str::contains("<repo>#<path>"));
 }
+
+/// MW-T10 (mw-s0ptwn0): `prime`'s weather opens with how many live tasks
+/// the spec moved under, ids named — nothing at zero, a done task not
+/// counted, gone once the pins are re-read.
+#[test]
+fn prime_spec_drift_line() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    std::fs::create_dir_all(repo.join("docs")).unwrap();
+    std::fs::write(repo.join("docs/SPEC.md"), AUDIT_SPEC).unwrap();
+    let ids: Vec<String> = (1..=4).map(|i| add_task(&repo, &format!("Pinned {i}"))).collect();
+    for id in &ids {
+        meshwork(&repo).args(["cover", id, "docs/SPEC.md#sp-gate"]).assert().success();
+    }
+    meshwork(&repo).args(["close", &ids[3]]).assert().success();
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(!out.contains("spec moved"), "nothing at zero:\n{out}");
+
+    std::fs::write(repo.join("docs/SPEC.md"), AUDIT_SPEC.replace("exit 0", "exit 0 only")).unwrap();
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    let line = out.lines().find(|l| l.contains("spec moved")).expect(&out);
+    assert!(line.starts_with("- spec moved under 3 live tasks ("), "{line}");
+    for id in &ids[..3] {
+        assert!(line.contains(id.as_str()), "{id} named: {line}");
+    }
+    assert!(!line.contains(ids[3].as_str()), "the done task is not counted: {line}");
+    let weather_at = out.find("weather:").unwrap();
+    assert!(out.find("spec moved").unwrap() > weather_at, "{out}");
+    let v: serde_json::Value = serde_json::from_str(&stdout_of(&meshwork(&repo).args(["prime", "--json"]).assert().success())).unwrap();
+    assert!(v["data"]["weather"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("spec moved under 3")), "{v}");
+
+    for id in &ids[..3] {
+        meshwork(&repo).args(["cover", id, "--repin"]).assert().success();
+    }
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(!out.contains("spec moved"), "re-pinned:\n{out}");
+
+    // Past three, the rest is a count.
+    let more: Vec<String> = (5..=7).map(|i| add_task(&repo, &format!("Pinned {i}"))).collect();
+    for id in &more {
+        meshwork(&repo).args(["cover", id, "docs/SPEC.md#sp-waive"]).assert().success();
+    }
+    // The gate keeps the words its pins were re-read at; only the waive
+    // clause moves now.
+    let gate_as_repinned = AUDIT_SPEC.replace("exit 0", "exit 0 only");
+    std::fs::write(repo.join("docs/SPEC.md"), gate_as_repinned.replace("Loud", "Louder")).unwrap();
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    let line = out.lines().find(|l| l.contains("spec moved")).expect(&out);
+    assert!(line.starts_with("- spec moved under 3 live tasks (") && line.ends_with(')'), "{line}");
+    let fourth = add_task(&repo, "Pinned 8");
+    meshwork(&repo).args(["cover", &fourth, "docs/SPEC.md#sp-waive"]).assert().success();
+    std::fs::write(repo.join("docs/SPEC.md"), gate_as_repinned.replace("Loud", "Loudest")).unwrap();
+    let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    let line = out.lines().find(|l| l.contains("spec moved")).expect(&out);
+    assert!(line.contains("under 4 live tasks (") && line.ends_with(", +1)"), "{line}");
+}

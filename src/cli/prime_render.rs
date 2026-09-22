@@ -119,10 +119,41 @@ fn substantive_log_tail(t: &Task) -> Option<&String> {
     })
 }
 
-/// Weather — all derived, never stored: doing with newest substantive log,
-/// blocked with reasons, freshest comments across the active frontier (§7b).
-pub(super) fn weather_lines(tasks: &[&Task], ready_ids: &BTreeSet<&str>) -> Vec<String> {
+/// `- spec moved under N live task(s) (ids…)` (MW-T10, mw-s0ptwn0) — the
+/// tasks whose pinned clause reads differently now, three named then
+/// `+N`; nothing at zero, so the line only ever means something.
+pub(super) fn spec_moved_line(ids: &[String]) -> Option<String> {
+    if ids.is_empty() {
+        return None;
+    }
+    let mut named: Vec<&str> = ids.iter().take(3).map(String::as_str).collect();
+    let more = ids.len().saturating_sub(3);
+    let extra;
+    if more > 0 {
+        extra = format!("+{more}");
+        named.push(&extra);
+    }
+    let noun = if ids.len() == 1 { "task" } else { "tasks" };
+    Some(clamp_bytes(
+        &format!(
+            "- spec moved under {} live {noun} ({})",
+            ids.len(),
+            named.join(", ")
+        ),
+        LINE_CLAMP,
+    ))
+}
+
+/// Weather — all derived, never stored: the spec moved under live work
+/// (first, when any), doing with newest substantive log, blocked with
+/// reasons, freshest comments across the active frontier (§7b).
+pub(super) fn weather_lines(
+    root: &std::path::Path,
+    tasks: &[&Task],
+    ready_ids: &BTreeSet<&str>,
+) -> Vec<String> {
     let mut out = Vec::new();
+    out.extend(spec_moved_line(&crate::spec::moved_under(root, tasks)));
     let today = crate::clock::today();
     for t in tasks.iter().filter(|t| t.status == Status::Doing) {
         let claim = t

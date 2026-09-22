@@ -102,7 +102,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     }
 
     let (ranked, rollup_line) = rollup(&tasks);
-    let weather = weather_lines(&tasks, &ready_ids);
+    let weather = weather_lines(&root, &tasks, &ready_ids);
     let dones = recent_dones(&tasks);
     let today = crate::clock::today();
 

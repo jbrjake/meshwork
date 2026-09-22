@@ -318,6 +318,24 @@ pub fn audit(
     })
 }
 
+/// The live tasks the spec moved under (MW-T10): ids of those carrying
+/// at least one real pin whose clause resolves and hashes differently
+/// now, in the order given. A pin that does not resolve is not drift.
+#[must_use]
+pub fn moved_under(root: &Path, tasks: &[&crate::parse::Task]) -> Vec<String> {
+    tasks
+        .iter()
+        .filter(|t| t.status.is_live())
+        .filter(|t| {
+            t.covers.iter().any(|c| {
+                c.sha.as_deref().is_some_and(is_sha)
+                    && resolve(root, &c.reference).is_ok_and(|clause| Some(clause.sha) != c.sha)
+            })
+        })
+        .map(|t| t.id.clone())
+        .collect()
+}
+
 /// `## Heading text {#sp-slug}` → `("Heading text", "sp-slug")`; None
 /// when the heading carries no anchor.
 fn split_anchor(heading: &str) -> Option<(&str, &str)> {
