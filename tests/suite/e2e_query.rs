@@ -557,3 +557,36 @@ fn parent_column_and_q_error_tables() {
         assert!(err.contains(table), "q error must name `{table}`: {err}");
     }
 }
+
+/// mw-q1q6za8: `LIMIT` holds on every projection, text and `--json`. The
+/// scan sorts its projected columns, so `path, created` is a reordering
+/// projection while `created, path` is not — `DataFusion`'s physical
+/// projection pushdown absorbs the reordering one into the in-memory
+/// source and rebuilds it without its fetch, which returned the whole
+/// table. Position, not value: `id, path` was always fine.
+#[test]
+fn query_limit_leading_path() {
+    let (_g, repo) = fixture_repo("alpha");
+    for sql in [
+        "SELECT path, created FROM tasks LIMIT 2",
+        "SELECT created, path FROM tasks LIMIT 2",
+        "SELECT path, title, id FROM tasks LIMIT 2",
+        "SELECT path FROM tasks LIMIT 2",
+        "SELECT id, path FROM tasks LIMIT 2",
+    ] {
+        let text = stdout_of(&meshwork(&repo).args(["q", sql]).assert().success());
+        assert!(text.ends_with("(2 rows)\n"), "q `{sql}` text → {text:?}");
+        let js = stdout_of(
+            &meshwork(&repo)
+                .args(["q", sql, "--json"])
+                .assert()
+                .success(),
+        );
+        let v: serde_json::Value = serde_json::from_str(&js).unwrap();
+        assert_eq!(
+            v["data"]["rows"].as_array().unwrap().len(),
+            2,
+            "q `{sql}` --json"
+        );
+    }
+}

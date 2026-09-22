@@ -8,6 +8,7 @@ use datafusion::arrow::array::{ArrayRef, BooleanArray, Int64Array, StringArray};
 use datafusion::arrow::datatypes::{DataType, Field, Schema};
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::error::Result as DfResult;
+use datafusion::execution::session_state::{SessionState, SessionStateBuilder};
 use datafusion::prelude::SessionContext;
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -99,7 +100,7 @@ pub fn session_for(
     stores: &[RepoStore],
     foreign: &[crate::registry::ForeignTask],
 ) -> DfResult<SessionContext> {
-    let ctx = SessionContext::new();
+    let ctx = SessionContext::new_with_state(session_state());
     ctx.register_batch(TABLES[0], tasks_batch(stores, foreign)?)?;
     ctx.register_batch(TABLES[1], edges_batch(stores, foreign)?)?;
     ctx.register_batch(TABLES[2], labels_batch(stores)?)?;
@@ -108,6 +109,26 @@ pub fn session_for(
     ctx.register_batch(TABLES[5], repos_batch(stores)?)?;
     ctx.register_udf(category_matches_udf());
     Ok(ctx)
+}
+
+/// The default session minus `DataFusion`'s physical `ProjectionPushdown`
+/// (mw-q1q6za8). When that rule absorbs a column-reordering projection
+/// into an in-memory source it rebuilds the source without its `fetch`,
+/// so `SELECT path, created FROM tasks LIMIT 2` returns every row while
+/// `created, path` returns two. Every table here is one small batch: the
+/// rule saves nothing, and a `LIMIT` that is silently ignored is a reader
+/// that lies.
+fn session_state() -> SessionState {
+    let default = SessionStateBuilder::new().with_default_features().build();
+    let rules = default
+        .physical_optimizers()
+        .iter()
+        .filter(|rule| rule.name() != "ProjectionPushdown")
+        .cloned()
+        .collect();
+    SessionStateBuilder::new_from_existing(default)
+        .with_physical_optimizer_rules(rules)
+        .build()
 }
 
 /// Whole-segment category prefix match (MW-B4): `engine/spill` matches
