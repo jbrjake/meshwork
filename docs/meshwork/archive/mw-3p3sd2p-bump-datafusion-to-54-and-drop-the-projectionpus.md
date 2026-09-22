@@ -1,7 +1,7 @@
 ---
 id: mw-3p3sd2p
 title: Bump DataFusion to 54 and drop the ProjectionPushdown filter from tables::session_state
-status: open
+status: done
 category: core/query
 discovered-from: mw-q1q6za8
 verify: "all(contains Cargo.toml /^datafusion = \"5[4-9]/, lacks src/tables.rs ProjectionPushdown)"
@@ -17,3 +17,8 @@ The bump is the whole change: `datafusion = "54"` (or later) in `Cargo.toml`, th
 
 ## log
 - 2026-09-22T13:36Z created
+- 2026-09-22T14:34Z open→doing — claimed by claude (25ed6f72-cf72-4c6f-9164-86d9af1be3d2)
+- 2026-09-22T14:47Z doing→done — verify exit 0 @ dfca3c0+5
+
+## comments
+- 2026-09-22T14:47Z [claude (25ed6f72-cf72-4c6f-9164-86d9af1be3d2)] Landed offline from the registry cache. One adaptation beyond the plan: 54's MemTable::try_new refuses batches whose schema differs from the planned one, and the recursive graph view produces a different nullability than it plans — views::materialize now takes the schema from the batches. Every view golden stayed byte-equal. Medians at 1K: q over pulse 385→167 ms, stats 419→190 ms; baseline reseeded.
