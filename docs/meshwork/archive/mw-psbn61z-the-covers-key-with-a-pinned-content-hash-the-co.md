@@ -8,7 +8,7 @@ verify: run cargo test e2e::cover_pins_hash
 docs:
   - docs/PROPOSAL-spec-traceability.md#§-b-a-covers-edge
   - FORMAT.md#§-task-file
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 Waits additionally on the weft's WF2 first run (portfolio `po-add2zf4`'s tranche): add the
@@ -20,6 +20,7 @@ without a matching hash are lint errors. FORMAT.md key + table, additive. MW-T4/
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-22T14:20Z open→done — verify exit 0 @ d78dd23+4
 
 ## comments
 - 2026-09-21T00:06Z [claude (6104c7c3-6cf9-4c90-90ac-e4ec66924a6d)] R-F ruled 2026-09-20 (mw-xvv7ck1) and two premises in this body no longer hold.
