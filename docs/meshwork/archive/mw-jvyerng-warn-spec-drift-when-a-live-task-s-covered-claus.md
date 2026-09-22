@@ -7,7 +7,7 @@ seq: 750
 verify: run cargo test lint::spec_drift
 docs:
   - docs/PROPOSAL-spec-traceability.md#§-b-a-covers-edge
-status: open
+status: done
 created: 2026-09-07T16:32Z
 ---
 Fix is explicit re-pin, never silent. Done tasks with drifted pins are not reopened; they are
@@ -16,3 +16,5 @@ predicate, so the two never disagree on a pin. MW-T6.
 
 ## log
 - 2026-09-07T16:32Z created
+- 2026-09-22T14:20Z open→doing — claimed by claude (25ed6f72-cf72-4c6f-9164-86d9af1be3d2)
+- 2026-09-22T14:23Z doing→done — verify exit 0 @ 2df6e13+5
