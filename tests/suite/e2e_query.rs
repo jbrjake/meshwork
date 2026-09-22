@@ -324,7 +324,10 @@ fn cli_surface_frozen() {
     };
     subs(&["dep", "--help"], &["add", "rm"]);
     subs(&["mirror", "--help"], &["push", "status"]);
-    subs(&["portfolio", "--help"], &["ready", "next", "q", "seq", "stats"]);
+    subs(
+        &["portfolio", "--help"],
+        &["ready", "next", "q", "seq", "stats", "search"],
+    );
     subs(&["import", "--help"], &["todo"]);
 
     // show carries --docs and --comments (behavior for --docs lands M4).

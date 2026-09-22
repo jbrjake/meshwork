@@ -34,6 +34,8 @@ enum PortfolioAction {
     Seq,
     /// The derived projection as tables over the union, one pulse row per repo.
     Stats(super::stats::StatsArgs),
+    /// The same literal text search as `search`, across every registered store.
+    Search(super::search::SearchArgs),
 }
 
 pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
@@ -43,7 +45,28 @@ pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
         PortfolioAction::Next => next(json),
         PortfolioAction::Seq => seq(json),
         PortfolioAction::Stats(stats_args) => stats(stats_args, json),
+        PortfolioAction::Search(search_args) => search(search_args, json),
     }
+}
+
+/// `portfolio search` — `search`'s canned SQL over the union, hits grouped
+/// by repo and named `repo#id`. A pure read (MW-S14): sequence.md is
+/// never touched.
+fn search(args: &super::search::SearchArgs, json: bool) -> Result<(), String> {
+    let (ctx, p) = union_session(false)?;
+    let hits = super::search::hits(&ctx, &args.term, true)?;
+    if !json {
+        report_skips(&p.skipped);
+    }
+    super::search::emit(
+        &hits,
+        args.all,
+        json,
+        "portfolio search",
+        true,
+        Some(("skipped", skips_json(&p.skipped))),
+    );
+    Ok(())
 }
 
 /// `portfolio stats` — a pure read like `q` (MW-S14): sequence.md is never

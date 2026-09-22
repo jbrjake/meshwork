@@ -81,7 +81,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-L7 | `arch::no_cross_store_writes`, `e2e::offline_all` | planned |
 | MW-M1 | `e2e::stats_tables`, `e2e::portfolio_stats`, gate §7 (`perf::stats_1k_cold`) | done |
 | MW-M2 | `e2e::asks_verb_in_and_out`, `e2e::prime_inbox_lists_all_or_names_the_verb` | done |
-| MW-M3 | `e2e::portfolio_search`, `e2e::portfolio_search_never_prunes` | planned |
+| MW-M3 | `e2e::portfolio_search`, `e2e::portfolio_search_never_prunes` | done |
 | MW-M4 | `e2e::show_comment_count` | planned |
 | MW-N1 | `verify_dsl::run_package_target_tokens`, `e2e::close_run_scoped_argv` | done |
 | MW-N2 | `verify_dsl::run_dash_refused_names_spelling` | done |

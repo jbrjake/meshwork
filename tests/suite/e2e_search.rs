@@ -119,3 +119,95 @@ fn full_text_search_cap_and_projection() {
     );
     assert!(nulls.contains("25"), "absent handoff must be NULL:\n{nulls}");
 }
+
+/// MW-M3: `portfolio search` is `search`'s canned SQL over every
+/// registered store — hits grouped by repo under a header with the
+/// repo's full count, rows named `repo#id`, live before terminal within
+/// a group, the MW-D2 cap with `--all`, absent repos reported.
+#[test]
+fn portfolio_search() {
+    let (dir, portfolio) = portfolio_fixture();
+    let beta = dir.path().join("beta");
+    // alpha carries 14 tasks naming spill; eight more in beta cross the cap.
+    let beta_hit = add_id(&beta, &["add", "Spill retry policy", "--verify", "true"]);
+    for i in 2..=8 {
+        add_task(&beta, &format!("Spill retry policy {i}"));
+    }
+    let run = |args: &[&str]| {
+        meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(args)
+            .assert()
+            .success()
+    };
+
+    let out = stdout_of(&run(&["portfolio", "search", "spill"]));
+    let alpha_at = out.find("alpha (").expect(&out);
+    let beta_at = out.find("beta (8 hits):").expect(&out);
+    assert!(alpha_at < beta_at, "grouped by repo, in order:\n{out}");
+    assert!(out.contains("alpha#az-e9p2  "), "rows are named repo#id:\n{out}");
+    let rows = |text: &str| {
+        text.lines()
+            .filter(|l| l.starts_with("alpha#") || l.starts_with("beta#"))
+            .count()
+    };
+    assert_eq!(rows(&out), 20, "the cap holds:\n{out}");
+    assert!(out.contains("… and "), "{out}");
+    // Within alpha's group no terminal row precedes a live one.
+    let alpha_rows: Vec<&str> = out[alpha_at..beta_at]
+        .lines()
+        .filter(|l| l.starts_with("alpha#"))
+        .collect();
+    let first_terminal = alpha_rows
+        .iter()
+        .position(|l| l.ends_with("[done]") || l.ends_with("[dropped]"));
+    if let Some(at) = first_terminal {
+        assert!(
+            alpha_rows[at..].iter().all(|l| !l.ends_with("[open]")),
+            "live first:\n{out}"
+        );
+    }
+
+    let all = stdout_of(&run(&["portfolio", "search", "spill", "--all"]));
+    assert!(rows(&all) > 20 && !all.contains("… and "), "{all}");
+    assert!(all.contains(&format!("beta#{beta_hit}  Spill retry policy [open]")), "{all}");
+
+    let v: serde_json::Value = serde_json::from_str(&stdout_of(&run(&[
+        "portfolio", "search", "spill", "--json",
+    ])))
+    .unwrap();
+    assert_eq!(v["verb"], "portfolio search", "{v}");
+    assert_eq!(
+        v["data"]["total"].as_u64(),
+        Some(u64::try_from(rows(&all)).unwrap()),
+        "{v}"
+    );
+    assert_eq!(v["data"]["rows"].as_array().map(Vec::len), Some(20), "{v}");
+    assert_eq!(v["data"]["rows"][0]["repo"], "alpha", "{v}");
+    assert!(v["data"]["rows"][0]["gid"].as_str().unwrap().starts_with("alpha#"), "{v}");
+    assert_eq!(v["data"]["skipped"][0]["repo"], "gamma", "{v}");
+}
+
+/// MW-M3 / MW-S14: `portfolio search` is a read — the overlay is never
+/// rewritten under it, in either output mode.
+#[test]
+fn portfolio_search_never_prunes() {
+    let (dir, portfolio) = portfolio_fixture();
+    let before = "# sequence\n\n- beta#bz-c0r3\n- alpha#az-n33d\n";
+    std::fs::write(portfolio.join("sequence.md"), before).unwrap();
+    for json in [false, true] {
+        let mut args = vec!["portfolio", "search", "reader"];
+        if json {
+            args.push("--json");
+        }
+        let assert = meshwork(dir.path())
+            .env("MESHWORK_PORTFOLIO", &portfolio)
+            .args(&args)
+            .assert()
+            .success();
+        let err = stderr_of(&assert);
+        assert!(!err.contains("pruned"), "a read never prunes (json={json}): {err}");
+        assert_eq!(err.contains("skipped gamma"), !json, "skips on stderr in text only: {err}");
+        assert_eq!(std::fs::read_to_string(portfolio.join("sequence.md")).unwrap(), before);
+    }
+}
