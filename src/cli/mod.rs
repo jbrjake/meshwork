@@ -21,6 +21,7 @@ mod query;
 mod search;
 mod set;
 mod show;
+mod spec;
 mod stats;
 mod stubs;
 mod transition;
@@ -74,6 +75,8 @@ enum Cmd {
     Dep(dep::DepArgs),
     /// Pin a spec clause to a task: the ref plus the hash of its text now.
     Cover(cover::CoverArgs),
+    /// Coverage and drift over a spec document: list its clauses, or audit them.
+    Spec(spec::SpecArgs),
     /// Open tasks with met deps and no live children (the queue).
     Ready(query::ReadyArgs),
     /// Blocked tasks with their reasons.
@@ -331,6 +334,7 @@ pub fn run() -> i32 {
         Cmd::Close(args) => close::run(args, cli.json),
         Cmd::Verify(args) => verify::run(args, cli.json),
         Cmd::Cover(args) => cover::run(args, cli.json),
+        Cmd::Spec(args) => spec::run(args, cli.json),
         Cmd::Ready(args) => query::ready(args, cli.json),
         Cmd::Q(args) => query::q(args, cli.json),
         Cmd::Search(args) => search::run(args, cli.json),

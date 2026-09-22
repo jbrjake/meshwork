@@ -38,6 +38,18 @@ impl Status {
         }
     }
 
+    /// Open, doing or blocked — work that is not over.
+    #[must_use]
+    pub fn is_live(self) -> bool {
+        matches!(self, Status::Open | Status::Doing | Status::Blocked)
+    }
+
+    /// Deliberately abandoned.
+    #[must_use]
+    pub fn is_dropped(self) -> bool {
+        self == Status::Dropped
+    }
+
     /// Inverse of [`Status::as_str`]; `None` for any other spelling.
     #[must_use]
     pub fn parse_str(s: &str) -> Option<Status> {

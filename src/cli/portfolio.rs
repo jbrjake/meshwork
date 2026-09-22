@@ -36,6 +36,8 @@ enum PortfolioAction {
     Stats(super::stats::StatsArgs),
     /// The same literal text search as `search`, across every registered store.
     Search(super::search::SearchArgs),
+    /// Coverage and drift over a <repo>#<path> document, every store's pins counted.
+    Spec(super::spec::SpecArgs),
 }
 
 pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
@@ -46,7 +48,27 @@ pub(crate) fn run(args: &PortfolioArgs, json: bool) -> Result<(), String> {
         PortfolioAction::Seq => seq(json),
         PortfolioAction::Stats(stats_args) => stats(stats_args, json),
         PortfolioAction::Search(search_args) => search(search_args, json),
+        PortfolioAction::Spec(spec_args) => spec(spec_args, json),
     }
+}
+
+/// `portfolio spec list|audit <repo>#<path>` — the audit over every
+/// store's pins, the one place a cross-repo pin shows. A read; the
+/// document is read through the registry.
+fn spec(args: &super::spec::SpecArgs, json: bool) -> Result<(), String> {
+    let (_, p) = union_session(false)?;
+    let audit = crate::spec::audit(&p.dir, "", &p.stores, args.action.doc())?;
+    if !json {
+        report_skips(&p.skipped);
+    }
+    super::spec::emit(
+        &args.action,
+        &audit,
+        json,
+        "portfolio spec",
+        Some(("skipped", skips_json(&p.skipped))),
+    );
+    Ok(())
 }
 
 /// `portfolio search` — `search`'s canned SQL over the union, hits grouped

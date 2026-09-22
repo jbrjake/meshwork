@@ -91,4 +91,5 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-T2 | `format::clause_ref_survives_heading_edit` | done |
 | MW-T3 | `e2e::cover_pins_hash`, `lint::covers_hand_written` | done |
 | MW-T4 | `lint::spec_drift` | done |
+| MW-T5 | `e2e::spec_audit`, `e2e::portfolio_spec_audit` | done |
 | MW-T6 | `lint::spec_drift_unversioned_corpus` | done |

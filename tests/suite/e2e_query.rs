@@ -303,8 +303,8 @@ fn cli_surface_frozen() {
         verbs,
         [
             "init", "add", "set", "show", "comment", "attach", "start", "block", "drop", "reopen",
-            "close", "verify", "dep", "cover", "ready", "blocked", "tree", "why", "q", "search",
-            "stats", "asks", "prime", "lint", "mirror", "portfolio", "import",
+            "close", "verify", "dep", "cover", "spec", "ready", "blocked", "tree", "why", "q",
+            "search", "stats", "asks", "prime", "lint", "mirror", "portfolio", "import",
         ],
         "DESIGN §6, frozen:\n{help}"
     );
@@ -324,10 +324,12 @@ fn cli_surface_frozen() {
     };
     subs(&["dep", "--help"], &["add", "rm"]);
     subs(&["mirror", "--help"], &["push", "status"]);
+    subs(&["spec", "--help"], &["list", "audit"]);
     subs(
         &["portfolio", "--help"],
-        &["ready", "next", "q", "seq", "stats", "search"],
+        &["ready", "next", "q", "seq", "stats", "search", "spec"],
     );
+    subs(&["portfolio", "spec", "--help"], &["list", "audit"]);
     subs(&["import", "--help"], &["todo"]);
 
     // show carries --docs and --comments (behavior for --docs lands M4).

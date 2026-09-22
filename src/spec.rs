@@ -164,6 +164,160 @@ pub fn resolve(root: &Path, text: &str) -> Result<Clause, String> {
     })
 }
 
+/// One task's pin on a clause of the audited document (MW-T5).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Pin {
+    /// `repo#id` of the pinning task.
+    pub gid: String,
+    /// Its current status.
+    pub status: crate::parse::Status,
+    /// The ref as written in its `covers:`.
+    pub reference: String,
+    /// The clause id the ref names.
+    pub id: String,
+    /// The pinned hash, when the entry carries a well-formed one.
+    pub sha: Option<String>,
+}
+
+/// A document's clauses as they read now, and every pin on them across
+/// the loaded stores — the five coverage questions are views over it.
+#[derive(Debug)]
+pub struct Audit {
+    /// The document as asked for.
+    pub doc: String,
+    /// Its anchored clauses, in file order.
+    pub clauses: Vec<Clause>,
+    /// Every pin naming this document, in store then file order.
+    pub pins: Vec<Pin>,
+}
+
+impl Audit {
+    /// The pins on clause `id`, dropped tasks included.
+    #[must_use]
+    pub fn covering(&self, id: &str) -> Vec<&Pin> {
+        self.pins.iter().filter(|p| p.id == id).collect()
+    }
+
+    /// Clauses no task pins at all.
+    #[must_use]
+    pub fn unclaimed(&self) -> Vec<&Clause> {
+        self.clauses
+            .iter()
+            .filter(|c| self.covering(&c.id).is_empty())
+            .collect()
+    }
+
+    /// Clauses whose every pin is a dropped task's.
+    #[must_use]
+    pub fn orphaned(&self) -> Vec<(&Clause, Vec<&Pin>)> {
+        self.clauses
+            .iter()
+            .filter_map(|c| {
+                let pins = self.covering(&c.id);
+                (!pins.is_empty() && pins.iter().all(|p| p.status.is_dropped()))
+                    .then_some((c, pins))
+            })
+            .collect()
+    }
+
+    /// Pins whose hash no longer matches the clause: `live` selects the
+    /// live tasks (stale) or the done ones (re-open candidates).
+    #[must_use]
+    pub fn drifted(&self, live: bool) -> Vec<(&Pin, &Clause)> {
+        self.pins
+            .iter()
+            .filter(|p| p.status.is_live() == live && !p.status.is_dropped())
+            .filter_map(|p| {
+                let clause = self.clauses.iter().find(|c| c.id == p.id)?;
+                (p.sha.as_deref() != Some(clause.sha.as_str())).then_some((p, clause))
+            })
+            .collect()
+    }
+
+    /// Pins of non-dropped tasks naming a clause the document no longer
+    /// carries.
+    #[must_use]
+    pub fn dangling(&self) -> Vec<&Pin> {
+        self.pins
+            .iter()
+            .filter(|p| !p.status.is_dropped() && self.clauses.iter().all(|c| c.id != p.id))
+            .collect()
+    }
+}
+
+/// The document `doc` names — a repo-relative path in `home`, or
+/// `repo#path` — split into the `(repo, path)` identity every pin's ref
+/// is compared against. A bare path with no home is refused: the union
+/// has no repo to relate it to.
+fn doc_identity(home: &str, doc: &str) -> Result<(String, String), String> {
+    match doc.split_once('#') {
+        Some((repo, path)) if !repo.contains('/') && !repo.contains('.') => {
+            Ok((repo.to_string(), path.to_string()))
+        }
+        _ if home.is_empty() => Err(format!(
+            "`{doc}` names no repo — over the union a spec document is `<repo>#<path>`"
+        )),
+        _ => Ok((home.to_string(), doc.to_string())),
+    }
+}
+
+/// Audit `doc` over `stores`: read it (through the registry for a
+/// `repo#path`, confined like a `docs:` link), take its clauses, and
+/// collect every pin whose ref names the same document.
+///
+/// # Errors
+/// The document does not read, or names no repo over the union.
+pub fn audit(
+    root: &Path,
+    home: &str,
+    stores: &[crate::store::RepoStore],
+    doc: &str,
+) -> Result<Audit, String> {
+    let identity = doc_identity(home, doc)?;
+    let content = crate::docs::read_target(root, doc).map_err(|e| e.to_string())?;
+    let mut pins = Vec::new();
+    for store in stores {
+        for entry in &store.entries {
+            let crate::parse::ParsedTask::Valid(t) = &entry.parsed else {
+                continue;
+            };
+            for c in &t.covers {
+                let Ok(r) = parse_ref(&c.reference) else {
+                    continue;
+                };
+                let Ok(names) = doc_identity(&store.repo, &r.doc) else {
+                    continue;
+                };
+                if names != identity {
+                    continue;
+                }
+                pins.push(Pin {
+                    gid: store.gid(&t.id),
+                    status: t.status,
+                    reference: c.reference.clone(),
+                    id: r.id,
+                    sha: c.sha.clone().filter(|s| is_sha(s)),
+                });
+            }
+        }
+    }
+    // Live pins first, then done, then dropped, then by gid — the order a
+    // reader wants to see coverage in, and a stable one.
+    let rank = |s: crate::parse::Status| match s {
+        crate::parse::Status::Open => 0,
+        crate::parse::Status::Doing => 1,
+        crate::parse::Status::Blocked => 2,
+        crate::parse::Status::Done => 3,
+        crate::parse::Status::Dropped => 4,
+    };
+    pins.sort_by(|a, b| (rank(a.status), &a.gid).cmp(&(rank(b.status), &b.gid)));
+    Ok(Audit {
+        doc: doc.to_string(),
+        clauses: clauses(&content),
+        pins,
+    })
+}
+
 /// `## Heading text {#sp-slug}` → `("Heading text", "sp-slug")`; None
 /// when the heading carries no anchor.
 fn split_anchor(heading: &str) -> Option<(&str, &str)> {
