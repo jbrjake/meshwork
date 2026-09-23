@@ -373,7 +373,7 @@ Hand-editing is legal and expected but never necessary. Fields can all be set by
 
 The format has a spec, [FORMAT.md](FORMAT.md), that's versioned and self-contained. Anyone can implement against it without having to use this project's code.
 
-When a task reaches `done` or `dropped`, to de-clutter, its file moves to `docs/meshwork/archive/` automatically (and moves back on `reopen`). Archived tasks stay loaded and queryable. Dependency resolution, SQL, and the digest are location-blind.
+When a task reaches `done` or `dropped`, to de-clutter, its file moves to `docs/meshwork/archive/` automatically (and moves back on `reopen`). Archived tasks stay loaded and queryable. Dependency resolution, SQL, and the digest are location-blind. Once a hundred archived files have piled up, `lint` says so and `lint --fix` concatenates them into a few bundle files. Once bundled, tasks still `show`, can be queried, and split back out upon `reopen`.
 
 Because tasks are files in git, concurrency is git's problem. Two sessions in separate worktrees can create tasks, comment on the *same* task, and close tasks, then merge without manual conflict resolution. The one merge artifact git can produce (a duplicated frontmatter key from union-merge) is repaired by `lint --fix`. Tasks record when they're claimed by someone as active work, but it's not enforced.
 
