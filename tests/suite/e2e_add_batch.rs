@@ -356,3 +356,63 @@ fn add_batch_reads_from_file_too() {
     let text = std::fs::read_to_string(task_file(&repo, id)).unwrap();
     assert!(text.contains("title: From a file"), "{text}");
 }
+
+/// mw-qf0bsb6: a batch document takes the plain values the flags take.
+/// Three adopter batches in two days refused with `mapping values are not
+/// allowed in this context` — every one a title or verify carrying `: `,
+/// which YAML reads as a nested mapping; `add "marasi: …" --verify …`
+/// never had the problem because the writer quotes what YAML would
+/// misread. A bare scalar in a list slot (`needs: @b`, `labels: ask`) is
+/// wrapped the way `docs:` already is; a value already quoted stays as
+/// written; `@handle` refs still resolve. What still fails to parse
+/// names the key on the failing line.
+#[test]
+fn batch_plain_scalars_quoted_like_add() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    std::fs::write(repo.join("out.log"), "test result: ok. 3 passed\n").unwrap();
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["add", "--batch", "-"])
+            .write_stdin(
+                "---\nhandle: a\ntitle: marasi: consume the bytes value\nlabels: ask\nneeds: @b\n\
+                 verify: grep -qE \"test result: ok\\. [1-9]\" out.log\n---\nThe ask.\n\
+                 ---\nhandle: b\ntitle: \"Already quoted: stays\"\nrelates: @a\n\
+                 verify: grep -q 'AXIS: BOTH' docs/OUT.md\n---\n",
+            )
+            .assert()
+            .success(),
+    );
+    let ids: Vec<&str> = out.lines().filter(|l| !l.starts_with(' ')).collect();
+    let a = std::fs::read_to_string(task_file(&repo, ids[0])).unwrap();
+    assert!(a.contains("title: \"marasi: consume the bytes value\""), "{a}");
+    assert!(a.contains("labels: [ask]"), "{a}");
+    assert!(a.contains(&format!("needs: [{}]", ids[1])), "the ref resolves inside the wrap: {a}");
+    let b = std::fs::read_to_string(task_file(&repo, ids[1])).unwrap();
+    assert!(b.contains("title: \"Already quoted: stays\""), "quoted once, not twice: {b}");
+    assert!(b.contains(&format!("relates: [{}]", ids[0])), "{b}");
+
+    // The values round-trip byte-for-byte through the strict reader.
+    let rows = stdout_of(
+        &meshwork(&repo)
+            .args(["q", "SELECT id, verify FROM tasks ORDER BY verify"])
+            .assert()
+            .success(),
+    );
+    assert!(rows.contains("grep -qE \"test result: ok\\. [1-9]\" out.log"), "{rows}");
+    assert!(rows.contains("grep -q 'AXIS: BOTH' docs/OUT.md"), "{rows}");
+    let lint = stdout_of(&meshwork(&repo).arg("lint").assert().success());
+    assert!(lint.contains("0 error(s)"), "{lint}");
+
+    // A key the normalizer leaves alone that YAML still cannot read is
+    // refused by name — the key, not a column number, is what to fix.
+    let err = stderr_of(
+        &meshwork(&repo)
+            .args(["add", "--batch", "-"])
+            .write_stdin("---\ntitle: Broken\nseq: 8: 9\nverify: \"true\"\n---\n")
+            .assert()
+            .failure(),
+    );
+    assert!(err.contains("batch task 1: `seq:`"), "{err}");
+    assert!(err.contains("nothing written"), "{err}");
+}

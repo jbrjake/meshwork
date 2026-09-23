@@ -80,7 +80,13 @@ pub(crate) fn run(source: &str, dry_run: bool, json: bool) -> Result<(), String>
         let task = match parse_task_str(&file_name, &text) {
             ParsedTask::Valid(t) => t,
             ParsedTask::Invalid(inv) => {
-                return Err(format!("batch task {n}: {} — nothing written", inv.error))
+                let key = key_at_error(&text, &inv.error)
+                    .map(|k| format!("`{k}:` "))
+                    .unwrap_or_default();
+                return Err(format!(
+                    "batch task {n}: {key}{} — nothing written",
+                    inv.error
+                ));
             }
         };
         validate_task(&root, &tasks_dir, &task, &ids)
@@ -291,6 +297,11 @@ fn parse_entry(fm: &str, body: &str) -> Result<Entry, String> {
                          the whole batch is refused"
                     ));
                 }
+                if let Some(fixed) = normalize_value(key, line) {
+                    kept.push_str(&fixed);
+                    kept.push('\n');
+                    continue;
+                }
             }
             kept.push_str(line);
             kept.push('\n');
@@ -301,6 +312,60 @@ fn parse_entry(fm: &str, body: &str) -> Result<Entry, String> {
         fm: kept,
         body: body.to_string(),
     })
+}
+
+/// The plain values the flags take (mw-qf0bsb6). A scalar string key whose
+/// bare value YAML would misread — `: ` inside, a trailing `:`, ` #`, a
+/// leading indicator — is re-emitted through `write::yaml_scalar`, exactly
+/// as `add "title" --verify …` writes it: three adopter batches in two
+/// days refused on `verify: … "test result: ok…"` with a line-and-column
+/// error and nothing written. A bare scalar in a list slot (`needs: @b`,
+/// `labels: ask`, a quoted `needs: "@b"`) becomes a one-element flow
+/// sequence, as `docs:` already does; `@handle` refs resolve afterwards.
+/// A value already quoted, a block scalar, a collection, or an empty rest
+/// passes through untouched; numeric, enum, id and timestamp keys are
+/// never touched — an id or a `repo#id` never needs quoting, and the edge
+/// keys carry `@handle` refs that resolve after this pass.
+fn normalize_value(key: &str, line: &str) -> Option<String> {
+    const SCALARS: &[&str] = &[
+        "title",
+        "category",
+        "verify",
+        "blocked-reason",
+        "claimed-by",
+        "waived",
+        "handoff",
+    ];
+    const LISTS: &[&str] = &["needs", "relates", "labels"];
+    let rest = line.get(key.len() + 1..)?.trim();
+    if rest.is_empty() || rest.starts_with(['|', '>']) {
+        return None;
+    }
+    if SCALARS.contains(&key) {
+        if rest.starts_with(['"', '\'']) {
+            return None;
+        }
+        let quoted = crate::write::yaml_scalar(rest);
+        (quoted != rest).then(|| format!("{key}: {quoted}"))
+    } else if LISTS.contains(&key) && !rest.starts_with(['[', '{']) {
+        Some(format!("{key}: [{rest}]"))
+    } else {
+        None
+    }
+}
+
+/// The frontmatter key on the line a YAML error names — `at line L column
+/// C` counts from the first line after the opening fence — so a refusal
+/// says what to fix, not a column in a document the author never saw
+/// rendered.
+fn key_at_error(text: &str, error: &str) -> Option<String> {
+    let after = error.rsplit("at line ").next()?;
+    let l: usize = after.split(' ').next()?.parse().ok()?;
+    let line = text.strip_prefix("---\n")?.lines().nth(l.checked_sub(1)?)?;
+    let (key, _) = line.split_once(':')?;
+    (key.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
+        && key.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'))
+    .then(|| key.to_string())
 }
 
 /// The minted-id document: id first, refs resolved, `add`'s defaults
