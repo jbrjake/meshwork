@@ -79,15 +79,16 @@ don't improvise any of them.
 - Lead with the flags: `add "title" --body @file --docs path#§-anchor --seq N
   --cat a/b --verify '<predicate>'`; several tasks, or structured
   frontmatter, is one `add --batch -` document — `id:` omitted, a local
-  `handle:` usable as `@handle` in needs/parent/from/relates, atomic: all
-  files or none. Later: `set <id> --seq/--handoff/--verify/--cat/--title/
+  `handle:` usable as `@handle` in needs/parent/from/relates, values as
+  plain as the flags take them (a `: ` inside needs no quoting), atomic:
+  all files or none. Later: `set <id> --seq/--handoff/--verify/--cat/--title/
   --body/--parent/--from/--relates/--to/--answers`, `--docs <link>` to
   append or `--docs <old> <new>` to replace; edges: `dep add <a> --needs <b>`.
 - Titles are imperative work orders ("Fix the door check"), never a finding.
   Every task carries `verify:` and `docs:` (`path#§-anchor`); lint warns.
 - Hand-edits are legal, then `lint` (`--fix` mends mechanical damage;
-  `--explain <code>` unfolds a summarized finding or says what a heuristic
-  judges) — but a block value with blank lines inside (`handoff: |`, list
+  `--explain <code>` prints one code's rows alone, a summarized finding
+  unfolded, a heuristic's note first) — but a block value with blank lines inside (`handoff: |`, list
   keys) is replaced whole or via `set`, never in part, and nothing goes
   below `## log` / `## comments`. Reproducible transcripts:
   `MESHWORK_ID_SEED=<n>` (deterministic ids), `MESHWORK_TODAY=YYYY-MM-DD`
@@ -121,7 +122,10 @@ legacy shell: gated per clone, lint warns `verify-shell`.
   '<id>'" --json`, `"rows":[[0]]`); an owner-gated hold on a hand-written
   dated marker, `contains <task-file> /2026-09-01 owner approved/` —
   date-first, so CLI stamps never match; an artifact task on `exists
-  <path>`, the verify naming the deliverable.
+  <path>`, the verify naming the deliverable — `all(exists <path>,
+  contains <path> …)` when an empty stub must not pass; the `exists` arm
+  tells lint the file is the work, so `verify-path-missing` stays quiet
+  until it appears.
 - A `contains` regex is grep-like: `^`/`$` anchor lines and `.` stops at
   a newline, so a two-phrase `.*` pattern misses a marker that wrapped.
   Prefer a one-line marker; a pattern that must span a wrap leads with
