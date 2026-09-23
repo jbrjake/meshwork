@@ -2,7 +2,7 @@
 
 This release connects the dots in a lot of stuff that's been around from the beginning of meshwork: its name and its dependencies.
 
-The mesh is much more tangible now, with full conversations between repos. Tasks you address to another repo now have a full lifecycle that gives both sides visibility without anyone sending any messages. When you address a task to another project, the other project creates a counterpart task on its side. Your task stays owed by that project until their counterpark finishes, answering it. Meanwhile, you can see that it's being answered and the status with a new `asks` verb that lists all of them.
+The mesh is much more tangible now, with full conversations between repos. Tasks you address to another repo now have a full lifecycle that gives both sides visibility without anyone sending any messages. When you address a task to another project, the other project creates a counterpart task on its side. Your task stays owed by that project until their counterpart finishes, answering it. Meanwhile, you can see that it's being answered and the status with a new `asks` verb that lists all of them.
 
 The other big new feature makes the reason meshwork relies on DataFusion a little more clear. Every query session now has a derived layer of thirteen views (ages, flow, close hazard, lanes, lineage, attention) that `stats` renders as tables and `prime` reads for its weather.
 
@@ -17,7 +17,7 @@ Beyond those two new tentpole features, the verification language grows the two 
 - Requests stay in the addressee's `prime` and `ready` until a task answering it is `done`. While the answer is merely open or in progress, the request reads `answered-by <gid> (<status>)`. A dropped answer resurrects the request.
 - Your own requests leave your `ready` and `next`. After all, now they're someone else's problem. Instead they're listed under an `asks out` line carrying the addressee, the age, and the answer's state. `show` on a request prints it too.
 - `asks` lists every inbound and outbound request, uncapped, with ages and answer states. `prime` and `ready` show the first few and name `asks` for the rest. As a convenience, typing `inbox` or `addressed` points you at it.
-- `prime`'s headline counts unanswered requests and the oldest one's age. A requewst past the triage age leads the next block.
+- `prime`'s headline counts unanswered requests and the oldest one's age.
 
 ## the derived layer, and `stats`
 
