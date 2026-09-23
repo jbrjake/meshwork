@@ -26,6 +26,11 @@ if [[ -f $PLUGIN ]]; then
   CV=$(grep -m1 '^version' Cargo.toml | sed 's/[^0-9.]//g')
   [[ $PV == "$CV" ]] || { echo "smoke: FAIL plugin.json version $PV != Cargo.toml $CV"; exit 1; }
 fi
+# README's pin example (`echo "vX.Y.Z" > .meshwork-version`) is stamped by
+# cut-release.sh like the manifest; it sat at v0.2.0 through three releases.
+RV=$(grep -m1 -E '^echo "v[0-9]+\.[0-9]+\.[0-9]+" > \.meshwork-version' README.md | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' | head -1 | sed 's/^v//')
+CV=$(grep -m1 '^version' Cargo.toml | sed 's/[^0-9.]//g')
+[[ $RV == "$CV" ]] || { echo "smoke: FAIL README pin example v$RV != Cargo.toml $CV"; exit 1; }
 
 cargo fmt --all -- --check >/dev/null 2>&1 || { echo "smoke: FAIL formatting (run: cargo fmt)"; exit 1; }
 

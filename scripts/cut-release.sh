@@ -28,13 +28,14 @@ NOTES="docs/release-notes/RELEASE-NOTES-$TAG.md"
 # Stamp every version the repo states, in lockstep with the tag.
 sed -i.bak -e "s/^version = \".*\"/version = \"$VER\"/" Cargo.toml
 sed -i.bak -e "s/\"version\": \".*\"/\"version\": \"$VER\"/" .claude-plugin/plugin.json
-rm -f Cargo.toml.bak .claude-plugin/plugin.json.bak
+sed -i.bak -E "s/^echo \"v[0-9]+\.[0-9]+\.[0-9]+\" > \.meshwork-version/echo \"$TAG\" > .meshwork-version/" README.md
+rm -f Cargo.toml.bak .claude-plugin/plugin.json.bak README.md.bak
 
 cargo build --quiet                                # refresh Cargo.lock
 MESHWORK_BLESS=1 cargo test --quiet >/dev/null 2>&1 # golden version stamps
 ./scripts/smoke.sh                                 # includes the lockstep guards
 
-git add Cargo.toml Cargo.lock .claude-plugin/plugin.json fixtures/golden
+git add Cargo.toml Cargo.lock .claude-plugin/plugin.json fixtures/golden README.md
 git commit -m "chore(release): $TAG — version stamps in lockstep (cut-release.sh)"
 git tag "$TAG"
 echo "cut-release: $TAG ready — next: git push origin main && git push origin $TAG"

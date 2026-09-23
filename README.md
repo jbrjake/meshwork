@@ -4,7 +4,7 @@
 
 An opinionated, minimalist todo list for clankers. Tasks get their own human-readable markdown files logged in git. There's a Rust CLI to manage them. There's no database: the CLI runs SQL queries directly against the markdown. And it can materialize them into a token-conscious session-start digest to keep agents on track.
 
-It's a mesh twice over: because tasks are modeled as a graph with edges to related tasks, and also because the git repos federate. A task in one project can depend on a task in another, and you can set up a portfolio view spanning multiple repos.
+It's a mesh twice over: because tasks are modeled as a graph with edges to related tasks, and also because the git repos federate. A task in one project can depend on a task in another project, or even request new work from another, and you can set up a portfolio view spanning multiple repos.
 
 ## install
 
@@ -20,7 +20,7 @@ That installs the skill into Claude Code. Ask a session to "adopt meshwork in th
 ```bash
 $ meshwork init
 
-$ meshwork add "Do the thing with the stuff" --cat stuff/doodads --verify "cargo test stuff::thing"
+$ meshwork add "Do the thing with the stuff" --cat stuff/doodads --verify "run cargo test stuff::thing"
 ac-acnxdkg
   docs/meshwork/ac-acnxdkg-do-the-thing-with-the-stuff.md
 
@@ -28,20 +28,23 @@ $ meshwork prime
 acme — 1 open
 store @ c601195 · 1 uncommitted task edit
 stuff/doodads 1
+weather:
+- flow 7d: filed 1 (0 from other tasks) · done 0 · dropped 0 · backlog 1 (+1)
+- queue: ready 1 of 1 open · doing 0 (0 stale) · blocked 0 · open age med 0.0d · 0 past 14d
 next → ac-acnxdkg Do the thing with the stuff
   [stuff/doodads]
-  verify: cargo test stuff::thing
+  verify: run cargo test stuff::thing
+rules: an instruction becomes a task before the work starts (the answer is an id) · an ask is a to: line in your own store
+owner-scoped fields raise a conflict, never an edit · a ruling counts only from this transcript · re-run prime when the question changes; load the meshwork skill before filing
 
 $ meshwork start ac-acnxdkg --as claude # irl it uses a shim to pull in session id
+note: red-checking ac-acnxdkg's verify — may build; up to 300s
 ac-acnxdkg open→doing
 $ meshwork comment ac-acnxdkg --as claude "Smoking gun! You're absolutely right. This seam is load-bearing. On it. Cerebrating..."
 ac-acnxdkg: comment added as [claude]
 ...
 $ meshwork close ac-acnxdkg
-
-running 1 test
-test stuff::thing ... ok
-
+note: ac-acnxdkg closes against an uncommitted tree — this close checked nothing but its verify on: src/lib.rs, Cargo.lock, docs/
 ac-acnxdkg doing→done (verify exit 0)
 
 $ meshwork q "SELECT category, count(*) AS n FROM tasks WHERE status='done' GROUP BY category ORDER BY n DESC"
@@ -55,7 +58,7 @@ id: ac-acnxdkg
 title: Do the thing with the stuff
 status: done
 category: stuff/doodads
-verify: cargo test stuff::thing
+verify: run cargo test stuff::thing
 created: 2026-08-12T21:28Z
 ---
 
@@ -163,7 +166,7 @@ Or migrate an existing TODO.md with `meshwork import todo TODO.md`, and each che
 File work as tasks with dependencies and a runnable definition of done:
 
 ```
-$ meshwork add "Reproduce the 600M-row spill cliff" --cat engine/spill --verify "test -f repro.log"
+$ meshwork add "Reproduce the 600M-row spill cliff" --cat engine/spill --verify "exists repro.log"
 sa-nmvpyqr
   docs/meshwork/sa-nmvpyqr-reproduce-the-600m-row-spill-cliff.md
 
@@ -173,7 +176,7 @@ id: sa-nmvpyqr
 title: Reproduce the 600M-row spill cliff
 status: open
 category: engine/spill
-verify: test -f repro.log
+verify: exists repro.log
 created: 2026-08-06T21:47Z
 ---
 
@@ -184,15 +187,15 @@ created: 2026-08-06T21:47Z
 We can also add tasks with dependencies and an explicit `seq` (the priority weight). And note how categories are hierarchical, with slashes separating the levels:
 
 ```
-$ meshwork add "Fix spill batch sizing" --cat engine/spill --needs sa-nmvpyqr --seq 10 --verify "cargo test spill::batch"
+$ meshwork add "Fix spill batch sizing" --cat engine/spill --needs sa-nmvpyqr --seq 10 --verify "run cargo test spill::batch"
 sa-38wd6se
   docs/meshwork/sa-38wd6se-fix-spill-batch-sizing.md
-$ meshwork add "Write the spill postmortem" --cat docs --verify "test -f docs/postmortem.md"
+$ meshwork add "Write the spill postmortem" --cat docs --verify "exists docs/postmortem.md"
 sa-jt7zg9w
   docs/meshwork/sa-jt7zg9w-write-the-spill-postmortem.md
 ```
 
-You can draft a task without `--verify`, but one's got to exist to start it, and the command has to succeed to complete it.
+You can draft a task without `--verify`, but one's got to exist in a failing state to start it, and it then has to pass to complete it. If it started already green you couldn't tell when the work is done, making it vacuous.
 
 #### batching
 
@@ -205,14 +208,14 @@ handle: bench
 title: Benchmark spill at 64k-1M batch sizes
 category: engine/spill
 needs: [sa-38wd6se]
-verify: test -f bench/spill.csv
+verify: exists bench/spill.csv
 ---
 Numbers before and after the sizing fix.
 ---
 title: Tune the governor wakeup default
 category: engine/governor
 needs: [@bench]
-verify: cargo test governor::wakeup_default
+verify: run cargo test governor::wakeup_default
 ---
 EOF
 sa-bbds8pt
@@ -243,7 +246,15 @@ The blocked tasks don't appear, and you can ask why:
 ```
 $ meshwork why sa-38wd6se
 sa-38wd6se blocked by 1:
-- sa-nmvpyqr (open) — verify: test -f repro.log
+- sa-nmvpyqr (open) — verify: exists repro.log
+```
+
+`lint` is aware of the task graph. That fix is ranked `seq: 10`, but depends on another task that isn't ranked, so it lets you know you're deadlocked:
+
+```
+$ meshwork lint
+warning[needs-behind] sa-nmvpyqr: unranked, behind sa-38wd6se at seq 10 which needs it — report only; the fix is a rank for this one or a park for that one, and only the owner knows which
+0 error(s), 1 warning(s)
 ```
 
 ### closing tasks
@@ -252,7 +263,7 @@ meshwork tries to prevent closing tasks without doing the work:
 
 ```
 $ meshwork close sa-jt7zg9w
-meshwork: sa-jt7zg9w stays open: verify exit 1 (`test -f docs/postmortem.md`)
+meshwork: sa-jt7zg9w stays open: verify failed — exists docs/postmortem.md: no such path
 ```
 
 As you can see, there are limits to enforcement. An agent absolutely will just touch the file to hit that requirement. meshwork isn't guaranteeing anything more than that the provided validation passes.
@@ -269,19 +280,26 @@ A verify field that leads with a DSL keyword is parsed as a predicate instead of
 
 ```
 verify: exists bench/spill.csv
+verify: exists bench/spill-*.csv
 verify: absent src/legacy_parser.rs
-verify: contains CHANGELOG.md /^## v0\.4/
+verify: contains CHANGELOG.md /^## v0\.5/
+verify: lacks src/lib.rs legacy_parser
 verify: run cargo test spill::batch
+verify: run cargo test package=engine target=spill batch
 verify: all(exists bench/spill.csv, run cargo test spill::batch)
 ```
 
-`exists`, `absent`, and `contains` (literal or `/regex/`) evaluate natively. No process runs, and there's nothing to approve, because they're just reads. `run` executes a real command, but not through a shell: the arguments are validated against a very restricted per-runner grammar (today `cargo test`, `cargo build`, `cargo fmt`) and spawned directly as an argument list, so shell metacharacters are just characters that fail to parse. Paths are repo-relative and can't traverse out.
+`exists`, `absent`, `contains` (literal or `/regex/`, anchored per line like grep) and `lacks` (the inverse of `contains`) evaluate natively. No process runs, and there's nothing to approve, because they're just reads.
+
+`run` executes a real command, but not through a shell: the arguments are validated against a very restricted per-runner grammar (today `cargo test`, `cargo build`, and `cargo fmt`) and spawned directly as an argument list, so shell metacharacters are just characters that fail to parse. No argument may lead with a dash. That means, rustaceans, that `package=<crate>` and `target=<name>` are how you spell `-p` and `--test`.
+
+Nothing an author types ever becomes a flag. Paths are repo-relative and can't traverse out.
 
 Because there's no shell to smuggle anything through, DSL verifies generally skip the approval ceremony below that shell execution uses. `run` stays approval-free only under certain conditions. If any commit ever delivered the task file alongside code or any other changes outside the meshwork tasks directory, it has to be approved like shell does. Tasks never vouch for code that arrived with them.
 
 `run cargo test` also closes a classic hole: `cargo test` exits 0 when a filter matches nothing, so the DSL demands an observed `ok. N passed` with N ≥ 1 before it counts as green. A filter that matches zero tests can never close a task.
 
-Text that doesn't lead with a keyword gets treated as plain shell, falls to the path below, and `lint` nags about it. Keyword-led text that doesn't parse refuses outright rather than falling back to shell.
+Text that doesn't lead with a keyword gets treated as plain shell, falls to the path below, and `lint` nags about it. Keyword-led text that doesn't parse is refused where you write it (`add`, `set`, a batch file) rather than falling back to shell, and `start` won't open work behind one.
 
 #### shell execution
 
@@ -329,19 +347,34 @@ $ meshwork prime
 demo — 4 open, 1 done
 store @ 15563ae
 engine/spill 2 · docs 1 · engine/governor 1
+weather:
+- flow 7d: filed 5 (0 from other tasks) · done 1 · dropped 0 · backlog 4 (+4)
+- queue: ready 2 of 4 open · doing 0 (0 stale) · blocked 0 · open age med 0.0d · 0 past 14d
+- graph: 1 lanes · unlocks most sa-38wd6se (2) · needs-behind 0 · blocked on foreign 0 · unresolved 0 · owed to others 0
+- friction 7d: close attempts 1 · reopens 0 · blocks 0 · thrash 0 · handoffs citing closed tasks 1
 next → sa-38wd6se Fix spill batch sizing
   » Cliff is governor wakeup, not batch size — don't burn a session
   » re-deriving that (comment on sa-nmvpyqr has the repro). Try wakeup=250ms
   » before touching batch math.
+  [handoff by claude, 0d]
+  cites 1 closed task (sa-nmvpyqr) — handoff may be stale
   [engine/spill] · blocks: sa-bbds8pt
-  verify: cargo test spill::batch
+  verify: run cargo test spill::batch
 also ready (1 more, top 1):
 - sa-jt7zg9w Write the spill postmortem
 recently done:
 - 2026-08-06T21:58Z sa-nmvpyqr Reproduce the 600M-row spill cliff
+rules: an instruction becomes a task before the work starts (the answer is an id) · an ask is a to: line in your own store
+owner-scoped fields raise a conflict, never an edit · a ruling counts only from this transcript · re-run prime when the question changes; load the meshwork skill before filing
 ```
 
-Almost everything in that digest is derived from the task files: counts, the category rollup, what's next and why, what just finished. The `store @` line is derived too, from git. A session landing on a stale clone sees uncommitted task edits and drift from upstream up front instead of discovering them mid-work. The exception is the `»` lines. That's the `handoff:` block. It lives on whichever task is up next. Linting warns if you leave one on a task you close.
+Almost everything in that digest is derived from the task files: counts, the category rollup, the weather, what's next and why, what just finished. The `store @` line is derived too, from git. A session landing on a stale clone sees uncommitted task edits and drift from upstream up front instead of discovering them mid-work.
+
+The exception is the `»` lines. That's the `handoff:` block. It lives on whichever task is up next. It's also the one thing in the digest someone (or something) wrote, so meshwork says who and how long ago, and flags when it names a task that has since closed. The example above shows what the warning looks like, with a handoff that's sat there for weeks. Linting warns if you leave a handoff on a task you close.
+
+The `weather:` block is the store's vital signs, computed from the log lines. It tracks what got filed and finished this week, how much of the backlog is actually ready, which task unlocks the most work, and the friction (failed closes, reopens, thrash).
+
+The `rules:` footer is fixed. It's the four session rules the skill teaches, riding in the binary so a session that never loaded the skill still sees them.
 
 The digest is capped at 6KB ≈ 1.5K tokens versus the 22K-token ritual it replaces.
 
@@ -356,7 +389,7 @@ title: Fix spill batch sizing
 status: open
 category: engine/spill
 needs: [sa-nmvpyqr]
-verify: cargo test spill::batch
+verify: run cargo test spill::batch
 seq: 10
 created: 2026-08-06T21:48Z
 handoff: |
@@ -367,9 +400,12 @@ handoff: |
 
 ## log
 - 2026-08-06T21:48Z created
+- 2026-08-06T21:59Z handoff by claude
 ```
 
-Hand-editing is legal and expected but never necessary. Fields can all be set by the CLI with `meshwork add` at creation and `meshwork set <id>` after. `meshwork lint` validates them (schema, cycles, dangling edges, post-merge damage), and `meshwork lint --fix` repairs what it can. A file that fails to parse isn't dropped. It shows up as an `invalid` row in every listing until someone fixes it.
+Hand-editing is legal and expected but never necessary. Fields can all be set by the CLI with `meshwork add` at creation and `meshwork set <id>` after.
+
+`meshwork lint` validates fields (schema, cycles, dangling edges, post-merge damage), and `meshwork lint --fix` repairs what it can. Since it sees the whole graph, it also flags what no single file can show: the `needs-behind` above, a handoff that cites closed work, two live tasks on one `seq`, or a verify that reads a file the tree doesn't have. Bulk findings fold to one line each in the text report, and `--explain <code>` unfolds them. A file that fails to parse isn't dropped. It shows up as an `invalid` row in every listing until someone fixes it.
 
 The format has a spec, [FORMAT.md](FORMAT.md), that's versioned and self-contained. Anyone can implement against it without having to use this project's code.
 
@@ -392,15 +428,107 @@ docs | 1
 (3 rows)
 ```
 
-The `## log` lines are a table too, with every status transition timestamped, so that includes questions like 'how long have tasks been blocked?' and 'how long do tasks take to complete?'
+The `## log` lines are a table too, with every status transition timestamped. On top of the six raw tables sits a derived layer of thirteen views that's computed from the files on every query. `spans` is a row per stint in a state, so 'how long was that blocked?' is a `SELECT`. `facts` is a row per task with its queue, service and cycle hours. `graph` knows the structure:
+
+```
+$ meshwork q "SELECT id, unlock, depth FROM graph WHERE unlock > 0 ORDER BY unlock DESC"
+id | unlock | depth
+sa-38wd6se | 2 | 2
+sa-bbds8pt | 1 | 1
+(2 rows)
+```
+
+`unlock` is how many live tasks transitively wait on that one, which is what prime's `unlocks most` reads.
+
+`stats` renders the whole layer as a report: the weekly flow, a close-hazard table saying what fraction of tasks survive each day unclosed, spans by state, the lanes of connected work, and the ten tasks the rest of the store points at most. `prime`'s weather is the same numbers boiled down to a handful of lines. The views are specified in [FORMAT.md](FORMAT.md) next to the file format and pinned by a conformance corpus, so a third-party reader can implement them. `q --help` lists every table and view with its columns.
 
 The CLI also has a `--json` output flag for scripts and agents.
+
+## pin tasks to the spec they implement
+
+A task that cites the paragraph of a specification it implements introduces a problem. How can meshwork know if the spec changes? If you end a spec doc's headings with `{#sp-<slug>}`, the content in them can be treated as clauses with stable ids. `cover` pins the clause to a task, recording a hash of the text under the heading as it reads right now. The claim is "I implement this clause as it read when I said so":
+
+```
+$ cat > docs/SPEC.md <<'EOF'
+## Spill batches {#sp-spill-batch}
+Spill batches are 64k rows.
+EOF
+$ meshwork cover sa-38wd6se docs/SPEC.md#sp-spill-batch # cited as written
+sa-38wd6se covers docs/SPEC.md#sp-spill-batch @cb5d4612ef80
+$ cat > docs/SPEC.md <<'EOF'
+## Spill batches {#sp-spill-batch}
+Spill batches are 256k rows. # uh-oh, requirements change!
+EOF
+$ meshwork spec audit docs/SPEC.md # but meshwork can see the hash is stale
+docs/SPEC.md: 1 clauses, 1 pins across 1 tasks
+unclaimed (0): none
+orphaned (0): none
+stale (1): demo#sa-38wd6se docs/SPEC.md#sp-spill-batch pinned cb5d4612ef80 now 0a039a15846c
+re-open candidates (0): none
+dangling (0): none
+$ meshwork cover sa-38wd6se --repin # and once it's fixed, a clean repin
+sa-38wd6se covers docs/SPEC.md#sp-spill-batch @0a039a15846c
+```
+
+Nothing re-pins itself. It has to happen intentionally, hopefully after the task has been reimplemented to match the doc. The audit's other four rows are also traceability questions: spec clauses nobody covers, clauses only covered by dropped tasks, done tasks whose clause changed after they closed (surfaced as re-open candidates), and pins whose clause is gone. A clause ref can cross repos the same way a `docs:` link does.
 
 ## in a decentralized, federated mesh
 
 Every repo keeps its own store, and one repo's queue doesn't care about another's...until it does. You can always express interdependencies as `project_name#task_id`.
 
-With a lightweight [portfolio](docs/portfolios.md) (it's just a tiny git repo holding a `repos.toml`), meshwork can span locally cloned git repos. It can prioritize what work is ready across all of them, tracing blocking interdependencies. And you can query all your projects' tasks together with one SQL statement. The `remote` each repo lists there is identity, not a fetch target — the portfolio reads local checkouts only and never clones.
+With a lightweight [portfolio](docs/portfolios.md) (it's just a tiny git repo holding a `repos.toml`), meshwork can span locally cloned git repos. It can prioritize what work is ready across all of them, tracing blocking interdependencies. And you can query all your projects' tasks together with one SQL statement, views included. `portfolio stats` and `portfolio search` run the report and the text search over every store the same way. The the portfolio reads local checkouts only and never clones.
+
+### that generates its own work
+
+Dependencies points at work the other repo has already filed. meshwork projects can also ask for new work from other projects.
+
+`--to <repo>` addresses a task to another project. nothing gets sent: the task stays in your store and surfaces in theirs through the porfolio querying all the local meshwork stores.
+
+Let's say the spill fix needs the governor library to expose its wakeup interval:
+
+```
+$ meshwork add "Expose the wakeup interval as a config knob" --to governor --verify "contains config/engine.toml wakeup_ms"
+sa-z1ecwc8
+  docs/meshwork/sa-z1ecwc8-expose-the-wakeup-interval-as-a-config-knob.md
+$ meshwork ready
+sa-38wd6se  Fix spill batch sizing
+sa-jt7zg9w  Write the spill postmortem
+asks out (1):
+sa-z1ecwc8  → governor  Expose the wakeup interval as a config knob  (0d)
+```
+
+Now it's out of your queue. It's the governor's problem now, and so it's listed under `asks out` with its age instead. The governor's clone finds it through the portfolio registry and shows it as addressed. It can take on the request by filing a task that answers it:
+
+```
+$ cd ../governor
+$ meshwork ready
+nothing ready
+addressed to this repo (1):
+demo#sa-z1ecwc8  Expose the wakeup interval as a config knob  (0d)
+$ meshwork add "Expose the wakeup interval as a config knob" --cat api --answers demo#sa-z1ecwc8 --verify "contains src/config.rs wakeup_ms"
+go-k9eeq4e
+  docs/meshwork/go-k9eeq4e-expose-the-wakeup-interval-as-a-config-knob.md
+$ meshwork ready
+go-k9eeq4e  Expose the wakeup interval as a config knob
+addressed to this repo (1):
+demo#sa-z1ecwc8  Expose the wakeup interval as a config knob  (0d)  answered-by governor#go-k9eeq4e (open)
+```
+
+An open answer is an intent, not an answer. The request stays addressed until the task answering it is done, and comes back undone if that task gets dropped:
+
+```
+$ mkdir -p src && echo 'pub wakeup_ms: u64,' > src/config.rs   # stand-in for the work
+$ meshwork close go-k9eeq4e
+go-k9eeq4e open→done (verify exit 0)
+$ cd ../demo
+$ meshwork asks
+asks in (0):
+  (none)
+asks out (1):
+  sa-z1ecwc8  → governor  Expose the wakeup interval as a config knob  (0d)  answered-by governor#go-k9eeq4e (done)
+```
+
+Both sides watched that happen and nobody sent a message. `asks` is the whole inbox in both directions. `prime` and `ready` show the first few and name it for the rest. `prime`'s headline counts unanswered asks and the oldest one's age.
 
 ## boundaries
 
@@ -417,7 +545,7 @@ Releases are darwin arm64, linux (arm64/x86_64), and windows x86_64.
 Each consuming repo pins its own version:
 
 ```bash
-echo "v0.2.0" > .meshwork-version     # commit this
+echo "v0.4.0" > .meshwork-version     # commit this
 
 VER=$(cat .meshwork-version)
 DEST=~/.meshwork/versions/$VER

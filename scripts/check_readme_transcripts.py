@@ -11,7 +11,7 @@ git anchors are normalized on both sides. The first divergence is
 reported by README line number. A line that is exactly `...` is an
 elision marker, matched against nothing.
 
-Two stores, mirroring the README's two narratives:
+Three stores, mirroring the README's narratives:
 - fence 1 (quick-start): repo `acme`, a cargo lib whose `stuff::thing`
   test is staged red and fixed at the `...` elision — `start` red-checks
   verifies, so green-at-start staging would add a warning line the
@@ -19,12 +19,18 @@ Two stores, mirroring the README's two narratives:
 - fences 2+: repo `demo`, id alias set to `sa` before the first add
   (init derives `de` from the dir name); the tree is committed before
   each `prime`, whose pasted digest shows a clean store line.
+- `governor`, alias `go`, the sibling the README's ask is addressed to.
+  A command that is exactly `cd ../<name>` switches the store every later
+  command runs in, until the next such line. Both siblings are registered
+  in a scratch portfolio, so the inbound side of an ask resolves.
 
-Each command runs under a `MESHWORK_TODAY` stamp one minute after the
-last: `ready` orders by (seq, created) with no further tiebreaker, so
-same-minute created stamps would leave tied rows to engine luck — the
-README's row order encodes add order, and a distinct minute per command
-pins exactly that.
+`MESHWORK_AUTHOR` is `claude`, standing in for the session shim the README
+says supplies the author, so authored lines (`handoff by …`) read as the
+README's world does. Each command runs under a `MESHWORK_TODAY` stamp one
+minute after the last: `ready` orders by (seq, created) with no further
+tiebreaker, so same-minute created stamps would leave tied rows to engine
+luck — the README's row order encodes add order, and a distinct minute per
+command pins exactly that.
 """
 
 import os
@@ -163,19 +169,39 @@ def stage_acme(tmp):
     return AcmeStore(repo)
 
 
-def stage_demo(tmp, env):
-    repo = init_scratch_repo(tmp, "demo")
+def stage_store(tmp, env, name, alias):
+    """A workflow scratch: `meshwork init`, the id alias pinned, committed."""
+    repo = init_scratch_repo(tmp, name)
     subprocess.run(
         [os.environ["MESHWORK_BIN"], "init"], cwd=repo, env=env, check=True,
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
     config = repo / "docs" / "meshwork" / "config.toml"
     text = config.read_text()
-    assert 'alias = "de"' in text, f"init minted an unexpected alias:\n{text}"
-    config.write_text(text.replace('alias = "de"', 'alias = "sa"'))
+    minted = f'alias = "{name[:2]}"'
+    assert minted in text, f"init minted an unexpected alias:\n{text}"
+    config.write_text(text.replace(minted, f'alias = "{alias}"'))
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "scaffold")
     return DemoStore(repo)
+
+
+SIBLINGS = {"demo": "sa", "governor": "go"}
+CD_SIBLING = re.compile(r"cd \.\./(\w+)")
+
+
+def stage_portfolio(tmp):
+    """A registry naming every sibling, checkouts pointed into the tempdir."""
+    portfolio = tmp / "portfolio"
+    portfolio.mkdir()
+    (portfolio / "repos.toml").write_text("".join(
+        f'[[repo]]\nname = "{name}"\nremote = "git@github.com:example/{name}.git"\n\n'
+        for name in SIBLINGS
+    ))
+    (portfolio / "repos.local.toml").write_text("[paths]\n" + "".join(
+        f'{name} = "{tmp / name}"\n' for name in SIBLINGS
+    ))
+    return portfolio
 
 
 def minute_clock(start="2026-08-06T21:00Z"):
@@ -195,9 +221,8 @@ def build_env(tmp):
     bindir.mkdir()
     (bindir / "meshwork").symlink_to(os.environ["MESHWORK_BIN"])
     env["PATH"] = f"{bindir}:{env.get('PATH', '')}"
-    portfolio = tmp / "no-portfolio"  # empty: no registry, quiet skip
-    portfolio.mkdir()
-    env["MESHWORK_PORTFOLIO"] = str(portfolio)
+    env["MESHWORK_PORTFOLIO"] = str(stage_portfolio(tmp))
+    env["MESHWORK_AUTHOR"] = "claude"  # the session shim's job, in the README's world
     return env
 
 
@@ -246,13 +271,17 @@ def main():
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
         env = build_env(tmp)
-        acme, demo = stage_acme(tmp), stage_demo(tmp, env)
+        acme = stage_acme(tmp)
+        siblings = {name: stage_store(tmp, env, name, alias) for name, alias in SIBLINGS.items()}
+        sibling = siblings["demo"]
         id_map, ncmds, clock = {}, 0, minute_clock()
 
         for idx, fence in enumerate(fences):
-            store = acme if idx == 0 else demo
             for seg in split_segments(fence):
                 script = apply_map(id_map, seg.script)
+                if idx > 0 and (cd := CD_SIBLING.fullmatch(script.strip())):
+                    sibling = siblings[cd.group(1)]
+                store = acme if idx == 0 else sibling
                 store.pre_command(script)
                 env["MESHWORK_TODAY"] = next(clock)
                 proc = subprocess.run(
