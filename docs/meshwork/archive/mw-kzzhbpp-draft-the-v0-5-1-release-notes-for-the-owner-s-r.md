@@ -7,7 +7,7 @@ needs: [mw-x82yqq3, mw-4ccvmff, mw-qf0bsb6]
 docs:
   - docs/release-notes/TEMPLATE.md
 verify: all(exists docs/release-notes/RELEASE-NOTES-v0.5.1.md, contains docs/release-notes/RELEASE-NOTES-v0.5.1.md /^# meshwork v0.5.1/)
-status: open
+status: done
 created: 2026-09-23T18:32Z
 ---
 `docs/release-notes/RELEASE-NOTES-v0.5.1.md` on the TEMPLATE shape: a point release,
@@ -19,3 +19,4 @@ the first fix lands.
 
 ## log
 - 2026-09-23T18:32Z created
+- 2026-09-23T18:43Z open→done — verify exit 0 @ d2f9543+7

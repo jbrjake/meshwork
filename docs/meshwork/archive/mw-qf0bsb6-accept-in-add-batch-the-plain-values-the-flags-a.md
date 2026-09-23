@@ -7,7 +7,7 @@ docs:
   - docs/DESIGN-meshwork.md#§-6-cli-surface
   - src/cli/add_batch.rs
 verify: run cargo test e2e::batch_plain_scalars_quoted_like_add
-status: open
+status: done
 created: 2026-09-23T18:32Z
 ---
 Three sazed batches in two days refused with `mapping values are not allowed in this
@@ -30,3 +30,5 @@ Docs in the same commit: DESIGN §6 `add --batch` row, SKILL.md authoring bullet
 
 ## log
 - 2026-09-23T18:32Z created
+- 2026-09-23T18:37Z open→doing — claimed by claude (c86c9e3d-7fc8-4611-b368-47218aec1288)
+- 2026-09-23T18:43Z doing→done — verify exit 0 @ d2f9543+6

@@ -8,7 +8,7 @@ docs:
   - docs/DESIGN-meshwork.md#§-6-cli-surface
   - src/lint_verify.rs
 verify: run cargo test lint::verify_path_missing_honors_exists_arm
-status: open
+status: done
 created: 2026-09-23T18:32Z
 ---
 sazed's first session on v0.5.0 counted `verify-path-missing` firing on 14 live tasks, and
@@ -29,3 +29,5 @@ verifies bullet (the artifact-task shape gains the content arm beside the `exist
 
 ## log
 - 2026-09-23T18:32Z created
+- 2026-09-23T18:32Z open→doing — claimed by claude (c86c9e3d-7fc8-4611-b368-47218aec1288)
+- 2026-09-23T18:43Z doing→done — verify exit 0 @ d2f9543+4

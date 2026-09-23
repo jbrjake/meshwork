@@ -7,7 +7,7 @@ docs:
   - docs/DESIGN-meshwork.md#§-6-cli-surface
   - src/cli/lint.rs
 verify: run cargo test e2e::lint_explain_one_code
-status: open
+status: done
 created: 2026-09-23T18:32Z
 ---
 Observed in sazed (v0.5.0): `lint --explain needs-behind | head -20` printed the first
@@ -25,3 +25,5 @@ Docs in the same commit: DESIGN §6 `lint` row, SKILL.md session-ritual line on 
 
 ## log
 - 2026-09-23T18:32Z created
+- 2026-09-23T18:34Z open→doing — claimed by claude (c86c9e3d-7fc8-4611-b368-47218aec1288)
+- 2026-09-23T18:43Z doing→done — verify exit 0 @ d2f9543+5
