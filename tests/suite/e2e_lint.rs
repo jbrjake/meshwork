@@ -364,3 +364,53 @@ fn lint_explain_prints_rationale() {
     let plain = stdout_of(&meshwork(&repo).arg("lint").assert().success());
     assert!(plain.contains("[verify-self-satisfying]"), "{plain}");
 }
+
+/// mw-4ccvmff: `--explain <code>` is that code's report — its rows alone,
+/// the heuristic's note first when it has one, a count that still says how
+/// the whole store fared. Before, a code with neither a fold nor a note was
+/// ignored and the whole report printed unchanged, so `--explain
+/// needs-behind | head` showed twenty rows of everything else. A code with
+/// no rows says so and lists the codes the report does carry.
+#[test]
+fn lint_explain_one_code() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    for i in 0..3 {
+        add_id(&repo, &["add", &format!("Legacy {i}"), "--verify", "cargo test --lib"]);
+    }
+    let gone = add_id(&repo, &["add", "Reads a file that is not there", "--verify", "contains docs/GONE.md shipped"]);
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["lint", "--explain", "verify-path-missing"])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains(&format!("[verify-path-missing] {gone}")), "{out}");
+    assert!(!out.contains("[verify-shell]"), "other codes stay out: {out}");
+    assert!(!out.contains("legacy shell verifies \u{2014}"), "no fold line either: {out}");
+    assert!(
+        out.lines().any(|l| l.starts_with("1 verify-path-missing finding \u{2014} ") && l.ends_with(" in all")),
+        "the count names the code and the whole store: {out}"
+    );
+
+    let shell = stdout_of(
+        &meshwork(&repo)
+            .args(["lint", "--explain", "verify-shell"])
+            .assert()
+            .success(),
+    );
+    assert_eq!(shell.matches("[verify-shell]").count(), 3, "{shell}");
+    assert!(!shell.contains("[verify-path-missing]"), "{shell}");
+
+    let none = stdout_of(
+        &meshwork(&repo)
+            .args(["lint", "--explain", "needs-behind"])
+            .assert()
+            .success(),
+    );
+    assert!(none.contains("no needs-behind findings"), "{none}");
+    assert!(none.contains("codes in this report:"), "{none}");
+    assert!(none.contains("verify-path-missing") && none.contains("verify-shell"), "{none}");
+    assert!(!none.contains("[verify-shell]"), "rows of other codes stay out: {none}");
+}

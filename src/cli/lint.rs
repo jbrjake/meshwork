@@ -8,7 +8,7 @@
 use crate::archive::Located;
 use crate::edit::{append_section_entry, set_scalar};
 use crate::id::{mint_unique, IdGen};
-use crate::lint::{lint_store, Severity};
+use crate::lint::{lint_store, Finding, Severity};
 use crate::parse::{ParsedTask, Status};
 use crate::store::{load_repo, RepoStore};
 use std::path::Path;
@@ -18,8 +18,8 @@ pub(crate) struct LintArgs {
     /// Repair union-poisoned duplicate keys and re-slug duplicate IDs.
     #[arg(long)]
     fix: bool,
-    /// Print every row of a folded finding (verify-shell, implicit-edge),
-    /// or what a heuristic finding judges and cannot know.
+    /// One code's report: its rows alone (a folded code such as verify-shell
+    /// unfolded, a heuristic's note first) and the store's totals.
     #[arg(long, value_name = "code")]
     explain: Option<String>,
 }
@@ -132,30 +132,16 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
             "lint",
             &serde_json::json!({ "errors": errors, "warnings": warnings, "findings": list }),
         );
+    } else if let Some(code) = args.explain.as_deref() {
+        explain_report(&findings, code, errors, warnings);
     } else {
         // The legacy-shell rows fold (mw-4n00yte): 274 identical lines
         // on the busiest store buried every other signal.
-        if let Some((code, what)) = EXPLAINED
-            .iter()
-            .find(|(c, _)| args.explain.as_deref() == Some(c))
-        {
-            println!("{code}: {what}\n");
-        }
-        let folds = |code: &str| {
-            FOLDED
-                .iter()
-                .any(|(c, _, _)| *c == code && args.explain.as_deref() != Some(code))
-        };
+        let folds = |code: &str| FOLDED.iter().any(|(c, _, _)| *c == code);
         for f in findings.iter().filter(|f| !folds(&f.code)) {
-            println!(
-                "{}[{}] {}: {}",
-                f.severity.as_str(),
-                f.code,
-                crate::cli::sanitize(&f.subject),
-                crate::cli::sanitize(&f.message)
-            );
+            print_row(f);
         }
-        for (code, one, many) in FOLDED.iter().filter(|(c, _, _)| folds(c)) {
+        for (code, one, many) in FOLDED {
             let n = findings.iter().filter(|f| f.code == *code).count();
             if n > 0 {
                 let noun = if n == 1 { one } else { many };
@@ -169,6 +155,53 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
     } else {
         Ok(())
     }
+}
+
+fn print_row(f: &Finding) {
+    println!(
+        "{}[{}] {}: {}",
+        f.severity.as_str(),
+        f.code,
+        crate::cli::sanitize(&f.subject),
+        crate::cli::sanitize(&f.message)
+    );
+}
+
+/// `--explain <code>` is one code's report (mw-4ccvmff): the heuristic's
+/// note first when it has one, then that code's rows alone — a folded
+/// code unfolds here — then a count that still says how the whole store
+/// fared. No rows: say so and name the codes the report does carry, so a
+/// mistyped code is never a blank screen or, as before, the whole report
+/// printed unchanged.
+fn explain_report(findings: &[Finding], code: &str, errors: usize, warnings: usize) {
+    let code = crate::cli::sanitize(code);
+    if let Some((_, what)) = EXPLAINED.iter().find(|(c, _)| *c == code) {
+        println!("{code}: {what}\n");
+    }
+    let rows: Vec<&Finding> = findings.iter().filter(|f| f.code == code).collect();
+    if rows.is_empty() {
+        let mut codes: Vec<&str> = findings.iter().map(|f| f.code.as_str()).collect();
+        codes.sort_unstable();
+        codes.dedup();
+        let list = if codes.is_empty() {
+            "none".to_string()
+        } else {
+            codes.join(", ")
+        };
+        println!("no {code} findings; codes in this report: {list}");
+    }
+    for f in &rows {
+        print_row(f);
+    }
+    let noun = if rows.len() == 1 {
+        "finding"
+    } else {
+        "findings"
+    };
+    println!(
+        "{} {code} {noun} \u{2014} {errors} error(s), {warnings} warning(s) in all",
+        rows.len()
+    );
 }
 
 /// Relocate parser-ignored tail content above the tail sections
