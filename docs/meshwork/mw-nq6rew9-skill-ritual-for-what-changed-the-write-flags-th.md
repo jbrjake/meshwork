@@ -2,7 +2,7 @@
 id: mw-nq6rew9
 title: Skill ritual for what changed — the write flags, the DSL tokens, tiers as bands, the asks verb
 category: skill
-needs: [mw-vwdm3ed, mw-ps4fzn2, mw-ex5x0y2]
+needs: [mw-vwdm3ed, mw-ps4fzn2]
 seq: 710
 verify: contains .claude/skills/meshwork/SKILL.md /express tiers as bands/
 docs:
