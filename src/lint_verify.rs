@@ -96,19 +96,33 @@ pub(crate) fn check(store: &RepoStore, valid: &[&Task], out: &mut Vec<Finding>) 
 /// tree — a `contains <path>` predicate, or a plain legacy `grep … <path>`
 /// with no shell plumbing. Such a task can never close and looks like
 /// unfinished work. `exists` is excluded by definition (an absent
-/// artifact is that verify's red state); a path that escapes the repo is
+/// artifact is that verify's red state), and an `exists` arm in the same
+/// verify declares its path a deliverable (mw-x82yqq3): a `contains` or
+/// `lacks` on that path is the content check on the work — an empty stub
+/// must not pass — not a read of a file that moved, so it stays quiet
+/// until the file appears. A path that escapes the repo is
 /// `path-escape`'s finding, not this one.
 fn missing_read_path(root: &std::path::Path, v: &str, classified: &Classified) -> Option<String> {
     let paths: Vec<String> = match classified {
-        Classified::Dsl(preds) => preds
-            .iter()
-            .filter_map(|p| match p {
-                Predicate::Contains { path, .. } | Predicate::Lacks { path, .. } => {
-                    Some(path.clone())
-                }
-                _ => None,
-            })
-            .collect(),
+        Classified::Dsl(preds) => {
+            let declared: Vec<&str> = preds
+                .iter()
+                .filter_map(|p| match p {
+                    Predicate::Exists { path } => Some(path.as_str()),
+                    _ => None,
+                })
+                .collect();
+            preds
+                .iter()
+                .filter_map(|p| match p {
+                    Predicate::Contains { path, .. } | Predicate::Lacks { path, .. } => {
+                        Some(path.clone())
+                    }
+                    _ => None,
+                })
+                .filter(|p| !declared.iter().any(|d| declares(d, p)))
+                .collect()
+        }
         Classified::LegacyShell => legacy_grep_path(v).into_iter().collect(),
         Classified::Malformed(_) => Vec::new(),
     };
@@ -117,6 +131,25 @@ fn missing_read_path(root: &std::path::Path, v: &str, classified: &Classified) -
             .ok()
             .is_some_and(|abs| !abs.exists())
     })
+}
+
+/// Whether an `exists` arm's path names `read`: the same path, or — for
+/// the one `*` the grammar allows in the last segment — the same parent
+/// with the literal prefix and suffix around the star, exactly as the
+/// executor matches it.
+fn declares(exists: &str, read: &str) -> bool {
+    if exists == read {
+        return true;
+    }
+    let (dir, name) = exists.rsplit_once('/').unwrap_or((".", exists));
+    let (read_dir, read_name) = read.rsplit_once('/').unwrap_or((".", read));
+    let Some((prefix, suffix)) = name.split_once('*') else {
+        return false;
+    };
+    dir == read_dir
+        && read_name.len() >= prefix.len() + suffix.len()
+        && read_name.starts_with(prefix)
+        && read_name.ends_with(suffix)
 }
 
 /// mw-xb9prd6: the pattern a verify looks for in the task's own file,

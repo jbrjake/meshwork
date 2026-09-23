@@ -731,3 +731,4 @@ fn verify_path_missing() {
 
 include!("lint_channel.rs");
 include!("lint_covers.rs");
+include!("lint_verify_paths.rs");
