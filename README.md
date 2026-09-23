@@ -545,7 +545,7 @@ Releases are darwin arm64, linux (arm64/x86_64), and windows x86_64.
 Each consuming repo pins its own version:
 
 ```bash
-echo "v0.4.0" > .meshwork-version     # commit this
+echo "v0.5.0" > .meshwork-version     # commit this
 
 VER=$(cat .meshwork-version)
 DEST=~/.meshwork/versions/$VER
