@@ -117,7 +117,7 @@ One repo's CLAUDE.md proudly declared its worklist was "131 lines." It was 38KB.
 
 *Measured after both repos migrated to meshwork (Project A 2026-08-07, Project B 2026-08-10). Each table shows a repo's last 10 sessions before meshwork vs its working sessions after migrating.*
 
-Every turn repeats the entire conversation, so the first things in context get repeated the most. Project A's pre-migration sessions opened by reading ~28K tokens of TODO.md + HANDOFF.md. Reran on all 153 following requests, that read compounds to ~4M tokens. And that's before you account for all the TODO and HANDOFF edits the agent makes during the session. Altogether it's 4.19M tokens.
+Every turn repeats the entire conversation, so the first things in context get repeated the most. Project A's pre-migration sessions opened by reading ~28K tokens of TODO.md + HANDOFF.md. Rerun on all 153 following requests, that read compounds to ~4M tokens. And that's before you account for all the TODO and HANDOFF edits the agent makes during the session. Altogether it's 4.19M tokens.
 
 Four million accrued busywork tokens across turns is a drop in the bucket for any serious coding session. This isn't about cost savings. It's about the time lost to all those turns while the agent thrashes against a todo list in markdown, and the lost focus of bringing extraneous content into the context window. Interestingly, after migration to meshwork, sessions seem to work more efficiently. Project A sessions carry 90K → 113K real work tokens/session and run ~28% longer (154 → 197 useful requests/session).
 
@@ -370,11 +370,11 @@ owner-scoped fields raise a conflict, never an edit · a ruling counts only from
 
 Almost everything in that digest is derived from the task files: counts, the category rollup, the weather, what's next and why, what just finished. The `store @` line is derived too, from git. A session landing on a stale clone sees uncommitted task edits and drift from upstream up front instead of discovering them mid-work.
 
-The exception is the `»` lines. That's the `handoff:` block. It lives on whichever task is up next. It's also the one thing in the digest someone (or something) wrote, so meshwork says who and how long ago, and flags when it names a task that has since closed. The example above shows what the warning looks like, with a handoff that's sat there for weeks. Linting warns if you leave a handoff on a task you close.
+The exception is the `»` lines. That's the `handoff:` block. It lives on whichever task is up next. It's also the one thing in the digest someone (or something) wrote, so meshwork says who and how long ago, and flags when it names a task that has since closed. The example above shows what the warning looks like. Linting warns if you leave a handoff on a task you close.
 
 The `weather:` block is the store's vital signs, computed from the log lines. It tracks what got filed and finished this week, how much of the backlog is actually ready, which task unlocks the most work, and the friction (failed closes, reopens, thrash).
 
-The `rules:` footer is fixed. It's the four session rules the skill teaches, riding in the binary so a session that never loaded the skill still sees them.
+The `rules:` footer is fixed. It's the session rules the skill teaches, riding in the binary so a session that never loaded the skill still sees them.
 
 The digest is capped at 6KB ≈ 1.5K tokens versus the 22K-token ritual it replaces.
 
@@ -476,13 +476,13 @@ Nothing re-pins itself. It has to happen intentionally, hopefully after the task
 
 Every repo keeps its own store, and one repo's queue doesn't care about another's...until it does. You can always express interdependencies as `project_name#task_id`.
 
-With a lightweight [portfolio](docs/portfolios.md) (it's just a tiny git repo holding a `repos.toml`), meshwork can span locally cloned git repos. It can prioritize what work is ready across all of them, tracing blocking interdependencies. And you can query all your projects' tasks together with one SQL statement, views included. `portfolio stats` and `portfolio search` run the report and the text search over every store the same way. The the portfolio reads local checkouts only and never clones.
+With a lightweight [portfolio](docs/portfolios.md) (it's just a tiny git repo holding a `repos.toml`), meshwork can span locally cloned git repos. It can prioritize what work is ready across all of them, tracing blocking interdependencies. And you can query all your projects' tasks together with one SQL statement, views included. `portfolio stats` and `portfolio search` run the report and the text search over every store the same way. The portfolio reads local checkouts only and never clones.
 
 ### that generates its own work
 
-Dependencies points at work the other repo has already filed. meshwork projects can also ask for new work from other projects.
+Dependencies point at work the other repo has already filed. meshwork projects can also ask for new work from other projects.
 
-`--to <repo>` addresses a task to another project. nothing gets sent: the task stays in your store and surfaces in theirs through the porfolio querying all the local meshwork stores.
+`--to <repo>` addresses a task to another project. Nothing gets sent: the task stays in your store and surfaces in theirs through the portfolio querying all the local meshwork stores.
 
 Let's say the spill fix needs the governor library to expose its wakeup interval:
 
@@ -490,8 +490,9 @@ Let's say the spill fix needs the governor library to expose its wakeup interval
 $ meshwork add "Expose the wakeup interval as a config knob" --to governor --verify "contains config/engine.toml wakeup_ms"
 sa-z1ecwc8
   docs/meshwork/sa-z1ecwc8-expose-the-wakeup-interval-as-a-config-knob.md
+$ meshwork dep add sa-38wd6se --needs sa-z1ecwc8
+sa-38wd6se --needs sa-z1ecwc8 added (now: [sa-nmvpyqr, sa-z1ecwc8])
 $ meshwork ready
-sa-38wd6se  Fix spill batch sizing
 sa-jt7zg9w  Write the spill postmortem
 asks out (1):
 sa-z1ecwc8  → governor  Expose the wakeup interval as a config knob  (0d)
@@ -526,9 +527,15 @@ asks in (0):
   (none)
 asks out (1):
   sa-z1ecwc8  → governor  Expose the wakeup interval as a config knob  (0d)  answered-by governor#go-k9eeq4e (done)
+$ mkdir -p config && echo 'wakeup_ms = 250' > config/engine.toml   # pick up the knob
+$ meshwork close sa-z1ecwc8
+sa-z1ecwc8 open→done (verify exit 0)
+$ meshwork ready
+sa-38wd6se  Fix spill batch sizing
+sa-jt7zg9w  Write the spill postmortem
 ```
 
-Both sides watched that happen and nobody sent a message. `asks` is the whole inbox in both directions. `prime` and `ready` show the first few and name it for the rest. `prime`'s headline counts unanswered asks and the oldest one's age.
+Both sides watched that happen and nobody sent a message. Each verify checks its own tree: closing the answer proves the governor added the knob, and closing the request proves you picked it up, unblocking the fix. `asks` is the whole inbox in both directions. `prime` and `ready` show the first few and name it for the rest. `prime`'s headline counts unanswered requests and the oldest one's age.
 
 ## boundaries
 
@@ -555,7 +562,7 @@ gh release download "$VER" -R jbrjake/meshwork \
 "$DEST/meshwork" --help
 ```
 
-Hooks and scripts invoke `~/.meshwork/versions/$(cat .meshwork-version)/meshwork`, so two repos can disagree. The adoption skill commits a two-line `./meshwork` shim so humans, hooks, and homunculi all reach the pinned version without re-deriving that path.
+Hooks and scripts invoke `~/.meshwork/versions/$(cat .meshwork-version)/meshwork`, so two repos can disagree. The adoption skill commits a small `docs/meshwork/meshwork` shim so humans, hooks, and homunculi all reach the pinned version without re-deriving that path.
 
 Building from source works too: `cargo install --git https://github.com/jbrjake/meshwork` (or `cargo build --release` in a clone).
 
