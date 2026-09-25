@@ -257,3 +257,73 @@ fn model_boundary_list_is_complete() {
         );
     }
 }
+
+/// The skill is the agent's front door to the binary. Every verb, every
+/// sub-verb, and every `add`/`set` flag the help screens list is named in
+/// SKILL.md, so a surface that lands without its skill line fails here in
+/// the same commit — the skill is part of the feature, never a trailing
+/// documentation task (mw-nq6rew9).
+#[test]
+fn skill_names_every_verb_and_flag() {
+    fn help_of(args: &[String]) -> String {
+        let mut cmd = assert_cmd::Command::cargo_bin("meshwork").unwrap();
+        let out = cmd.args(args).arg("--help").assert().success();
+        String::from_utf8(out.get_output().stdout.clone()).unwrap()
+    }
+    /// `needle` occurs and is not the prefix of a longer word.
+    fn named(text: &str, needle: &str) -> bool {
+        text.match_indices(needle).any(|(i, _)| {
+            let after = text[i + needle.len()..].chars().next();
+            !after.is_some_and(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        })
+    }
+    fn walk(args: &[String], skill: &str, missing: &mut Vec<String>) {
+        let help = help_of(args);
+        let commands: Vec<&str> = help
+            .lines()
+            .skip_while(|l| !l.starts_with("Commands:"))
+            .skip(1)
+            .take_while(|l| l.starts_with("  "))
+            .collect();
+        for line in commands {
+            let mut words = line.split_whitespace();
+            let verb = words.next().unwrap_or_default().to_string();
+            if verb == "help" || line.contains("not built yet") {
+                continue;
+            }
+            let mut path = args.to_vec();
+            path.push(verb.clone());
+            let needle = match path.len() {
+                1 => format!("`{verb}"),
+                n => path[n - 2..].join(" "),
+            };
+            if !named(skill, &needle) {
+                missing.push(format!("verb `meshwork {}`", path.join(" ")));
+            }
+            walk(&path, skill, missing);
+        }
+        if args.len() == 1 && (args[0] == "add" || args[0] == "set") {
+            let flags = help
+                .lines()
+                .skip_while(|l| !l.starts_with("Options:"))
+                .filter_map(|l| l.split_whitespace().find(|w| w.starts_with("--")))
+                .filter(|f| !matches!(*f, "--json" | "--help"));
+            for flag in flags {
+                if !named(skill, flag) {
+                    missing.push(format!("flag `{} {flag}`", args[0]));
+                }
+            }
+        }
+    }
+
+    let skill_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(".claude/skills/meshwork/SKILL.md");
+    let skill = std::fs::read_to_string(&skill_path).unwrap();
+    let mut missing = Vec::new();
+    walk(&[], &skill, &mut missing);
+    assert!(
+        missing.is_empty(),
+        "SKILL.md does not name these surfaces — teach them in the same \
+         commit as the code:\n{}",
+        missing.join("\n")
+    );
+}

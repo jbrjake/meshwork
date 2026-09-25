@@ -40,3 +40,4 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 - meshwork-the-tool never installs git hooks, never writes outside the repo (+ portfolio repo), never mutates GitHub beyond append (MW-A3/G1/H2). This repo's own dev hooks are unrelated to that rule.
 - Never lower a threshold to pass a gate (baseline). Fix the code or the measurement.
 - Model modules (src/*.rs) never import `crate::cli` or clap — clap belongs in src/cli/ only; `arch::model_boundary` enforces it (mw-5pq334y).
+- The skill is part of the feature. A verb, sub-verb, or `add`/`set` flag lands with its `.claude/skills/meshwork/SKILL.md` line in the same commit — agents learn the binary from the skill, so a surface the skill does not teach is unshipped; `arch::skill_names_every_verb_and_flag` enforces it. DESIGN/TRACE/FORMAT are not the skill.
