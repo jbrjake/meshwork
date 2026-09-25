@@ -4,7 +4,7 @@ title: "Teach the skill the asker's half of an ask — make the dependent work n
 category: skill
 docs: [.claude/skills/meshwork/SKILL.md#the-inbox-and-sibling-stores]
 verify: "all(contains .claude/skills/meshwork/SKILL.md /--needs.*\\bask\\b/, contains .claude/skills/meshwork/SKILL.md /[Cc]lose.*\\bask\\b/)"
-status: open
+status: done
 created: 2026-09-24T01:13Z
 relates: [mw-tcb792a]
 ---
@@ -18,3 +18,5 @@ Add this to the inbox section in a line or two, keeping the SKILL.md body lean. 
 
 ## log
 - 2026-09-24T01:13Z created
+- 2026-09-25T14:06Z open→doing — claimed by claude (192e60bd-9013-4a32-8fec-f25f918881a9)
+- 2026-09-25T14:18Z doing→done — verify exit 0 @ 90acfe3+4
