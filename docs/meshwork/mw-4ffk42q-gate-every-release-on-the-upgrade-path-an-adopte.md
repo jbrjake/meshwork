@@ -20,7 +20,8 @@ history; the legacy root `./meshwork`; a missing shim; a per-repo
 SessionStart hook; a pin one or more releases back), run the plugin's
 SessionStart hook with the stub `gh`, then assert:
 
-- the shim is byte-identical to canonical and the pin is the plugin's;
+- the shim is byte-identical to canonical and the pin is the installed
+  plugin's release;
 - every verb in `meshwork --help` runs through the resulting shim without
   an approval-shaped or not-found failure;
 - a session carrying only `CLAUDE_CODE_SESSION_ID` resolves its session
