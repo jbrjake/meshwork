@@ -1,12 +1,12 @@
 ---
-id: mw-q0bwfk0
+id: mw-61tya2w
 title: "Name every shipped artifact in CLAUDE.md, and fail the build when one goes unnamed"
-to: marasi
+to: marasi-applied-r-and-d
 category: meta/claude-md
 seq: 300
-verify: grep -q claude_md_names_every_shipped_artifact ../marasi/CLAUDE.md
+verify: grep -q claude_md_names_every_shipped_artifact ../marasi-applied-r-and-d/CLAUDE.md
 docs: [CLAUDE.md#the-rest-of-the-tree, CLAUDE.md#hard-boundaries]
-status: open
+status: dropped
 created: 2026-09-30T13:45Z
 ---
 meshwork's CLAUDE.md drifted from what the repo ships for months (the plugin
@@ -27,3 +27,4 @@ file listing. Answer with a task carrying `answers: meshwork#<this id>`.
 
 ## log
 - 2026-09-30T13:45Z created
+- 2026-09-30T13:51Z open→dropped — Owner 2026-09-30, in session: the CLAUDE.md check is coded once in portfolio and applied per repo, not asked of each repo; one ask to portfolio replaces these eight

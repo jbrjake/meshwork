@@ -6,7 +6,7 @@ category: meta/claude-md
 seq: 300
 verify: grep -q claude_md_names_every_shipped_artifact ../wyndam/CLAUDE.md
 docs: [CLAUDE.md#the-rest-of-the-tree, CLAUDE.md#hard-boundaries]
-status: open
+status: dropped
 created: 2026-09-30T13:45Z
 ---
 meshwork's CLAUDE.md drifted from what the repo ships for months (the plugin
@@ -29,3 +29,4 @@ carrying `answers: meshwork#<this id>`.
 
 ## log
 - 2026-09-30T13:45Z created
+- 2026-09-30T13:51Z open→dropped — Owner 2026-09-30, in session: the CLAUDE.md check is coded once in portfolio and applied per repo, not asked of each repo; one ask to portfolio replaces these eight
