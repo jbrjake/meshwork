@@ -327,3 +327,73 @@ fn skill_names_every_verb_and_flag() {
         missing.join("\n")
     );
 }
+
+/// Top-level tracked entries a cold session never needs: git plumbing and
+/// files derived from a named one. Everything else at the top level is an
+/// artifact, a channel, a gate or a hook, and CLAUDE.md names it by path.
+const UNNAMED_TOP_LEVEL: &[&str] = &[".gitignore", "Cargo.lock", "LICENSE"];
+
+/// CLAUDE.md is the cold session's map of what this repo ships and how it
+/// is gated, and it drifts because nothing ties it to the tree (mw-nhjns62:
+/// the plugin was vended for months before CLAUDE.md said so). The set:
+/// every top-level tracked entry except `UNNAMED_TOP_LEVEL`, the plugin
+/// manifest, the skill directory, and every workflow file — the things a
+/// new one of would need a line before it can be found. Narrower is the
+/// bug being fixed; wider turns CLAUDE.md into `git ls-files`. Each
+/// unnamed path fails by name. A name counts only as a whole path token,
+/// so `src` inside `sources` is not `src/`.
+#[test]
+fn claude_md_names_every_shipped_artifact() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let out = std::process::Command::new("git")
+        .args(["ls-files", "-z"])
+        .current_dir(root)
+        .output()
+        .expect("git ls-files runs in the repo");
+    assert!(out.status.success(), "git ls-files failed");
+    let files: Vec<String> = out
+        .stdout
+        .split(|b| *b == 0)
+        .filter(|s| !s.is_empty())
+        .map(|s| String::from_utf8(s.to_vec()).unwrap())
+        .collect();
+    assert!(!files.is_empty(), "git ls-files listed nothing");
+    let mut required: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for f in &files {
+        let top = f.split('/').next().unwrap();
+        if !UNNAMED_TOP_LEVEL.contains(&top) {
+            required.insert(top.to_string());
+        }
+        let is_workflow = f.starts_with(".github/workflows/")
+            && Path::new(f).extension().is_some_and(|ext| {
+                ext.eq_ignore_ascii_case("yml") || ext.eq_ignore_ascii_case("yaml")
+            });
+        if is_workflow {
+            required.insert(f.clone());
+        }
+    }
+    required.insert(".claude-plugin/plugin.json".to_string());
+    required.insert(".claude/skills/meshwork".to_string());
+
+    let claude_md = std::fs::read_to_string(root.join("CLAUDE.md")).unwrap();
+    let token_char = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.');
+    let named = |path: &str| {
+        claude_md.match_indices(path).any(|(i, _)| {
+            let before = claude_md[..i].chars().next_back();
+            let after = claude_md[i + path.len()..].chars().next();
+            !before.is_some_and(token_char) && !after.is_some_and(|c| token_char(c) && c != '.')
+        })
+    };
+    let missing: Vec<&String> = required.iter().filter(|p| !named(p)).collect();
+    assert!(
+        missing.is_empty(),
+        "CLAUDE.md does not name these shipped artifacts — a cold session \
+         cannot find them; name each by path, or add it to UNNAMED_TOP_LEVEL \
+         with the reason it is not one:\n{}",
+        missing
+            .iter()
+            .map(|p| format!("  {p}"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+}
