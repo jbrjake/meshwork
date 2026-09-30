@@ -5,7 +5,7 @@ category: meta/claude-md
 seq: 120
 docs: [CLAUDE.md#hard-boundaries]
 verify: run cargo test package=meshwork target=suite arch::claude_md_names_every_shipped_artifact
-status: open
+status: done
 created: 2026-09-28T13:45Z
 ---
 This repo vended the Claude Code plugin for months and CLAUDE.md never said
@@ -37,3 +37,5 @@ The work:
 
 ## log
 - 2026-09-28T13:45Z created
+- 2026-09-30T13:37Z open→doing — claimed by claude (05b075de-ed31-494c-b04a-af9f0dacd709)
+- 2026-09-30T13:45Z doing→done — verify exit 0 @ 20427a2+3
