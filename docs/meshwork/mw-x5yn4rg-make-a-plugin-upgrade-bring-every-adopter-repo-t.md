@@ -9,6 +9,11 @@ verify: "all(run cargo test package=meshwork target=suite e2e::plugin_upgrade_br
 status: open
 created: 2026-09-28T13:54Z
 handoff: |
+  Owner ruling 2026-09-30, in session: no release is cut until the task
+  queue is empty, and the owner calls the cut in the transcript. Do not
+  file, propose or sequence a cut or release notes; the two filed today
+  were dropped. Work the queue.
+  
   Hook contract, confirmed 2026-09-30 against the raw docs
   (code.claude.com/docs/en/plugins/manifest-reference.md and hooks.md), so
   this task can start at the design:
@@ -28,11 +33,6 @@ handoff: |
   - A hook command runs with the project as cwd and `CLAUDE_PROJECT_DIR`
   set; exit 2 blocks on blocking events; JSON on stdout is honored per
   event.
-  - Not for this task, but learned alongside: a skill's `allowed-tools`
-  frontmatter grant was never observed to pre-approve a Bash command in
-  headless runs on Claude Code 2.1.283 (mw-nd480zh, blocked on a ruling).
-  If the owner rules for a plugin PreToolUse hook there, it rides this
-  same `hooks` block; design the block so a second event slots in.
   
   Where the pieces live now: the shim text is transcribed in
   `.claude/skills/meshwork/references/install.md` under "The shim,
@@ -43,10 +43,12 @@ handoff: |
   does not exist yet; red-check will fail on it and on `contains
   .claude-plugin/plugin.json hooks`.
   
-  Proven this session: the full gate is green at HEAD;
-  `arch::claude_md_names_every_shipped_artifact` now requires a CLAUDE.md
-  line for anything new at the top level, so a `hooks/` directory or a
+  Proven: the full gate is green at HEAD;
+  `arch::claude_md_names_every_shipped_artifact` requires a CLAUDE.md line
+  for anything new at the top level, so a `hooks/` directory or a
   canonical shim file lands with its CLAUDE.md line in the same commit.
+  Grants are verified in an owner-run interactive session, never with
+  `claude -p`.
 ---
 
 Owner ruling 2026-09-28, this session: upgrading the plugin is the whole
@@ -86,3 +88,7 @@ its CLAUDE.md line.
 ## log
 - 2026-09-28T13:54Z created
 - 2026-09-30T13:49Z handoff by claude (05b075de-ed31-494c-b04a-af9f0dacd709)
+- 2026-09-30T14:48Z handoff by claude (05b075de-ed31-494c-b04a-af9f0dacd709)
+
+## comments
+- 2026-09-30T14:47Z [claude (05b075de-ed31-494c-b04a-af9f0dacd709)] Owner ruling 2026-09-30, in session: no release is cut until the task queue is empty, and the owner calls the cut. An agent never files or proposes a cut or release notes; the two filed today were dropped.
