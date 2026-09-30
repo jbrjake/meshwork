@@ -84,8 +84,9 @@ step by step.
 
 - Session start: the SessionStart hook injects `meshwork prime` — weather,
   the inbox, the next task led by its `handoff:`, also-ready, recent dones.
-  The store is the worklist. Re-run `prime` when the question changes; load
-  this skill before filing.
+  The store is the worklist. Re-run `prime` when the question changes. This
+  skill's frontmatter grants every verb for the turn that invokes it, so
+  invoke the skill in any turn that runs verbs, and before filing.
 - `ready` → the queue. `show <id>`; `why <id>` (open blockers, placement,
   an umbrella's hidden live children); `blocked`; `tree <id>`. Prior art
   before filing: `search <term>` — literal, case-insensitive, every field,
