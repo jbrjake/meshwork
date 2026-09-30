@@ -1,9 +1,9 @@
 ---
 id: mw-n7594g6
-title: Cut v0.5.3 — the plugin grants every meshwork verb
+title: "Cut v0.5.3 — the plugin upgrade is the whole upgrade, and every verb is granted"
 category: meta/release
-seq: 106
-needs: [mw-nfbj0vh]
+seq: 210
+needs: [mw-nfbj0vh, mw-x5yn4rg, mw-gh067xt]
 verify: contains Cargo.toml /^version = "0.5.3"/
 docs: [docs/release-notes/RELEASE-NOTES-v0.5.2.md#getting-it, CLAUDE.md#hard-boundaries]
 status: open
