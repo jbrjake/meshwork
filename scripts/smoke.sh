@@ -6,12 +6,15 @@ if ! command -v cargo >/dev/null 2>&1; then echo "smoke: SKIP (no cargo on this 
 
 ./scripts/check-file-length.sh || exit 1
 
-# Skill budget (bytes, MW-D5 doctrine): SKILL.md loads whole into context on
-# trigger; references/ load on demand and are exempt.
+# Skill budget (bytes, MW-D5 doctrine): SKILL.md's body loads whole into
+# context on trigger; references/ load on demand and are exempt. The YAML
+# frontmatter is read by Claude Code, never by the model (the Skill tool
+# strips it; `allowed-tools` is a permission list), so the budget measures
+# the body: everything after the closing `---`.
 SKILL=.claude/skills/meshwork/SKILL.md
 if [[ -f $SKILL ]]; then
-  B=$(wc -c < "$SKILL")
-  [[ $B -le 8192 ]] || { echo "smoke: FAIL $SKILL ${B}B > 8192B skill budget"; exit 1; }
+  B=$(awk 'NR==1 && $0=="---" {fm=1; next} fm && $0=="---" {fm=0; next} !fm' "$SKILL" | wc -c)
+  [[ $B -le 8192 ]] || { echo "smoke: FAIL $SKILL body ${B}B > 8192B skill budget"; exit 1; }
 fi
 # Release-consistency guards (2026-08-14 incidents): every version the repo
 # states must be derived or gate-checked — stale hardcodes shipped in
