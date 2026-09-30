@@ -459,7 +459,7 @@ fn render(report: &Report) -> String {
             }
             "placement" => {
                 section(&mut out, t, report);
-                out.push_str("  placed by: seq or unranked \u{2014} bands are not built\n");
+                out.push_str("  placed by: the graph, then seq; a task with no seq is unranked\n");
             }
             _ => section(&mut out, t, report),
         }

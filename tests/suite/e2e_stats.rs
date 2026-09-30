@@ -54,6 +54,14 @@ fn stats_tables() {
     }
     assert!(text.contains("- flow 7d:"), "the pulse block leads: {text}");
     assert!(text.contains("placed by:"), "placement carries its note: {text}");
+    let note = text
+        .lines()
+        .find(|l| l.contains("placed by:"))
+        .unwrap_or_default();
+    assert!(
+        !note.to_ascii_lowercase().contains("band"),
+        "the placement note names no mechanism that does not exist: {note}"
+    );
 
     let v = stats_json(&repo, &[]);
     assert_eq!(v["verb"], "stats");
