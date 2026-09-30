@@ -8,6 +8,45 @@ docs: [.claude/skills/meshwork/references/install.md#the-shim-committed-what-ses
 verify: "all(run cargo test package=meshwork target=suite e2e::plugin_upgrade_brings_adopter_current, contains .claude-plugin/plugin.json hooks, lacks .claude/skills/meshwork/references/install.md CLAUDE_CODE_BRIDGE_SESSION_ID)"
 status: open
 created: 2026-09-28T13:54Z
+handoff: |
+  Hook contract, confirmed 2026-09-30 against the raw docs
+  (code.claude.com/docs/en/plugins/manifest-reference.md and hooks.md), so
+  this task can start at the design:
+  
+  - `hooks` in `.claude-plugin/plugin.json` takes a `.json` file path, an
+  inline hooks object in the same shape as settings-file hooks, or an
+  array mixing both; whatever it declares merges with `hooks/hooks.json`
+  at the plugin root when that file exists. Every component path is
+  relative to the plugin root; `${CLAUDE_PLUGIN_ROOT}` is substituted in
+  hook commands (use exec form with `args`, or double-quote it in a
+  shell-form command; `claude plugin validate` warns otherwise).
+  `${CLAUDE_PLUGIN_DATA}` is the plugin's persistent data dir.
+  - Plugin hooks register at session start, before any skill loads, in
+  every install scope. The SessionStart hook's stdout lands in context
+  like this repo's `.claude/settings.json` hook does today (the one prime
+  injection this task moves into the plugin).
+  - A hook command runs with the project as cwd and `CLAUDE_PROJECT_DIR`
+  set; exit 2 blocks on blocking events; JSON on stdout is honored per
+  event.
+  - Not for this task, but learned alongside: a skill's `allowed-tools`
+  frontmatter grant was never observed to pre-approve a Bash command in
+  headless runs on Claude Code 2.1.283 (mw-nd480zh, blocked on a ruling).
+  If the owner rules for a plugin PreToolUse hook there, it rides this
+  same `hooks` block; design the block so a second event slots in.
+  
+  Where the pieces live now: the shim text is transcribed in
+  `.claude/skills/meshwork/references/install.md` under "The shim,
+  committed"; the per-repo SessionStart hook is `.claude/settings.json`
+  here and in adopt.md's install step; `.meshwork-version` is the pin; the
+  stub `gh` is `tests/bin/gh`; `scripts/cut-release.sh` stamps versions.
+  The test the verify names, `e2e::plugin_upgrade_brings_adopter_current`,
+  does not exist yet; red-check will fail on it and on `contains
+  .claude-plugin/plugin.json hooks`.
+  
+  Proven this session: the full gate is green at HEAD;
+  `arch::claude_md_names_every_shipped_artifact` now requires a CLAUDE.md
+  line for anything new at the top level, so a `hooks/` directory or a
+  canonical shim file lands with its CLAUDE.md line in the same commit.
 ---
 
 Owner ruling 2026-09-28, this session: upgrading the plugin is the whole
@@ -46,3 +85,4 @@ its CLAUDE.md line.
 
 ## log
 - 2026-09-28T13:54Z created
+- 2026-09-30T13:49Z handoff by claude (05b075de-ed31-494c-b04a-af9f0dacd709)

@@ -8,7 +8,7 @@ docs:
   - docs/DESIGN-meshwork.md#6-cli-surface-complete-for-v1--anything-not-here-is-a-non-goal
   - docs/REQUIREMENTS-meshwork.md#3-non-goals-normative--this-list-is-the-anti-jira-anti-nerdsnipe-contract
 verify: "all(lacks src/cli/stats.rs /band/, lacks docs/DESIGN-meshwork.md /waits on bands/, run cargo test target=suite e2e::stats_tables)"
-status: open
+status: done
 created: 2026-09-28T15:27Z
 ---
 `meshwork stats` ends its placement table with
@@ -35,3 +35,5 @@ mw-ex5x0y2), `placed by` becomes the rubric's term string; that is not this task
 
 ## log
 - 2026-09-28T15:27Z created
+- 2026-09-30T13:45Z open→doing — claimed by claude (05b075de-ed31-494c-b04a-af9f0dacd709)
+- 2026-09-30T13:48Z doing→done — verify exit 0 @ d8f5998+4
