@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# tests/bin/curl — offline stub double for curl (MW-J6): the plugin hook's
+# release fetch reaches this, never the network. Records argv, replays a
+# canned body into `-o <file>` (or stdout), exits as canned.
+#
+# env: CURL_STUB_CALLS   append-only record file. REQUIRED: a curl call from
+#                        a test that didn't set it is itself a bug → exit 66.
+#      CURL_STUB_CANNED  canned dir (default: <this dir>/../canned). The key
+#                        is the URL's last path segment: <key> = body bytes;
+#                        optional <key>.exit = exit code (non-zero writes no
+#                        body and prints a curl-shaped line on stderr).
+# record format (deterministic, golden-friendly):
+#   $ <argv space-joined>
+set -u
+
+if [[ -z "${CURL_STUB_CALLS:-}" ]]; then
+  echo "curl-stub: CURL_STUB_CALLS unset — a test invoked curl without opting in (MW-J6)" >&2
+  exit 66
+fi
+printf '$ %s\n' "$*" >> "$CURL_STUB_CALLS"
+
+CANNED="${CURL_STUB_CANNED:-"$(cd "$(dirname "$0")/.." && pwd)/canned"}"
+
+OUT=""
+URL=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -o|--output) OUT="$2"; shift 2 ;;
+    -H|--header|--retry|--max-time|--connect-timeout) shift 2 ;;
+    -*) shift ;;
+    *) URL="$1"; shift ;;
+  esac
+done
+[[ -n "$URL" ]] || { echo "curl-stub: no URL in argv" >&2; exit 2; }
+
+KEY="${URL##*/}"
+FILE="$CANNED/$KEY"
+RC=0
+[[ -f "$FILE.exit" ]] && RC=$(<"$FILE.exit")
+if [[ "$RC" -ne 0 ]]; then
+  echo "curl: (22) The requested URL returned error: 404" >&2
+  exit "$RC"
+fi
+if [[ ! -f "$FILE" ]]; then
+  echo "curl-stub: no canned body for '$KEY' ($FILE)" >&2
+  exit 64
+fi
+if [[ -n "$OUT" ]]; then cat "$FILE" > "$OUT"; else cat "$FILE"; fi
+exit 0

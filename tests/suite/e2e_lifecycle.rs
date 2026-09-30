@@ -41,6 +41,21 @@ fn init_layout() {
     assert!(!mw.join("tasks").exists(), "flat store: no tasks/ level");
     assert!(mw.join("attachments").is_dir());
 
+    // The shim lands with the store, byte-identical to the canonical text
+    // the plugin ships, and executable — every later call goes through it
+    // (mw-x5yn4rg).
+    let shim = mw.join("meshwork");
+    assert_eq!(
+        std::fs::read(&shim).unwrap(),
+        std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("hooks/meshwork")).unwrap(),
+        "init writes the canonical shim"
+    );
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = std::fs::metadata(&shim).unwrap().permissions().mode();
+        assert_eq!(mode & 0o111, 0o111, "the shim is executable: {mode:o}");
+    }
+
     // MW-A3: no hooks installed, no hooksPath redirection.
     let hooks_after = std::fs::read_dir(repo.join(".git/hooks")).map_or(0, Iterator::count);
     assert_eq!(hooks_before, hooks_after, "no git hooks installed");

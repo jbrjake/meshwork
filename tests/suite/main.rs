@@ -17,6 +17,7 @@ mod parse;
 mod perf;
 mod query;
 mod ride_along;
+mod stub_curl;
 mod stub_gh;
 mod synth;
 mod tables;

@@ -1,8 +1,9 @@
 # Adopting meshwork in a repo (TODO.md retirement — read only when adopting)
 
-Prerequisite: the pinned binary is installed and the `docs/meshwork/meshwork`
-shim is committed (`install.md`). Every `meshwork` below means the shim —
-never create anything at the adopter's repo root (mw-raty5mm).
+Prerequisite: the plugin is installed and the pinned binary is fetched
+(`install.md`). Every `meshwork` below means the shim,
+`docs/meshwork/meshwork`, which `init` writes — never create anything at
+the adopter's repo root.
 
 1. Hunt, don't assume. The old ritual rarely lives only at `./TODO.md` —
    handoffs hide under `docs/`, gate scripts call the old checker. Build
@@ -15,8 +16,10 @@ never create anything at the adopter's repo root (mw-raty5mm).
    Expect hits well beyond the files themselves: README, CLAUDE.md,
    baseline docs, and gate scripts (smoke/regression/file-length checks
    often invoke check-todo.sh).
-2. `docs/meshwork/meshwork init` — fills in `docs/meshwork/` + config. It
-   never installs git hooks and never writes outside the store.
+2. `~/.meshwork/versions/"$(cat .meshwork-version)"/meshwork init` — the
+   one call made before the shim exists. It fills in `docs/meshwork/` +
+   config and writes the shim; it never installs git hooks and never writes
+   outside the store. Commit `.meshwork-version` with `docs/meshwork/`.
 3. For each TODO found: `docs/meshwork/meshwork import todo <path>` — checkboxes
    become task files. import absorbs all prose between checkboxes into the
    preceding task's body — a section-structured TODO turns whole ledgers
@@ -24,23 +27,13 @@ never create anything at the adopter's repo root (mw-raty5mm).
    into its own tasks. Review every generated file before committing
    (import is a one-shot migration, not a sync). Then
    `docs/meshwork/meshwork lint`.
-4. Wire the session-start digest into the repo's `.claude/settings.json`
-   (merge with existing settings — never replace the file):
-
-   ```json
-   {
-     "hooks": {
-       "SessionStart": [
-         { "hooks": [ { "type": "command",
-             "command": "\"$CLAUDE_PROJECT_DIR\"/docs/meshwork/meshwork prime 2>/dev/null || true",
-             "timeout": 30, "statusMessage": "meshwork prime" } ] }
-       ]
-     }
-   }
-   ```
-
-   Prove it fired: `claude -p "Without tools: quote the first line the
-   session-start hook injected"` — expect the `meshwork — N open` digest.
+4. Prove the session-start digest arrives. The plugin's SessionStart hook
+   injects `prime` in every project that carries `docs/meshwork/` and
+   `.meshwork-version` — nothing is added to the repo's
+   `.claude/settings.json`. Start a session in the repo: the first thing in
+   context is the `<repo> — N open` digest. Never add a per-repo prime hook
+   there — the plugin's hook yields to one it finds, which leaves the repo
+   on the old ritual.
 
    When permission allow-rules for meshwork get added, they target the
    committed shim path — never a `~/.meshwork/versions/<tag>/…` path. A

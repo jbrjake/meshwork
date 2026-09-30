@@ -1,20 +1,23 @@
 # Migrating a legacy deploy to the plugin install (read only when migrating)
 
-Who this serves: repos wired up before the Claude Code plugin existed. Any
-one of these tells marks a legacy deploy:
+Who this serves: repos wired up before the Claude Code plugin existed, or
+before it carried the upgrade hook. Any one of these tells marks a legacy
+deploy:
 
 - a vendored skill copy committed at the repo's own `.claude/skills/meshwork/`
 - a shim at the repo root (`./meshwork`) instead of `docs/meshwork/meshwork`
+- a per-repo SessionStart hook in `.claude/settings.json` that runs `prime`
 - a hook or permission rule that rebuilds the raw
   `~/.meshwork/versions/$(cat .meshwork-version)/meshwork` path
 
-The modern endpoint (install.md defines each piece): the skill arrives
-user-scoped through the plugin, the binary stays per-repo pinned, and every
-invocation — sessions, hooks, scripts — goes through the committed
-`docs/meshwork/meshwork` shim. Work the steps in order: each removal has a
-replacement that must land first.
+The modern endpoint (install.md defines each piece): the skill and the
+SessionStart hook arrive through the plugin, the binary stays per-repo
+pinned with the plugin's hook keeping the pin, the shim and the cached
+binary at the plugin's release, and every invocation — sessions, hooks,
+scripts — goes through the committed `docs/meshwork/meshwork` shim. Work
+the steps in order: each removal has a replacement that must land first.
 
-## 1. Install the plugin (once per machine)
+## 1. Install the plugin (once per machine, or once per project)
 
 ```
 /plugin marketplace add jbrjake/claude-plugin-marketplace
@@ -22,41 +25,44 @@ replacement that must land first.
 ```
 
 Plugin installs resolve the newest release tag. The plugin ships the skill
-only — the repo's pinned binary stays authoritative for behavior, and a
-plugin newer than the repo's `.meshwork-version` defers to the repo.
+and the upgrade hook, never the binary; the release the plugin states is
+the release the project runs.
 
-## 2. Bump the pin and fetch its binary
+## 2. Let the hook bring the pin, the binary and the shim
 
-This ritual itself ships with a release, so move the pin to a release that
-carries it: re-run install.md's binary section — one command rewrites
-`.meshwork-version` to the current release, the next fetches that release
-into the shared `~/.meshwork/versions/` cache. Commit the pin bump with the
-migration.
+A legacy repo already carries `docs/meshwork/` and `.meshwork-version`, so
+the plugin's SessionStart hook acts on it at the next session start: the
+plugin's release binary lands in `~/.meshwork/versions/`, the pin moves to
+that release, and the canonical shim lands at `docs/meshwork/meshwork`
+(rewritten if one is there, created if not). Its first line names what to
+commit. A fetch that fails changes nothing and says so — fix that before
+going on; nothing below works without the binary.
 
-## 3. Land the shim at docs/meshwork/meshwork
+## 3. Retire the old shim
 
-- Root-shim repo: `git mv meshwork docs/meshwork/meshwork`, then fix the
-  version lookup inside it — the pin file now sits two levels up:
-  `$(dirname "$0")/../../.meshwork-version`.
-- Hook-only repo (no shim anywhere): create it fresh per install.md's shim
-  section.
+- Root-shim repo: `git rm meshwork`. The shim at `docs/meshwork/meshwork`
+  is already the canonical one from step 2; a root copy is a second,
+  stale path waiting to be called.
+- Hook-only repo (no shim anywhere before step 2): nothing to remove.
 
-Non-negotiable either way: the shim's `MESHWORK_AUTHOR` block. It is the
-only thing tagging agent actions with the session's author — a deploy
-without it silently stamps every agent comment and claim as the repo owner
-(`default_author`). The block must read `CLAUDE_CODE_SESSION_ID` as well as
-`CLAUDE_CODE_BRIDGE_SESSION_ID`: CLI sessions export only the first, and a
-shim keyed on the bridge variable alone falls back to the owner in every
-CLI session. Diff the migrated shim against install.md's before committing;
-a shim that names only the bridge variable is re-copied, not kept.
+Never keep a hand-edited shim. The canonical text's `MESHWORK_AUTHOR`
+block is the only thing tagging agent actions with the session's author,
+and it reads `CLAUDE_CODE_SESSION_ID` as well as the bridge variable —
+CLI sessions export only the first, and a shim keyed on the bridge
+variable alone silently stamps every agent comment and claim as the repo
+owner (`default_author`). The hook rewrites any drift at every session
+start, so an edit never survives anyway.
 
-## 4. Repoint every hook at the shim
+## 4. Remove the per-repo prime hook; repoint everything else at the shim
 
-SessionStart — and any other hook or script that invokes meshwork — targets
-the shim, never a rebuilt versions path:
+Delete the SessionStart entry that runs `prime` from `.claude/settings.json`
+(and `.claude/settings.local.json`): the plugin's hook injects the digest,
+and yields — change line only, no digest — while a per-repo one remains.
+Any other hook or script that invokes meshwork targets the shim, never a
+rebuilt versions path:
 
 ```
-"$CLAUDE_PROJECT_DIR"/docs/meshwork/meshwork prime 2>/dev/null || true
+"$CLAUDE_PROJECT_DIR"/docs/meshwork/meshwork <verb>
 ```
 
 The raw `~/.meshwork/versions/$(cat …)` incantation is the pattern being
@@ -104,16 +110,17 @@ plugin copy wins and a vendored one is drift waiting to happen.
 
 ## 8. Prove it
 
-The migration lands as a single commit: shim move or creation, hook edits,
-permission sweep, vendored-skill removal, pin bump (the verify recasts of
-step 6 ride their own store-only commit). Adopter repos often have live
-agent sessions sharing the checkout — check what is already staged before
-each commit and stage by explicit pathspec, never a bare `git add -A`.
-Then:
+The migration lands as a single commit: the pin and shim the hook wrote,
+the root-shim removal, hook edits, permission sweep, vendored-skill removal
+(the verify recasts of step 6 ride their own store-only commit). Adopter
+repos often have live agent sessions sharing the checkout — check what is
+already staged before each commit and stage by explicit pathspec, never a
+bare `git add -A`. Then:
 
-- `claude -p "Without tools: quote the first line the session-start hook
-  injected"` — expect the `meshwork — N open` digest, proving prime ran
-  through the shim.
+- Start a session: the first thing in context is the `<repo> — N open`
+  digest, and nothing else names a change to commit — the plugin's hook
+  found the project current and primed it through the shim.
 - From an agent session, comment on the repo's migration task via the shim
   and `show` it back: the author must read `claude (<session-id>)`, not the
-  human default — that is the `MESHWORK_AUTHOR` block surviving step 3.
+  human default — that is the canonical shim's `MESHWORK_AUTHOR` block at
+  work.

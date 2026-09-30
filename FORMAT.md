@@ -16,6 +16,8 @@ docs/meshwork/               # the store root, flat
   archive/<id>-<slug>.md     # terminal tasks (done|dropped); same format, always loaded
   archive/bundle-NNNN.md     # format 2: many terminal task documents, concatenated
   attachments/<id>/<file>    # attachment payloads, plain files
+  meshwork                   # the repo's committed shim over its pinned binary;
+                             #   not part of the format — readers ignore it
 ```
 
 Only `.md` files directly in the store root and in `archive/` are task files. Terminal tasks live in `archive/`; location carries no semantics beyond tidiness — every reader MUST load both directories identically. Nothing outside `docs/meshwork/` belongs to the store, and the store never references files outside its repo.

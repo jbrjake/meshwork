@@ -2,7 +2,9 @@
 
 Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQL, no database. Rust CLI, single binary. Built to replace TODO.md/HANDOFF.md friction across the portfolio.
 
-**This repo vends the `meshwork@jbrjake` Claude Code plugin.** `.claude-plugin/plugin.json` and `.claude/skills/meshwork/` (SKILL.md, its frontmatter, `references/`) are the plugin, whole; a release tag publishes it, and every installed copy is downstream of this tree. It may be installed at user or project scope (user is Claude Code's default, not an assumption), so projects can run different meshwork versions: the plugin version a session loads is that project's release, and nothing a session does in one project moves another. What the plugin ships, teaches or grants is answered and changed here — never by reading `~/.claude/plugins/cache/`, never by editing a settings file.
+**This repo vends the `meshwork@jbrjake` Claude Code plugin.** `.claude-plugin/plugin.json`, `.claude/skills/meshwork/` (SKILL.md, its frontmatter, `references/`) and `hooks/` are the plugin, whole; a release tag publishes it, and every installed copy is downstream of this tree. It may be installed at user or project scope (user is Claude Code's default, not an assumption), so projects can run different meshwork versions: the plugin version a session loads is that project's release, and nothing a session does in one project moves another. What the plugin ships, teaches or grants is answered and changed here — never by reading `~/.claude/plugins/cache/`, never by editing a settings file.
+
+**The plugin's hook is the upgrade.** `hooks/session-start.sh` (registered under `hooks` in the manifest, exec form) runs at every session start: in a project carrying `docs/meshwork/` and `.meshwork-version` it fetches the plugin's release binary into `~/.meshwork/versions/<tag>/` by `curl` when absent, rewrites the pin and the shim to `hooks/meshwork` (the one canonical shim text; `init` embeds it with `include_str!`), and injects prime through the shim, its first line naming what to commit. A failed fetch changes nothing and says so. A project without both files — this repo, which has no pin and builds from source — it leaves alone, and a project whose own settings inject prime gets the change line only. Nothing in the mechanism needs `gh`. `e2e::plugin_upgrade_*` drive the script with the stub `curl` in `tests/bin/`.
 
 ## Doc map (read in this order when cold)
 
@@ -35,11 +37,11 @@ Task graph as markdown-with-frontmatter files in git, queried with DataFusion SQ
 - `./scripts/smoke.sh` — pre-commit (seconds): file caps, fmt, fast unit tests.
 - `./verify_meshwork.sh` — THE gate (DESIGN §14, 9 sections, one exit 0). `scripts/regression.sh` (pre-push) delegates to it. `--strict` = v1 acceptance mode.
 - Hooks are version-controlled in `.githooks/`; enable per clone: `git config core.hooksPath .githooks`.
-- **Zero network in all tests and the whole gate** (MW-J6). Mirror tests use the stub `gh` in `tests/bin/`. A test that touches the network is a bug.
+- **Zero network in all tests and the whole gate** (MW-J6). Mirror tests use the stub `gh` in `tests/bin/`; the plugin-hook tests use the stub `curl` there. A test that touches the network is a bug.
 
 ## Session ritual
 
-1. `meshwork prime` (`docs/meshwork/meshwork` — a committed shim over `target/debug/meshwork` that also supplies the agent session author, so verbs need no `--as`; a SessionStart hook in `.claude/settings.json` injects prime automatically). Then `meshwork show <ready-id>` and read its `docs:` refs. The PLAN Position line stays in sync until v1 but the store is the live worklist.
+1. `meshwork prime` (`docs/meshwork/meshwork` — a committed shim over `target/debug/meshwork` that also supplies the agent session author, so verbs need no `--as`; this repo's own SessionStart hook in `.claude/settings.json` injects prime, since the plugin's hook acts only on pinned projects and this repo has no pin). Then `meshwork show <ready-id>` and read its `docs:` refs. The PLAN Position line stays in sync until v1 but the store is the live worklist.
 2. Red first: the item's test precedes its code. Golden files change only via `--bless` + a reviewed diff.
 3. An item closes only on its `verify:` exit 0 AND a green `./verify_meshwork.sh` — observed, not predicted. Close via `meshwork close <id>` (it runs the verify).
 4. Same commit: flip the item's docs/TRACE.md rows `planned`→`done`, advance the Position line. Session end: refresh `handoff:` on whatever task is up next (DESIGN §7b) — there is no HANDOFF.md; prime is the handoff.

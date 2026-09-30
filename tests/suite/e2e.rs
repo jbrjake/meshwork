@@ -109,6 +109,7 @@ include!("e2e_mirror_guard.rs");
 include!("e2e_needs_verify.rs");
 include!("e2e_notes.rs");
 include!("e2e_path_confinement.rs");
+include!("e2e_plugin_upgrade.rs");
 include!("e2e_portfolio.rs");
 include!("e2e_prime.rs");
 include!("e2e_prime_provenance.rs");
