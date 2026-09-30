@@ -5,10 +5,9 @@ category: skill
 seq: 100
 docs: [.claude/skills/meshwork/SKILL.md#meshwork, CLAUDE.md#hard-boundaries]
 verify: "all(contains .claude/skills/meshwork/SKILL.md /^allowed-tools:/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork init\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork add\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork set\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork show\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork comment\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork attach\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork start\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork block\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork drop\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork reopen\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork close\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork verify\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork dep\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork cover\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork spec\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork ready\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork blocked\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork tree\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork why\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork q\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork search\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork stats\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork asks\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork prime\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork lint\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork portfolio\\b/, contains .claude/skills/meshwork/SKILL.md /Bash.docs.meshwork.meshwork import\\b/)"
-status: doing
+status: done
 created: 2026-09-28T13:45Z
 blocked-reason:
-claimed-by: claude (05b075de-ed31-494c-b04a-af9f0dacd709)
 ---
 This repo vends the `meshwork@jbrjake` Claude Code plugin
 (`.claude-plugin/plugin.json` + `.claude/skills/meshwork/`), and the plugin
@@ -49,6 +48,7 @@ companion check (the next task) makes the verb list self-maintaining.
 - 2026-09-30T13:36Z doing→blocked — Owner ruling needed on the grant mechanism: on Claude Code 2.1.283 the skill-frontmatter grant pre-approved nothing in 12 headless runs (the docs' own git-commit example included) and made the skill invocation itself ask; candidates are a plugin PreToolUse hook (needs explicit go) or a settings rule taught as an adoption step. Unblocks on the ruling in a session transcript.
 - 2026-09-30T14:27Z blocked→open
 - 2026-09-30T14:27Z open→doing — claimed by claude (05b075de-ed31-494c-b04a-af9f0dacd709)
+- 2026-09-30T14:42Z doing→done — verify exit 0 @ 8b8d56f+1
 
 ## comments
 - 2026-09-30T13:36Z [claude (05b075de-ed31-494c-b04a-af9f0dacd709)] Finding 2026-09-30: the skill-frontmatter grant does not deliver the task's promise on Claude Code 2.1.283, and shipping it would add a prompt. Work reverted from the tree; the task waits on a ruling.
