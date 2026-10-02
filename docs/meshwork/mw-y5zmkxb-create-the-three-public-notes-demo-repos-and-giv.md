@@ -6,8 +6,9 @@ seq: 225
 verify: grep -q 'alias = "nt"' ../meshwork-demo-notes-cli/docs/meshwork/config.toml && grep -q 'alias = "sy"' ../meshwork-demo-notes-sync/docs/meshwork/config.toml && grep -q 'alias = "pf"' ../meshwork-demo-notes-portfolio/docs/meshwork/config.toml && git -C ../meshwork-demo-notes-cli rev-parse -q --verify origin/main && git -C ../meshwork-demo-notes-sync rev-parse -q --verify origin/main && git -C ../meshwork-demo-notes-portfolio rev-parse -q --verify origin/main
 docs:
   - docs/PLAN-demo-notes.md#settled-decisions
-status: open
+status: doing
 created: 2026-10-02T15:21Z
+claimed-by: claude (6fa0dcc3-62c5-4a7b-a6b1-de25f58287de)
 ---
 Create `jbrjake/meshwork-demo-notes-cli`, `-sync` and `-portfolio` on GitHub, public. Creating them publishes under the owner's account, so confirm with the owner in the session that runs `gh repo create`. The plan and this task are not that confirmation.
 
@@ -23,3 +24,4 @@ The verify reads the sibling checkouts because the DSL is confined to this repo.
 
 ## log
 - 2026-10-02T15:21Z created
+- 2026-10-02T16:48Z open→doing — claimed by claude (6fa0dcc3-62c5-4a7b-a6b1-de25f58287de)

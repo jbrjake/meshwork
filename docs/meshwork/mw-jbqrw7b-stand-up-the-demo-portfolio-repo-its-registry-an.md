@@ -17,7 +17,5 @@ Work in ../meshwork-demo-notes-portfolio (store alias `pf`):
 
 This registry is the one every demo session resolves through. Builder sessions in any demo repo export `MESHWORK_PORTFOLIO=~/Documents/code/meshwork-demo-notes-portfolio`. Without it, cross-repo refs resolve against the real portfolio, which does not register the demo repos. Registering them there would put their prop backlogs in the real `portfolio ready`.
 
-R6 also waits on P1 and P2 landing in meshwork's main. The demo store cannot write that need, because meshwork lives in the other registry. This store's recording task carries it instead.
-
 ## log
 - 2026-10-02T15:21Z created

@@ -11,9 +11,8 @@ status: open
 created: 2026-10-02T15:21Z
 ---
 `scripts/demo-full.sh` is the full demo's wrapper:
-- It resolves the binary the way `scripts/demo.sh` does.
 - It `git clone`s https://github.com/jbrjake/meshwork-demo-notes-portfolio into a temp dir over https, with no `gh`.
-- It runs `story/replay.sh` with `MESHWORK_BIN` set.
+- It runs `story/replay.sh`, passing `MESHWORK_BIN` through when it is set. The replay otherwise runs the release the demo repos pin.
 
 CLAUDE.md gains its line in the same commit, saying it needs the network. The gate never runs it (zero network). Run it end to end once and read the full output before closing.
 

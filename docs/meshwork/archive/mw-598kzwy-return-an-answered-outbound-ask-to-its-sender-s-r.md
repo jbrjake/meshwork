@@ -8,7 +8,7 @@ verify: run cargo test answered_ask_returns_to_sender
 docs:
   - docs/PLAN-demo-notes.md#meshwork-prerequisites
   - FORMAT.md#asks--obligations-across-the-boundary
-status: open
+status: dropped
 created: 2026-10-02T15:21Z
 ---
 Implements the P1 ruling as ruled; build nothing before it.
@@ -19,3 +19,4 @@ The skill's inbox section teaches the asker's half: own asks leave `ready` for `
 
 ## log
 - 2026-10-02T15:21Z created
+- 2026-10-02T17:02Z open→dropped — The demo runs on meshwork as released and requires no change to meshwork; P1 existed only to put the answered ask in the next slot of a scripted digest, and v0.5.2 prime already lists it under asks out with answered-by (done). Owner, in session 2026-10-02: "I NEVER EVER EVER WOULD HAVE APPROVED MAKING MESHWORK CHANGES AS PART OF THIS."

@@ -5,7 +5,7 @@ category: meta/ruling
 seq: 205
 docs:
   - docs/PLAN-demo-notes.md#meshwork-prerequisites
-status: open
+status: dropped
 created: 2026-10-02T15:21Z
 verify: contains docs/meshwork/mw-arz9tdz-rule-on-p1-an-answered-outbound-ask-returns-to-i.md /^- 2026-\d\d-\d\d owner ruled P1/
 ---
@@ -19,3 +19,4 @@ The owner records the ruling in this file as its own line, `- 2026-MM-DD owner r
 
 ## log
 - 2026-10-02T15:21Z created
+- 2026-10-02T17:02Z open→dropped — The demo runs on meshwork as released and requires no change to meshwork; P1 existed only to put the answered ask in the next slot of a scripted digest, and v0.5.2 prime already lists it under asks out with answered-by (done). Owner, in session 2026-10-02: "I NEVER EVER EVER WOULD HAVE APPROVED MAKING MESHWORK CHANGES AS PART OF THIS."
