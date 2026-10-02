@@ -9,7 +9,7 @@ docs:
   - docs/PLAN-demo-notes.md#beats
   - docs/PLAN-demo-notes.md#work-breakdown
   - docs/meshwork/attachments/mw-wyvgkt0/plan-review.md
-status: open
+status: done
 created: 2026-10-02T15:21Z
 attachments: [attachments/mw-wyvgkt0/plan-review.md]
 ---
@@ -29,3 +29,5 @@ It also lists the smaller fixes and the plan's claims that checked out.
 
 ## log
 - 2026-10-02T15:21Z created
+- 2026-10-02T16:07Z open→doing — claimed by claude (3bd8766d-768f-4aa2-99a9-538521748de6)
+- 2026-10-02T16:11Z doing→done — verify exit 0 @ 4936ff6+3
