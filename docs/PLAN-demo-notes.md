@@ -1,6 +1,6 @@
 # PLAN — the notes demo
 
-A story performed on three real, public repos that use meshwork from their first commit. This is the full demo and it needs the network. It sits beside the small offline demo, `scripts/demo.sh`, which stays a one-repo scratch loop. This is a plan: nothing in it is built.
+A story performed on three real, public repos that use meshwork from their first commit. This is the full demo and it needs the network. It sits beside the small offline demo, `scripts/demo.sh`, which stays a one-repo scratch loop. The demo shows meshwork as released, the version the repos pin; it requires no change to meshwork. This is a plan: nothing in it is built.
 
 ## The story
 
@@ -10,7 +10,7 @@ A notes app syncs through a replication library that the app does not own. One u
   > At the gate I fixed a typo in a note on my laptop and let both devices sync. After takeoff I rewrote the note on my phone. When I landed and synced, my rewrite was gone and the laptop's version won. Both devices' change logs are in reports/gate-rewrite/.
 - **notes-1** opens a case and re-enacts the report as a test. Seeing that the app's sync pushes before it pulls, it declares a smoking gun, reorders the sync, and tries to close the case. meshwork refuses: the re-enactment still fails. Reading the logs, it finds the real cause. The phone stored the laptop's typo fix *before* writing its rewrite, yet the rewrite carries the earlier timestamp: the laptop's clock runs about five minutes fast. Last-writer-wins on wall-clock time cannot see that the rewrite came after. That ordering is the library's protocol, so notes-1 files an ask to the library repo and pins the protocol clause it is asking to change. It checks the library's roadmap first (per-field merge is planned, but both edits replaced the body, so it would not help). It leaves a handoff on the ask and ends.
 - **sync-1**, a clean session in the library repo, finds the ask in its own queue. It answers by stamping changes with hybrid logical clocks (HLC), adds a local `observed_at`, rewrites the protocol clause, and releases v0.2.0.
-- **notes-2**, a clean session in the app repo, opens on a digest that leads with the answered ask, notes-1's handoff, and a warning that the pinned clause moved. It re-reads the clause: an HLC timestamp "can run ahead of any device's clock". A portfolio-wide spec audit names a task closed on day 0, the "edited N minutes ago" label, as built on the old sentence. Under HLC the phone's own rewrite now reads "edited in 5 minutes". notes-2 moves to v0.2.0, closes the ask, reopens the label task, fixes it to read `observed_at`, and closes the case.
+- **notes-2**, a clean session in the app repo, opens on a digest that lists the ask as answered and warns that the pinned clause moved. `show` on the ask gives it notes-1's handoff. It re-reads the clause: an HLC timestamp "can run ahead of any device's clock". A portfolio-wide spec audit names a task closed on day 0, the "edited N minutes ago" label, as built on the old sentence. Under HLC the phone's own rewrite now reads "edited in 5 minutes". notes-2 moves to v0.2.0, closes the ask, reopens the label task, fixes it to read `observed_at`, and closes the case.
 - **Epilogue**: one query over the portfolio shows the whole story as log rows and comments, including the smoking gun and its retraction.
 
 The plot is credible because:
@@ -20,8 +20,9 @@ The plot is credible because:
 
 ## Settled decisions
 
-| Decision | Ruling |
+| Decision | Choice |
 |---|---|
+| meshwork | The pinned release, v0.5.2, unchanged. The demo shows what ships. |
 | Plot | Lost offline edit from LWW conflict resolution on device wall clocks |
 | Repos | `jbrjake/meshwork-demo-notes-cli`, `jbrjake/meshwork-demo-notes-sync`, `jbrjake/meshwork-demo-notes-portfolio`, all public |
 | Performance | Staged: one script performs every session with real meshwork commands, real code changes and real outputs. The sessions are scripted, and each repo's README says so. |
@@ -29,7 +30,7 @@ The plot is credible because:
 | Human input | Exactly one message, the report above |
 | Two demos | `scripts/demo.sh` stays small and offline: the quick-start loop on a scratch repo. `scripts/demo-full.sh` runs this story from the public repos and needs the network. |
 
-These follow from those rulings:
+These follow from those choices:
 - **Language: Rust, std only.**
   - meshwork's verify DSL runs only `cargo`.
   - A `run cargo test` verify needs no approval while the task file's history is store-only. The story has no human to approve anything.
@@ -52,7 +53,7 @@ These follow from those rulings:
   - A `.meshwork-version` rewrite (the plugin's session-start hook makes them) always commits alone. The pin sits outside `docs/meshwork/`, so riding with a task file would gate that task's `run` verifies under provenance.
   - Tests that wait on the ask are committed `#[ignore = "waits on <ask id>"]`, so `main` stays green. An ignored test reads as red to the verify (the `ok. N passed` floor), which is what the tasks need.
 
-Probed in scratch stores with the current binary before this plan was written:
+Probed in scratch stores before this plan was written:
 - the case tree;
 - `why` across repos;
 - the ask surfacing in the addressee's `ready`;
@@ -61,24 +62,11 @@ Probed in scratch stores with the current binary before this plan was written:
 - the day-0 task listed under `re-open candidates` in `portfolio spec audit`;
 - `cover --repin`.
 
+Probed on v0.5.2 itself: once the answer is done, the asker's prime lists the ask under `asks out` with `answered-by <gid> (done)`, and a started case shows as `doing <id> <title> [claimed: <author>]`.
+
 Not yet probed: `cover --repin` on a done, archived task, which Beat 2 runs on S4. cover.rs puts no status limit on a repin and writes into bundled archives.
 
-## meshwork prerequisites
-
-- **P1 — an answered outbound ask returns to the asker's queue (needs an owner ruling).**
-  - **Today:** `mw-pcjm4pb` takes outbound asks out of the sender's `ready` and next. The probe showed the consequence: once the answer is done, the asker's prime leads with unrelated backlog, and a handoff behind the ask stays invisible until the ask is closed and prime re-runs.
-  - **Proposal:** an ask whose answer is done is the asker's next action (verify in your own tree, then close). `ready` lists it with `answered-by … (done)`, and prime's next block can lead with it, handoff included.
-  - **Verify:** `run cargo test answered_ask_returns_to_sender`.
-  - **If rejected:**
-    - notes-1 does not `start` the case and puts the handoff on the case, not the ask.
-    - notes-2 closes the ask first, then re-runs prime ("re-run prime when the question changes").
-    - The case then leads next, handoff included. The story still works, but the handoff lands after notes-2 has begun.
-- **P2 — fix: an open cross-repo `needs` target counts as unresolved.**
-  - **The bug:** prime's graph line reports `blocked on foreign 0 · unresolved 1` when the target is registered, checked out and open. Single-repo loads inject only terminal foreign rows.
-  - **The fix:** reserve `unresolved` for targets that are absent or unregistered; count open ones as `blocked on foreign`.
-  - **Why it matters:** the demo's prime shows this line in every notes beat.
-  - **Verify:** `run cargo test open_foreign_need_counts_as_foreign`.
-- **Release.** The demo repos pin `.meshwork-version` to a release. One containing P1/P2 is the owner's call; this plan does not sequence a cut. The recording and the replay run a meshwork binary built from `main` via `MESHWORK_BIN`.
+**The binary.** The three repos pin `.meshwork-version` to v0.5.2. The recording and the replay run that release.
 
 ## Repo: meshwork-demo-notes-sync
 
@@ -373,12 +361,12 @@ observed_at is when this replica first stored a change, by this replica's clock.
 
 Author `claude (notes-2)`.
 
-1. `meshwork prime` (with P1). Next is `$ASK`, `answered-by meshwork-demo-notes-sync#$ANSWER (done)`, led by notes-1's handoff `[handoff by claude (notes-1), …]`. The weather shows:
+1. `meshwork prime`. It shows:
    - `spec moved under 1 live task ($ASK)`
    - `doing $CASE … [claimed: claude (notes-1)]`
-   - graph `blocked on foreign 1` (with P2)
+   - under `asks out (1)`: `$ASK → meshwork-demo-notes-sync … answered-by meshwork-demo-notes-sync#$ANSWER (done)`
 
-   The replay asserts all four lines appear.
+   The replay asserts all three lines appear. Then `meshwork show $ASK` prints notes-1's handoff, and the replay asserts its first sentence.
 2. Print the moved clause from `../meshwork-demo-notes-sync/docs/PROTOCOL.md`, the `sp-change-timestamp` section.
 3. `meshwork portfolio spec audit meshwork-demo-notes-sync#docs/PROTOCOL.md` shows:
    - `stale (1)`: `$ASK`
@@ -422,7 +410,7 @@ The second query shows the receipts: the smoking gun, then the retraction.
 - **`--record`.**
   - Runs on fresh clones of the real repos at `story/0-day0`. Regenerates and commits the fixture first, then commits and tags as the beats specify, and pushes after each beat.
   - Re-recording means force-pushing `main`, the story tags and sync's `v0.2.0` back to `story/0-day0`. Do that only before the reveal.
-- **Binary.** `MESHWORK_BIN`, else the resolution order `scripts/demo.sh` uses. The replay never calls the repos' shims.
+- **Binary.** The release the clones pin: `~/.meshwork/versions/<tag>/meshwork` for the tag in their `.meshwork-version`, fetched over https when absent, as the skill's install reference does. `MESHWORK_BIN` overrides it, to check a candidate build against the story before a release. The replay never calls the repos' shims.
 - **Helpers:**
   - `say` prints narration in plain voice.
   - `show` echoes a command the way it would be typed.
@@ -439,9 +427,8 @@ The second query shows the receipts: the smoking gun, then the retraction.
 ## meshwork integration
 
 **The full demo.** `scripts/demo-full.sh` is a new wrapper:
-- resolve the binary the way `scripts/demo.sh` does;
 - `git clone` the portfolio repo over https into a temp dir, with no `gh`;
-- run `story/replay.sh` with `MESHWORK_BIN` set.
+- run `story/replay.sh`, passing `MESHWORK_BIN` through when it is set.
 
 CLAUDE.md gains a line for it in the same commit, saying it needs the network. The meshwork gate never runs it (zero-network gate).
 
@@ -469,12 +456,9 @@ The order below is the dependency order. Ids are suggestions for whoever files t
 
 | Id | Work | Depends on | Verify |
 |---|---|---|---|
-| M1 | Owner ruling on P1 (amends `mw-pcjm4pb`) | — | owner-gated |
-| M2 | Implement P1 | M1 | `run cargo test answered_ask_returns_to_sender` |
-| M3 | Fix P2 | — | `run cargo test open_foreign_need_counts_as_foreign` |
-| M4 | Add `scripts/demo-full.sh`, the clone-and-replay wrapper; CLAUDE.md line | R6 | `contains scripts/demo-full.sh /story\/replay\.sh/` |
-| M5 | Propose the README sentence for the full demo to the owner | M4 | owner-gated |
-| M6 | Make `scripts/demo.sh` play the quick-start loop it claims: DSL verifies, no `--approve`, no `true` verify, end on the archived file | — | `all(lacks scripts/demo.sh /--approve/, lacks scripts/demo.sh /verify "true"/, contains scripts/demo.sh /docs\/meshwork\/archive/)` |
+| M1 | Add `scripts/demo-full.sh`, the clone-and-replay wrapper; CLAUDE.md line | R6 | `contains scripts/demo-full.sh /story\/replay\.sh/` |
+| M2 | Propose the README sentence for the full demo to the owner | M1 | owner-gated |
+| M3 | Make `scripts/demo.sh` play the quick-start loop it claims: DSL verifies, no `--approve`, no `true` verify, end on the archived file | — | `all(lacks scripts/demo.sh /--approve/, lacks scripts/demo.sh /verify "true"/, contains scripts/demo.sh /docs\/meshwork\/archive/)` |
 
 **GitHub**
 
@@ -495,12 +479,10 @@ The order below is the dependency order. Ids are suggestions for whoever files t
 | R3 | Author the beat patches against day-0 on scratch branches | R2, cli and sync day-0 | `all(exists story/patches/1a-cli-reenact.patch, exists story/patches/2b-sync-hlc.patch, exists story/patches/3c-cli-label-observed.patch)` |
 | R4 | Write the session texts (case, diagnosis, ask, handoffs) | — | `exists story/text/handoff.md` |
 | R5 | Write `story/replay.sh` (both modes, helpers, assertions) | R3, R4 | `contains story/replay.sh /mw_refused/` |
-| R6 | Record the story; push; tag | R5, M2, M3 | `contains story/recording.md /story\/3-resolved/` |
+| R6 | Record the story; push; tag | R5 | `contains story/recording.md /story\/3-resolved/` |
 | R7 | Portfolio README: what the three repos are, staged disclosure, how to replay | R6 | `contains README.md /story\/replay\.sh/` |
 
 The cli and sync READMEs carry the same disclosure from day 0 (S9, C7).
-
-R6's dependency on M2 and M3 crosses registries. meshwork's store sits in the real portfolio, so the demo store cannot hold that edge; meshwork's own recording task carries it.
 
 R3 detail: each patch applies cleanly to the state its beat leaves, and names ids only through placeholders. Patches 3b and 3c need notesync v0.2.0 before it exists on GitHub. Author them against a local sync checkout with 2b applied, through a scratch `[patch]` in a scratch cargo config; it is never committed.
 
@@ -508,6 +490,5 @@ R3 detail: each patch applies cleanly to the state its beat leaves, and names id
 
 - **Network.** The demo clones from GitHub and cargo fetches notesync by tag. If GitHub is down, the clone fails at the first step with git's own error.
 - **Provenance needs clean history.** A day-0 commit that mixes task files with code gates that task's `run` verifies, which would stall the story at an approval prompt nobody is there to answer. Shallow clones are untested against provenance, so the replay never makes one.
-- **`target/` placement.** meshwork's verify runner passes only `PATH`, `HOME`, `CARGO_HOME` and `TMPDIR`, so `CARGO_TARGET_DIR` never reaches verify builds and `target/` lands in each clone. It is a temp dir in the replay, and under `~/Documents` for the builders, who run `mdutil -i off` on each demo checkout (the portfolio's Rust rule 4).
-- **Story regressions.** Changes to meshwork output can break the replay's assertions. That is the alarm working: run the replay before a release.
-- **Rejecting P1** changes Beats 1 and 3 as described under P1.
+- **`target/` placement.** meshwork's verify runner passes only `PATH`, `HOME`, `CARGO_HOME` and `TMPDIR`, so `CARGO_TARGET_DIR` never reaches verify builds and `target/` lands in each clone. It is a temp dir in the replay. Under `~/Documents`, each crate's gate re-creates `target/.metadata_never_index` so Spotlight skips the build output, as leras's `scripts/mark-target-unindexed.sh` does; `mdutil -i off` works per volume, not per directory.
+- **Story regressions.** Changes to meshwork output can break the replay's assertions. That is the alarm working: run the replay with `MESHWORK_BIN` set to a candidate build before a release.
