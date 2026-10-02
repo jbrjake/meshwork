@@ -217,7 +217,7 @@ The LABEL pin is what drifts. Its verify filter, `edited_label`, also matches th
 
 | # | Title | Seq | Needs | Verify |
 |---|---|---|---|---|
-| TITLE | Keep both title edits when two devices rename a note concurrently | 30 | `meshwork-demo-notes-sync#<PFM id>` | `run cargo test concurrent_title_edits` |
+| TITLE | Keep a rename when another device edits the note's body at the same time | 30 | `meshwork-demo-notes-sync#<PFM id>` | `run cargo test concurrent_title_edits` |
 | | Export a note as markdown | 40 | | `run cargo test export_markdown` |
 | | Search notes by text | 50 | | `run cargo test search_` |
 
