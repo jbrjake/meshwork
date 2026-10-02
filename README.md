@@ -73,6 +73,8 @@ created: 2026-08-12T21:28Z
 
 *`./scripts/demo.sh` plays that whole loop on a throwaway scratch repo. It doesn't hit the network and it cleans up after itself.*
 
+*`./scripts/demo-full.sh` plays a bigger story across [three public repos](https://github.com/jbrjake/meshwork-demo-notes-portfolio): agent sessions that never meet trace a lost edit to a library's conflict resolution, ask the library for a fix, and catch what that fix breaks back in the app. Along the way you get a refused close, a handoff, a cross-repo ask and its answer, and a spec change caught by the tasks that pinned it. It needs the network and takes a couple of minutes.*
+
 ## why?
 
 If you code with agents for more than toy projects, you manage your context window size rather than rely on compaction. You have to make sure new agents get on-boarded at session start and kept on-task.
@@ -540,7 +542,7 @@ Both sides watched that happen and nobody sent a message. Each verify checks its
 ## boundaries
 
 - **Zero network required.** A one-way, append-only GitHub mirror (issues created, comments appended, nothing ever edited or closed remotely) is planned at some point.
-- **Never installs git hooks, never writes outside the repo.** The SessionStart hook that injects `prime` is Claude Code configuration you add yourself, once.
+- **Never installs git hooks, never writes outside the repo.** The SessionStart hook that injects `prime` and other Claude Code configuration gets added when you adopt meshwork in a project.
 - **`verify:` is untrusted input.** Anything arriving by merge or hand-edit doesn't shell out until the checkout's operator approves the exact text (`close --approve`; `MESHWORK_TRUST=1` for checkouts reviewed before the runner touched them).
 - **The CLI surface is frozen.** Anything not in the design doc's verb table is a non-goal, enforced by a test that diffs `--help` against the spec. Feature ideas default to the rejection list so this doesn't turn into Jira.
 - **meshwork tracks meshwork.** This repo's own store holds its remaining roadmap, the repo's gate runs `lint` + `prime` against it on every push, and the digest you get when you open a session here is the one described above.
@@ -557,12 +559,12 @@ echo "v0.5.2" > .meshwork-version     # commit this
 VER=$(cat .meshwork-version)
 DEST=~/.meshwork/versions/$VER
 mkdir -p "$DEST"
-gh release download "$VER" -R jbrjake/meshwork \
-  -p "*aarch64-apple-darwin.tar.gz" -O - | tar -xz -C "$DEST"
+curl -fsSL "https://github.com/jbrjake/meshwork/releases/download/$VER/meshwork-$VER-aarch64-apple-darwin.tar.gz" \
+  | tar -xz -C "$DEST"
 "$DEST/meshwork" --help
 ```
 
-Hooks and scripts invoke `~/.meshwork/versions/$(cat .meshwork-version)/meshwork`, so two repos can disagree. The adoption skill commits a small `docs/meshwork/meshwork` shim so humans, hooks, and homunculi all reach the pinned version without re-deriving that path.
+Two repos can pin different versions and disagree. A small `docs/meshwork/meshwork` shim lets humans, hooks, and homunculi all reach the pinned version with consistent configuration.
 
 Building from source works too: `cargo install --git https://github.com/jbrjake/meshwork` (or `cargo build --release` in a clone).
 
