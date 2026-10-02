@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The 60-second demo (mw-78nabpd): the whole loop on a scratch repo, one
+# The 60-second demo: the README's quick-start loop on a scratch repo, one
 # command, zero network. Run from a clone: ./scripts/demo.sh
 # Binary resolution: $MESHWORK_BIN > target/release > target/debug >
 # the repo-pinned version > meshwork on PATH.
@@ -22,19 +22,42 @@ trap 'rm -rf "$DEMO"' EXIT
 cd "$DEMO"
 git init -q demo && cd demo
 git config user.name "Demo" && git config user.email demo@example.invalid
+# The project under the demo: one config file, which the second task's fix edits.
+printf 'batch_rows = 65536\n' > spill.toml
+git add spill.toml && git commit -qm "feat(engine): spill config"
 
-run() { printf '\n$ meshwork %s\n' "$*"; "$BIN" "$@"; }
+# Echo a command the way it would be typed: an argument with a space or a
+# shell metacharacter in it is double-quoted.
+show() {
+  local a line=
+  for a; do
+    if [[ $a =~ [^A-Za-z0-9_./:=@%+,-] ]]; then line+=" \"$a\""; else line+=" $a"; fi
+  done
+  printf '\n$%s\n' "$line"
+}
+run() { show meshwork "$@"; "$BIN" "$@"; }
+# `add` prints the new id on its first line; MINTED keeps it for later steps.
+mint() {
+  local out
+  show meshwork "$@"
+  out=$("$BIN" "$@")
+  printf '%s\n' "$out"
+  MINTED=${out%%$'\n'*}
+}
+sh_() { show "$@"; "$@"; }
 
 run init
-run add "Reproduce the spill cliff" --cat engine/spill --verify "test -f repro.log"
-ID=$("$BIN" q "SELECT id FROM tasks" --json | sed -n 's/.*"rows":\[\["\([^"]*\)".*/\1/p')
-run add "Fix spill batch sizing" --cat engine/spill --needs "$ID" --seq 10 --verify "true"
-run ready
+mint add "Reproduce the spill cliff" --cat engine/spill --verify "exists repro.log"
+ID=$MINTED
+mint add "Fix spill batch sizing" --cat engine/spill --needs "$ID" \
+  --verify "contains spill.toml /batch_rows = 16384/"
+run prime
 run start "$ID" --as demo
 run comment "$ID" --as demo "cliff reproduces at batch=64k"
-touch repro.log
-run close "$ID" --approve
-run prime
-run q "SELECT id, status, category FROM tasks ORDER BY id"
+sh_ touch repro.log
+run close "$ID"
+run ready
+run q "SELECT category, status, count(*) AS n FROM tasks GROUP BY category, status ORDER BY status"
+sh_ cat docs/meshwork/archive/"$ID"-*.md
 
 printf '\ndemo: done — the scratch repo is deleted on exit; your repo was never touched.\n'
