@@ -7,7 +7,7 @@ verify: "all(lacks scripts/demo.sh /--approve/, lacks scripts/demo.sh /--verify 
 docs:
   - docs/PLAN-demo-notes.md#meshwork-integration
   - README.md#quick-start
-status: open
+status: done
 created: 2026-10-02T15:21Z
 ---
 README.md says `./scripts/demo.sh` plays the quick-start loop, but the script differs from it in three ways:
@@ -21,3 +21,5 @@ The gate never runs demo.sh. Run it and read the whole output before closing. RE
 
 ## log
 - 2026-10-02T15:21Z created
+- 2026-10-02T16:18Z open→doing — claimed by claude (6fa0dcc3-62c5-4a7b-a6b1-de25f58287de)
+- 2026-10-02T16:20Z doing→done — verify exit 0 @ b774f5c+4
