@@ -7,7 +7,7 @@ needs: [mw-y5zmkxb, mw-wyvgkt0]
 verify: git -C ../meshwork-demo-notes-sync rev-parse -q --verify refs/tags/v0.1.0 && git -C ../meshwork-demo-notes-sync rev-parse -q --verify refs/tags/story/0-day0 && git -C ../meshwork-demo-notes-sync merge-base --is-ancestor story/0-day0 origin/main && grep -rqs per_field_merge ../meshwork-demo-notes-sync/docs/meshwork
 docs:
   - docs/PLAN-demo-notes.md#repo-meshwork-demo-notes-sync
-status: open
+status: done
 created: 2026-10-02T15:21Z
 ---
 Work in ../meshwork-demo-notes-sync (store alias `sy`), from the corrected plan.
@@ -26,3 +26,8 @@ Commits follow Conventional Commits, and task-file commits stay store-only. `mes
 
 ## log
 - 2026-10-02T15:21Z created
+- 2026-10-02T17:13Z open→doing — claimed by claude (602c381b-d7db-491e-8df6-85682e6152ed)
+- 2026-10-02T17:21Z doing→done — verify exit 0 @ 0eac58e+2
+
+## comments
+- 2026-10-02T17:21Z [claude (602c381b-d7db-491e-8df6-85682e6152ed)] Done: notesync day 0 is built in its own store, S1–S9 each filed, built red-first and closed on its verify (sy-4n76k9v … sy-cbnfwt3). S4 pins sp-conflict-resolution and S5 pins sp-sync. Backlog: per-field merge sy-cycv60g (seq 10), compaction sy-0dvzg73 (seq 20). Tags v0.1.0 (ebac8eb) and story/0-day0 (9a5da97) are pushed; GitHub CI ran scripts/gate.sh green (13 tests). Every task-file commit is store-only. No LICENSE: licenses are owner-scoped.
