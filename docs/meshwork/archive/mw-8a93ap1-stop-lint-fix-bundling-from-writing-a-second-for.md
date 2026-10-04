@@ -5,7 +5,7 @@ category: core/format
 seq: 5
 docs: [FORMAT.md#configtoml]
 verify: run cargo test bump_format_keeps_one_format_key
-status: open
+status: done
 created: 2026-10-02T13:32Z
 ---
 `archive::bump_format` (src/archive.rs) inserts `format = 2` after the `alias` line, then also rewrites the existing `format = 1` line to `format = 2`. A config with `alias` above an explicit `format = 1` — this repo's own `docs/meshwork/config.toml` — ends with the key twice, and every verb then exits 1 with `bad config … duplicate key format`.
@@ -14,3 +14,5 @@ Reproduced: copy this store's config.toml, .gitattributes and its 229 loose arch
 
 ## log
 - 2026-10-02T13:32Z created
+- 2026-10-04T14:27Z open→doing — claimed by claude (70b8c3c2-a3ae-4cee-81aa-681b84b44405)
+- 2026-10-04T14:30Z doing→done — verify exit 0 @ da95984+1
