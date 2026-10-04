@@ -56,6 +56,10 @@ pub(crate) fn start(args: &StartArgs, json: bool) -> Result<(), String> {
     if let Some(located) = crate::archive::locate(&tasks_dir, &args.id) {
         let path = located.path().to_path_buf();
         if let ParsedTask::Valid(t) = located.parse() {
+            // The status refusal first: a task already doing, or done in
+            // the archive, runs nothing — a `run cargo test` verify would
+            // otherwise build for minutes ahead of the refusal.
+            status_gate("start", &args.id, t.status, &[Status::Open])?;
             match t.verify.as_deref().map(str::trim) {
                 None | Some("") => {
                     return Err(format!(
@@ -277,6 +281,28 @@ pub(crate) fn reopen(args: &IdArg, json: bool) -> Result<(), String> {
     )
 }
 
+/// The one status refusal every transition shares — `start` applies it
+/// ahead of its red-check so a refused start runs nothing.
+fn status_gate(
+    verb: &str,
+    id: &str,
+    status: Status,
+    allowed_from: &[Status],
+) -> Result<(), String> {
+    if allowed_from.contains(&status) {
+        return Ok(());
+    }
+    Err(format!(
+        "cannot {verb} {id}: status is {}, needs one of [{}]",
+        status.as_str(),
+        allowed_from
+            .iter()
+            .map(|s| s.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+    ))
+}
+
 fn transition(
     verb: &str,
     id: &str,
@@ -300,17 +326,7 @@ fn transition(
             ))
         }
     };
-    if !allowed_from.contains(&task.status) {
-        return Err(format!(
-            "cannot {verb} {id}: status is {}, needs one of [{}]",
-            task.status.as_str(),
-            allowed_from
-                .iter()
-                .map(|s| s.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
+    status_gate(verb, id, task.status, allowed_from)?;
 
     // A bundled document comes back out as a file of its own first
     // (mw-bvxpeef) — reopen is the one transition a terminal task takes,

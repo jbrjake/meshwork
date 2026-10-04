@@ -54,6 +54,33 @@ fn needs_verify() {
     assert_eq!(v["data"]["rows"][0]["needs_verify"], false, "{js}");
 }
 
+/// The status refusal comes before the red-check: `start` on a task
+/// already doing, or done in the archive, runs nothing — a `run cargo
+/// test` verify would otherwise build for minutes ahead of the refusal.
+#[test]
+fn start_refuses_status_before_red_check() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let marker = repo.join("red-check-ran");
+    let id = add_id(&repo, &["add", "Twice", "--verify", "touch red-check-ran"]);
+    meshwork(&repo).args(["start", &id]).assert().success();
+    assert!(marker.is_file(), "the first start red-checks in a trusted clone");
+    std::fs::remove_file(&marker).unwrap();
+
+    let assert = meshwork(&repo).args(["start", &id]).assert().code(1);
+    let err = stderr_of(&assert);
+    assert!(err.contains("status is doing"), "{err}");
+    assert!(!err.contains("red-checking"), "nothing announced: {err}");
+    assert!(!marker.exists(), "the verify ran before the refusal: {err}");
+
+    meshwork(&repo).args(["close", &id]).assert().success();
+    let _ = std::fs::remove_file(&marker);
+    let assert = meshwork(&repo).args(["start", &id]).assert().code(1);
+    let err = stderr_of(&assert);
+    assert!(err.contains("status is done"), "{err}");
+    assert!(!marker.exists(), "the verify ran before the refusal: {err}");
+}
+
 /// mw-175bn4c: a verify already green at start cannot detect the work.
 /// The red-check is advisory (mw-kkvs8zq precedent: a warning is
 /// behavior, no new surface) and executes only text this clone already
