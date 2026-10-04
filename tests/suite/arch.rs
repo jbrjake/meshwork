@@ -260,7 +260,7 @@ fn model_boundary_list_is_complete() {
 }
 
 /// What `meshwork <args…> --help` prints.
-fn help_of(args: &[String]) -> String {
+pub(crate) fn help_of(args: &[String]) -> String {
     let mut cmd = assert_cmd::Command::cargo_bin("meshwork").unwrap();
     let out = cmd.args(args).arg("--help").assert().success();
     String::from_utf8(out.get_output().stdout.clone()).unwrap()
@@ -269,7 +269,7 @@ fn help_of(args: &[String]) -> String {
 /// The verbs a help screen's `Commands:` block lists, minus clap's own
 /// `help` and any verb the screen marks `not built yet` — those are not
 /// shipped surface and the skill owes them nothing.
-fn verbs_of(help: &str) -> Vec<String> {
+pub(crate) fn verbs_of(help: &str) -> Vec<String> {
     help.lines()
         .skip_while(|l| !l.starts_with("Commands:"))
         .skip(1)

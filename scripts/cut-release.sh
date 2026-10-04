@@ -34,6 +34,7 @@ rm -f Cargo.toml.bak .claude-plugin/plugin.json.bak README.md.bak
 cargo build --quiet                                # refresh Cargo.lock
 MESHWORK_BLESS=1 cargo test --quiet >/dev/null 2>&1 # golden version stamps
 ./scripts/smoke.sh                                 # includes the lockstep guards
+./verify_meshwork.sh                               # the whole gate — no tag without it green
 
 git add Cargo.toml Cargo.lock .claude-plugin/plugin.json fixtures/golden README.md
 git commit -m "chore(release): $TAG — version stamps in lockstep (cut-release.sh)"
