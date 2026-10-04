@@ -49,8 +49,25 @@ fn provenance_line(root: &std::path::Path) -> Option<String> {
     };
     let sha = git(&["rev-parse", "--short", "HEAD"])?;
     let mut line = format!("store @ {sha}");
-    let dirty =
-        git(&["status", "--porcelain", "--", "docs/meshwork"]).map_or(0, |s| s.lines().count());
+    // Every task file, never one line per untracked directory — a store
+    // that has never been committed is one such directory, and so is the
+    // archive after its first close. Config and shim are not task edits.
+    let dirty = git(&[
+        "status",
+        "--porcelain",
+        "--untracked-files=all",
+        "--",
+        "docs/meshwork",
+    ])
+    .map_or(0, |s| {
+        s.lines()
+            .filter(|l| {
+                std::path::Path::new(l.trim_end().trim_end_matches('"'))
+                    .extension()
+                    .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+            })
+            .count()
+    });
     if dirty > 0 {
         let s = if dirty == 1 { "" } else { "s" };
         let _ = write!(line, " \u{b7} {dirty} uncommitted task edit{s}");

@@ -25,6 +25,46 @@ fn prime_provenance_line_present() {
     assert!(prime.contains("1 uncommitted task edit"), "{prime}");
 }
 
+/// A store whose directory has never been committed is one untracked
+/// directory to git, so every new task file read as one edit; the first
+/// close did the same for the new archive directory. Each task file
+/// counts, and only task files count — config and shim are not edits.
+#[test]
+fn prime_counts_each_untracked_task_file() {
+    let (_g, repo) = git_repo("work");
+    std::fs::write(repo.join("README.md"), "seed\n").unwrap();
+    git(&repo, &["add", "."]);
+    git(&repo, &["commit", "-qm", "chore: seed"]);
+    init_store(&repo);
+    let one = add_task(&repo, "first");
+    add_task(&repo, "second");
+    let prime = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(prime.contains("2 uncommitted task edits"), "{prime}");
+
+    // The first close moves one file into the new archive directory:
+    // still two task files, now in two untracked directories.
+    meshwork(&repo).args(["close", &one]).assert().success();
+    let prime = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(prime.contains("2 uncommitted task edits"), "{prime}");
+
+    // close's anchor counts the whole tree the same way: file by file.
+    let text = std::fs::read_to_string(task_file(&repo, &one)).unwrap();
+    let anchor = text
+        .lines()
+        .find(|l| l.contains("→done"))
+        .and_then(|l| l.rsplit('+').next())
+        .and_then(|n| n.trim().parse::<usize>().ok())
+        .unwrap_or_else(|| panic!("no @ sha+N anchor: {text}"));
+    let out = std::process::Command::new("git")
+        .args(["status", "--porcelain", "--untracked-files=all"])
+        .current_dir(&repo)
+        .output()
+        .unwrap();
+    let files = String::from_utf8_lossy(&out.stdout).lines().count();
+    assert!(files > 2, "the store alone is several files: {files}");
+    assert_eq!(anchor, files, "{text}");
+}
+
 #[test]
 fn prime_provenance_degrades_silently() {
     // No commits yet: HEAD is unborn, git info unavailable — the line is

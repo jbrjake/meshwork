@@ -256,7 +256,13 @@ pub(crate) fn changed_since_approval<'a>(
 /// (no repo, no git) reads as nothing dirty.
 fn dirty_ids(store: &RepoStore) -> std::collections::BTreeSet<String> {
     let Ok(out) = std::process::Command::new("git")
-        .args(["status", "--porcelain", "--", "docs/meshwork"])
+        .args([
+            "status",
+            "--porcelain",
+            "--untracked-files=all",
+            "--",
+            "docs/meshwork",
+        ])
         .current_dir(&store.root)
         .output()
     else {

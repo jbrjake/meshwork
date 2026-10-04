@@ -185,7 +185,10 @@ fn prime_flags_verify_changed_since_approval() {
         !before.contains("verify changed since approval"),
         "no approvals recorded, nothing to flag:\n{before}"
     );
-    // The operator approved one text; the store now carries another.
+    // The operator approved one text; the committed store carries another
+    // (an uncommitted file is an edit in progress, re-approved at close).
+    git(&repo, &["add", "-A"]);
+    git(&repo, &["commit", "-qm", "chore(store): seed"]);
     meshwork::trust::record_approval(&repo, "az-n33d", "test -f docs/spill-report-draft.md")
         .unwrap();
     let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
