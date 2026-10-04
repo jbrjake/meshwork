@@ -1,7 +1,7 @@
 ---
 id: mw-kxdq6pf
 title: MW-L4 — an inbound ask past the triage age leads prime's next block (a ruled MUST with no task; the mechanism behind 56 asks closed with no answer)
-status: open
+status: done
 category: core/render
 verify: run cargo test prime_leads_with_a_stale_ask
 docs:
@@ -27,3 +27,5 @@ The test pins both orders: a stale ask leads, and a fresh ask does not.
 
 ## log
 - 2026-09-23T15:13Z created
+- 2026-10-04T15:34Z open→doing — claimed by claude (5566559a-b6fd-4780-8c73-3214f8c33f5d)
+- 2026-10-04T15:46Z doing→done — verify exit 0 @ 506dc44+5
