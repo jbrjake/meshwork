@@ -4,10 +4,12 @@ title: Keep spawn_capped from panicking when the output cap splits a multibyte c
 category: core/verify
 docs: [docs/DESIGN-meshwork.md#12b-trust-boundary-verify-is-untrusted-input-ruled-via-mw-mjwfvxn-2026-08-07]
 verify: run cargo test spawn_capped_cap_on_multibyte_boundary
-status: open
+status: done
 created: 2026-10-02T13:32Z
 ---
 `verify_exec::spawn_capped` appends `&err_tail[..err_tail.len().min(spare)]` — a byte-index slice of a lossy-decoded String. When stdout leaves `spare` bytes and that index lands inside a multibyte character of stderr, the slice panics. Found by reading the code; not yet reproduced — the test should drive stdout to just under the cap with a multibyte stderr tail.
 
 ## log
 - 2026-10-02T13:32Z created
+- 2026-10-04T14:32Z open→doing — claimed by claude (70b8c3c2-a3ae-4cee-81aa-681b84b44405)
+- 2026-10-04T14:40Z doing→done — verify exit 0 @ ea589b4+4
