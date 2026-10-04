@@ -184,6 +184,33 @@ fn did_you_mean_inbox_verbs() {
     assert!(out.contains("--needs"), "success line models the flag: {out}");
 }
 
+/// Every hint names a door that exists: `set` carries --body, --from and
+/// --parent, the `portfolio show` hint fires under portfolio alone, and
+/// the q help line lists every raw table.
+#[test]
+fn forgiveness_hints_match_the_surface() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "Flagged");
+    for flag in ["--body", "--from", "--parent"] {
+        let err = stderr_of(&meshwork(&repo).args(["start", &id, flag, "x"]).assert().code(2));
+        assert!(err.contains(&format!("set <id> {flag}")), "{flag}: {err}");
+        assert!(!err.contains("hand-edit"), "{flag}: {err}");
+    }
+    let err = stderr_of(&meshwork(&repo).args(["start", &id, "--label", "x"]).assert().code(2));
+    assert!(err.contains("hand-edit"), "no set flag for labels: {err}");
+
+    let err = stderr_of(&meshwork(&repo).args(["dep", "show", &id]).assert().code(2));
+    assert!(!err.contains("portfolio show"), "{err}");
+    assert!(err.contains("dep"), "clap's own usage names the parent: {err}");
+    let err = stderr_of(&meshwork(&repo).args(["portfolio", "show", &id]).assert().code(2));
+    assert!(err.contains("`portfolio show` does not exist"), "{err}");
+
+    let help = stdout_of(&meshwork(&repo).arg("--help").assert().success());
+    let q = help.lines().find(|l| l.trim_start().starts_with("q ")).unwrap();
+    assert!(q.contains("covers"), "{q}");
+}
+
 /// An id with a sibling's prefix is not "not found" — it is elsewhere,
 /// and show says where and gives the one-liner. Cross-repo edge targets
 /// the registry cannot resolve are warned about at add.

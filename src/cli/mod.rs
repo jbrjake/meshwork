@@ -85,7 +85,7 @@ enum Cmd {
     Tree(transition::IdArg),
     /// The frontier of actually-open blockers for a task.
     Why(transition::IdArg),
-    /// Raw SQL over tasks/edges/labels/comments/log/repos.
+    /// Raw SQL over tasks/edges/labels/comments/log/repos/covers.
     Q(query::QArgs),
     /// Case-insensitive text search over titles, bodies, handoffs, comments, and logs.
     Search(search::SearchArgs),
@@ -121,7 +121,13 @@ fn forgiveness(e: &clap::Error) -> Option<String> {
             let ContextValue::String(verb) = e.get(ContextKind::InvalidSubcommand)? else {
                 return None;
             };
-            verb_forgiveness(verb)
+            // The usage line names the parent verb: `show` is a hint
+            // under portfolio alone, where the union has no single-repo
+            // read; under any other parent clap's own usage is right.
+            let under_portfolio = e
+                .get(ContextKind::Usage)
+                .is_some_and(|usage| usage.to_string().contains("portfolio"));
+            verb_forgiveness(verb, under_portfolio)
         }
         ErrorKind::UnknownArgument => {
             let ContextValue::String(arg) = e.get(ContextKind::InvalidArg)? else {
@@ -136,7 +142,7 @@ fn forgiveness(e: &clap::Error) -> Option<String> {
 /// The verbs sessions reach for and the reading verbs they meant. The
 /// inbox guesses (mw-48mzck9: `inbox`/`addressed`/`next`/`list` typed 22
 /// times) point at prime, ready and --help — never at a writing verb.
-fn verb_forgiveness(verb: &str) -> Option<String> {
+fn verb_forgiveness(verb: &str, under_portfolio: bool) -> Option<String> {
     let (near, hint) = match verb {
         "log" | "note" | "notes" => (
             "comment",
@@ -167,8 +173,8 @@ fn verb_forgiveness(verb: &str) -> Option<String> {
             "ready",
             "`meshwork ready --all` lists actionable tasks; anything else is `meshwork q \"SELECT …\"`",
         ),
-        // Only reachable under `portfolio`: show is single-repo.
-        "show" => {
+        // Only under `portfolio`: show is single-repo.
+        "show" if under_portfolio => {
             return Some(
                 "error: `portfolio show` does not exist — show is single-repo: cd into the \
                  task's repo (its id prefix names it) and `meshwork show <id>` there; the union \
@@ -201,7 +207,12 @@ fn flag_forgiveness(arg: &str) -> Option<String> {
              (`meshwork <verb> --help` lists a verb's flags)"
                 .to_string(),
         ),
-        "body" | "from" | "parent" | "label" | "labels" => Some(format!(
+        "body" | "from" | "parent" => Some(format!(
+            "error: `--{field}` is not a flag on this verb — set it at creation \
+             (`meshwork add … --{field}`) or later (`meshwork set <id> --{field}`)\n\
+             (`meshwork <verb> --help` lists a verb's flags)"
+        )),
+        "label" | "labels" => Some(format!(
             "error: `--{field}` is not a flag on this verb — it is set at creation \
              (`meshwork add … --{field}`) or by hand-edit in the task file\n\
              (`meshwork <verb> --help` lists a verb's flags)"
