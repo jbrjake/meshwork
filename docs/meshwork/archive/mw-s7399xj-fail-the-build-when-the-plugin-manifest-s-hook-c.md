@@ -1,7 +1,7 @@
 ---
 id: mw-s7399xj
 title: Fail the build when the plugin manifest's hook command names a file the plugin does not ship
-status: open
+status: done
 category: plugin/upgrade
 relates: [mw-gh067xt]
 verify: "all(run cargo test package=meshwork target=suite arch::manifest_hook_paths_ship, contains CLAUDE.md /arch::manifest_hook_paths_ship/)"
@@ -35,3 +35,5 @@ The work:
 
 ## log
 - 2026-09-30T15:14Z created
+- 2026-10-04T15:22Z open→doing — claimed by claude (5566559a-b6fd-4780-8c73-3214f8c33f5d)
+- 2026-10-04T15:33Z doing→done — verify exit 0 @ 47f4cc4+4
