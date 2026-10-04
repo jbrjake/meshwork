@@ -319,7 +319,11 @@ fn duplicate_id_fix_reslugs_fewer_inbound() {
     assert!(lint1.contains("duplicate-id"), "{lint1}");
 
     meshwork(&b).args(["lint", "--fix"]).assert().success();
-    meshwork(&b).arg("lint").assert().success();
+    let lint2 = stdout_of(&meshwork(&b).arg("lint").assert().success());
+    assert!(
+        !lint2.contains("implicit-edge"),
+        "the repair's own log lines are not edgeless mentions:\n{lint2}"
+    );
 
     // B's side had more references by history: it keeps the id.
     let shown = stdout_of(&meshwork(&b).args(["show", &dup]).assert().success());

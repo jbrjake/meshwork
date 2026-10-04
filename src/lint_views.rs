@@ -128,13 +128,23 @@ fn handoff_cites_closed(ctx: &SessionContext, bare: Bare) -> Result<Vec<Finding>
         .collect())
 }
 
-/// A live task naming live work with no edge behind the mention.
+/// A live task naming live work with no edge behind the mention. A `log`
+/// mention counts only when a log note `lint --fix` did not write names
+/// the task: the repair's own lines (`re-slugged from <id>`, `needs now
+/// <new>, was <old>`) are machine provenance, never a missing edge
+/// (mw-pxm63n8). The `mentions` view itself stays faithful — every mention
+/// is a row there; the judgement is this finding's alone.
 fn implicit_edges(ctx: &SessionContext, bare: Bare) -> Result<Vec<Finding>, String> {
     let rows = query_blocking(
         ctx,
         "SELECT m.src_gid, m.ref_gid, m.field FROM mentions m \
          JOIN facts a ON a.gid = m.src_gid JOIN facts b ON b.gid = m.ref_gid \
-         WHERE NOT m.edge_backed AND a.live AND b.live ORDER BY m.src_gid, m.ref_gid, m.field",
+         JOIN tasks r ON r.gid = m.ref_gid \
+         WHERE NOT m.edge_backed AND a.live AND b.live \
+         AND (m.field <> 'log' OR EXISTS (\
+             SELECT 1 FROM log l WHERE l.gid = m.src_gid AND l.note IS NOT NULL \
+             AND l.note NOT LIKE 'lint --fix:%' AND strpos(l.note, r.id) > 0)) \
+         ORDER BY m.src_gid, m.ref_gid, m.field",
     )?;
     let mut by_pair: BTreeMap<(String, String), Vec<String>> = BTreeMap::new();
     for r in &rows {

@@ -42,6 +42,12 @@ const EXPLAINED: &[(&str, &str)] = &[
          of anything satisfies it.",
     ),
     (
+        "implicit-edge",
+        "a live task names live work in its body, handoff, a comment or a log entry with no \
+         edge of any kind between them. A log entry `lint --fix` wrote is machine provenance \
+         and never counts. Lexical — it sees the id, never whether an edge was meant.",
+    ),
+    (
         "shim-stale",
         "the committed shim `docs/meshwork/meshwork` is not the canonical text the plugin \
          ships, or is not executable, and every verb in a pinned project runs through it. \

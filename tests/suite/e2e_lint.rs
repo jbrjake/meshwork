@@ -1,5 +1,44 @@
 // e2e part-file: lint / lint --fix (PLAN 0.9). Included by e2e.rs.
 
+/// A log entry `lint --fix` wrote is machine provenance, never a missing
+/// edge (mw-pxm63n8): a mention of live work inside one raises no
+/// `implicit-edge`, while the same mention in a hand-written log entry
+/// still does.
+#[test]
+fn implicit_edge_ignores_fix_log_lines() {
+    let (_dir, repo) = git_repo("solo");
+    init_store(&repo);
+    let target = add_task(&repo, "The work everyone mentions");
+    let fixed = add_task(&repo, "Carries a fix line");
+    let hand = add_task(&repo, "Carries a hand line");
+    append(
+        &task_file(&repo, &fixed),
+        &format!(
+            "- 2026-10-04T10:00Z lint --fix: needs now zz-0000000, was {target} (the side it \
+             meant was re-slugged after a post-merge duplicate)\n"
+        ),
+    );
+    append(
+        &task_file(&repo, &hand),
+        &format!("- 2026-10-04T10:00Z see {target} for the repro\n"),
+    );
+
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["lint", "--explain", "implicit-edge"])
+            .assert()
+            .success(),
+    );
+    assert!(
+        out.contains(&format!("[implicit-edge] {hand}")),
+        "a hand-written mention is still flagged:\n{out}"
+    );
+    assert!(
+        !out.contains(&fixed),
+        "a mention inside a `lint --fix` log entry is provenance, not a missing edge:\n{out}"
+    );
+}
+
 /// PLAN 0.9 / MW-A4, A6, B2, B3, I2: `lint` finds every planted failure in
 /// the broken corpus (golden-pinned), and `--fix` repairs exactly the
 /// mechanical damage — duplicate keys, duplicate IDs, missing union
