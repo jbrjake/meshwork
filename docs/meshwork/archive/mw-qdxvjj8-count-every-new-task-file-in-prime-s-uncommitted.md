@@ -1,7 +1,7 @@
 ---
 id: mw-qdxvjj8
 title: "Count every new task file in prime's uncommitted-edit total, not one per untracked directory"
-status: open
+status: done
 category: core/render
 relates: [mw-xvgs08n]
 verify: run cargo test prime_counts_each_untracked_task_file
@@ -18,3 +18,5 @@ The same call without `-uall` sits in `dirty_ids` (src/lint_verify.rs), which th
 
 ## log
 - 2026-10-02T16:20Z created
+- 2026-10-04T14:41Z open→doing — claimed by claude (70b8c3c2-a3ae-4cee-81aa-681b84b44405)
+- 2026-10-04T14:55Z doing→done — verify exit 0 @ b6709d9+4

@@ -5,7 +5,7 @@ category: core/hygiene
 verify: run cargo test list_item_fence_keeps_later_headings
 docs:
   - FORMAT.md#clause-pins
-status: open
+status: done
 created: 2026-10-02T15:21Z
 ---
 
@@ -17,3 +17,5 @@ Recognize a fence after a list marker (`- `, `* `, `+ `, `N. `, `N) `), and have
 
 ## log
 - 2026-10-02T15:21Z created
+- 2026-10-04T14:41Z open→doing — claimed by claude (70b8c3c2-a3ae-4cee-81aa-681b84b44405)
+- 2026-10-04T14:55Z doing→done — verify exit 0 @ b6709d9+7
