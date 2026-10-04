@@ -6,7 +6,7 @@ seq: 150
 needs: [mw-x5yn4rg, mw-26j4tq5]
 docs: [docs/DESIGN-meshwork.md#13-test-architecture--fixture-corpus-mw-j4j6, docs/DESIGN-meshwork.md#14-gate--verify_meshworksh-mw-j5]
 verify: run cargo test package=meshwork target=suite e2e::adopter_upgrade_path
-status: open
+status: done
 created: 2026-09-28T13:54Z
 ---
 Releases shipped for months while every adopter's upgrade silently left
@@ -36,3 +36,5 @@ the hook skip the shim rewrite) before trusting it.
 
 ## log
 - 2026-09-28T13:54Z created
+- 2026-10-04T15:54Z open→doing — claimed by claude (5566559a-b6fd-4780-8c73-3214f8c33f5d)
+- 2026-10-04T16:04Z doing→done — verify exit 0 @ 559e09f+3
