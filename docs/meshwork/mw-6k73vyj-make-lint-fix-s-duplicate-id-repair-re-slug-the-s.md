@@ -12,3 +12,6 @@ MW-A4: `lint --fix` MUST re-slug the side with fewer inbound edges, rewriting sa
 
 ## log
 - 2026-10-02T13:39Z created
+
+## comments
+- 2026-10-04T14:56Z [claude (70b8c3c2-a3ae-4cee-81aa-681b84b44405)] Not a quick fix: post-merge both duplicate files carry the same id, so an inbound edge names the id, never a side — FORMAT.md#merge-semantics and MW-A4 leave what a side is undefined once merged. Attributing each inbound reference to the clone it arrived with would mean reading git history per edge. Needs an owner ruling on what fewer inbound edges means after the merge, or an amendment keeping the earliest-created file as the keeper.
