@@ -258,6 +258,33 @@ fn model_boundary_list_is_complete() {
     }
 }
 
+/// What `meshwork <args…> --help` prints.
+fn help_of(args: &[String]) -> String {
+    let mut cmd = assert_cmd::Command::cargo_bin("meshwork").unwrap();
+    let out = cmd.args(args).arg("--help").assert().success();
+    String::from_utf8(out.get_output().stdout.clone()).unwrap()
+}
+
+/// The verbs a help screen's `Commands:` block lists, minus clap's own
+/// `help` and any verb the screen marks `not built yet` — those are not
+/// shipped surface and the skill owes them nothing.
+fn verbs_of(help: &str) -> Vec<String> {
+    help.lines()
+        .skip_while(|l| !l.starts_with("Commands:"))
+        .skip(1)
+        .take_while(|l| l.starts_with("  "))
+        .filter(|l| !l.contains("not built yet"))
+        .filter_map(|l| l.split_whitespace().next().map(ToString::to_string))
+        .filter(|v| v != "help")
+        .collect()
+}
+
+/// The skill file the plugin ships, read whole.
+fn skill_md() -> String {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(".claude/skills/meshwork/SKILL.md");
+    std::fs::read_to_string(&path).unwrap()
+}
+
 /// The skill is the agent's front door to the binary. Every verb, every
 /// sub-verb, and every `add`/`set` flag the help screens list is named in
 /// SKILL.md, so a surface that lands without its skill line fails here in
@@ -265,11 +292,6 @@ fn model_boundary_list_is_complete() {
 /// documentation task (mw-nq6rew9).
 #[test]
 fn skill_names_every_verb_and_flag() {
-    fn help_of(args: &[String]) -> String {
-        let mut cmd = assert_cmd::Command::cargo_bin("meshwork").unwrap();
-        let out = cmd.args(args).arg("--help").assert().success();
-        String::from_utf8(out.get_output().stdout.clone()).unwrap()
-    }
     /// `needle` occurs and is not the prefix of a longer word.
     fn named(text: &str, needle: &str) -> bool {
         text.match_indices(needle).any(|(i, _)| {
@@ -279,18 +301,7 @@ fn skill_names_every_verb_and_flag() {
     }
     fn walk(args: &[String], skill: &str, missing: &mut Vec<String>) {
         let help = help_of(args);
-        let commands: Vec<&str> = help
-            .lines()
-            .skip_while(|l| !l.starts_with("Commands:"))
-            .skip(1)
-            .take_while(|l| l.starts_with("  "))
-            .collect();
-        for line in commands {
-            let mut words = line.split_whitespace();
-            let verb = words.next().unwrap_or_default().to_string();
-            if verb == "help" || line.contains("not built yet") {
-                continue;
-            }
+        for verb in verbs_of(&help) {
             let mut path = args.to_vec();
             path.push(verb.clone());
             let needle = match path.len() {
@@ -316,8 +327,7 @@ fn skill_names_every_verb_and_flag() {
         }
     }
 
-    let skill_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(".claude/skills/meshwork/SKILL.md");
-    let skill = std::fs::read_to_string(&skill_path).unwrap();
+    let skill = skill_md();
     let mut missing = Vec::new();
     walk(&[], &skill, &mut missing);
     assert!(
@@ -325,6 +335,170 @@ fn skill_names_every_verb_and_flag() {
         "SKILL.md does not name these surfaces — teach them in the same \
          commit as the code:\n{}",
         missing.join("\n")
+    );
+}
+
+/// The two spellings a grant takes per verb: Claude Code matches the command
+/// text as typed, and agents type the committed shim both ways.
+const SHIM_SPELLINGS: [&str; 2] = ["docs/meshwork/meshwork", "./docs/meshwork/meshwork"];
+
+/// SKILL.md's frontmatter `allowed-tools:` list — the plugin's permission
+/// grant. Frontmatter that is missing, does not parse, lacks the key, or
+/// holds anything but a non-empty list of strings fails here by name, so
+/// the grant test can never pass on "zero grants checked".
+fn skill_grants() -> Vec<String> {
+    let skill = skill_md();
+    let yaml = skill
+        .strip_prefix("---\n")
+        .and_then(|rest| rest.split_once("\n---\n"))
+        .map(|(front, _)| front)
+        .expect("SKILL.md opens with a `---`-fenced frontmatter block");
+    let front: serde_yaml_ng::Value =
+        serde_yaml_ng::from_str(yaml).expect("SKILL.md's frontmatter parses as YAML");
+    let grants = front
+        .get("allowed-tools")
+        .expect("SKILL.md's frontmatter carries an `allowed-tools:` key")
+        .as_sequence()
+        .expect("`allowed-tools:` is a list");
+    let grants: Vec<String> = grants
+        .iter()
+        .map(|g| {
+            g.as_str()
+                .expect("every `allowed-tools` entry is a string")
+                .to_string()
+        })
+        .collect();
+    assert!(!grants.is_empty(), "`allowed-tools:` lists no grants");
+    grants
+}
+
+/// The plugin's permission grant is part of the feature. Every top-level
+/// verb `--help` lists is granted in SKILL.md's frontmatter in both shim
+/// spellings, so a verb that lands taught but still stops the agent for
+/// approval on every call fails here in the same commit (mw-gh067xt: verbs
+/// shipped for months with no grant because only the prose was checked).
+#[test]
+fn skill_grants_every_verb() {
+    let grants = skill_grants();
+    let mut missing = Vec::new();
+    for verb in verbs_of(&help_of(&[])) {
+        for shim in SHIM_SPELLINGS {
+            let want = format!("Bash({shim} {verb} *)");
+            if !grants.contains(&want) {
+                missing.push(format!("  - {want}"));
+            }
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "SKILL.md's `allowed-tools:` does not grant these — a verb that \
+         prompts for approval on every call is shipped broken; add each \
+         line to the frontmatter in the same commit as the verb:\n{}",
+        missing.join("\n")
+    );
+}
+
+/// Every git-tracked path with its mode, as `git ls-files -s` reports them.
+fn tracked_modes(root: &Path) -> std::collections::BTreeMap<String, String> {
+    let out = std::process::Command::new("git")
+        .args(["ls-files", "-s", "-z"])
+        .current_dir(root)
+        .output()
+        .expect("git ls-files runs in the repo");
+    assert!(out.status.success(), "git ls-files failed");
+    String::from_utf8(out.stdout)
+        .unwrap()
+        .split('\0')
+        .filter(|s| !s.is_empty())
+        .map(|entry| {
+            let (meta, path) = entry.split_once('\t').expect("ls-files -s entry has a tab");
+            let mode = meta.split_whitespace().next().unwrap().to_string();
+            (path.to_string(), mode)
+        })
+        .collect()
+}
+
+/// The plugin's hook is the upgrade, and the manifest is its only entry
+/// point: a hook `command` or argument naming a file under
+/// `${CLAUDE_PLUGIN_ROOT}` must be a git-tracked executable the plugin
+/// ships, or every adopter gets a dead hook — no upgrade, no prime — while
+/// the gate stays green (mw-s7399xj). `claude plugin validate` checks
+/// component paths and never a hook's command. A manifest registering no
+/// hook fails too: the upgrade would have no entry point at all.
+#[test]
+fn manifest_hook_paths_ship() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let manifest: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(root.join(".claude-plugin/plugin.json")).unwrap(),
+    )
+    .expect("plugin.json parses");
+    let hooks = manifest
+        .get("hooks")
+        .and_then(serde_json::Value::as_object)
+        .expect("plugin.json carries a `hooks` object");
+    let mut paths = Vec::new();
+    for (event, matchers) in hooks {
+        let matchers = matchers
+            .as_array()
+            .unwrap_or_else(|| panic!("hooks.{event} is not a list of matchers"));
+        for (m, matcher) in matchers.iter().enumerate() {
+            let entries = matcher
+                .get("hooks")
+                .and_then(serde_json::Value::as_array)
+                .unwrap_or_else(|| panic!("hooks.{event}[{m}] carries no `hooks` list"));
+            for (h, hook) in entries.iter().enumerate() {
+                let at = format!("hooks.{event}[{m}].hooks[{h}]");
+                let command = hook
+                    .get("command")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or_else(|| panic!("{at} has no `command` string"));
+                paths.push((format!("{at}.command"), command.to_string()));
+                let args = hook
+                    .get("args")
+                    .and_then(serde_json::Value::as_array)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default();
+                for (a, arg) in args.iter().enumerate() {
+                    if let Some(arg) = arg.as_str().filter(|s| s.contains("${CLAUDE_PLUGIN_ROOT}"))
+                    {
+                        paths.push((format!("{at}.args[{a}]"), arg.to_string()));
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        !paths.is_empty(),
+        "plugin.json registers no hook — the upgrade has no entry point"
+    );
+
+    let tracked = tracked_modes(root);
+    let mut broken = Vec::new();
+    for (at, raw) in paths {
+        let Some(rel) = raw.strip_prefix("${CLAUDE_PLUGIN_ROOT}/") else {
+            broken.push(format!(
+                "  {at} = `{raw}` does not start with `${{CLAUDE_PLUGIN_ROOT}}/` — \
+                 a plugin hook runs what the plugin ships, nothing outside it"
+            ));
+            continue;
+        };
+        if !root.join(rel).is_file() {
+            broken.push(format!("  {at} = `{raw}` names no file in the tree"));
+            continue;
+        }
+        match tracked.get(rel).map(String::as_str) {
+            None => broken.push(format!("  {at} = `{raw}` is not git-tracked")),
+            Some("100755") => {}
+            Some(mode) => broken.push(format!(
+                "  {at} = `{raw}` is tracked with mode {mode}, not executable (100755)"
+            )),
+        }
+    }
+    assert!(
+        broken.is_empty(),
+        "plugin.json's hook commands do not resolve to shipped executables — \
+         every adopter would get a dead hook:\n{}",
+        broken.join("\n")
     );
 }
 
