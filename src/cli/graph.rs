@@ -169,13 +169,9 @@ pub(crate) fn why(args: &super::transition::IdArg, json: bool) -> Result<(), Str
 
     // Placement is the other half of "why is this not next": the frontier
     // says what blocks it, the graph row says where it stands once nothing
-    // does. Same inputs as the query session — terminal foreign rows only.
-    let terminal: Vec<crate::registry::ForeignTask> = foreign
-        .values()
-        .filter(|f| matches!(f.status.as_str(), "done" | "dropped"))
-        .cloned()
-        .collect();
-    let rows = crate::graph::compute(std::slice::from_ref(&store), &terminal);
+    // does. Same inputs as the query session.
+    let resolved: Vec<crate::registry::ForeignTask> = foreign.values().cloned().collect();
+    let rows = crate::graph::compute(std::slice::from_ref(&store), &resolved);
     let row = rows.iter().find(|r| r.id == args.id);
 
     if json {

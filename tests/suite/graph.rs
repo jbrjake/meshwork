@@ -81,7 +81,8 @@ fn foreign(gid: &str, status: &str) -> ForeignTask {
 
 /// The differential: every fixture store, the two unions, a damaged store
 /// (needs cycle, parent cycle, dangling edge, unparseable file), and the
-/// registry-resolved foreign row `q` injects — column by column.
+/// registry-resolved foreign targets `q` passes — a done one injected as
+/// a row, an open one only resolving its edge — column by column.
 #[tokio::test]
 async fn graph_rust_matches_view() {
     let root = fixtures_root();

@@ -198,8 +198,8 @@ V["g_lanes"] = "SELECT node AS gid, min(lane) AS lane FROM g_lab GROUP BY node"
 V["g_lsize"] = "SELECT lane, count(*) AS lane_size FROM g_lanes GROUP BY lane"
 V["g_needs_open"] = """
 SELECT e.src_gid AS gid, count(*) AS needs_open,
-       count(*) FILTER (WHERE d.gid IS NULL) AS needs_unresolved,
-       count(*) FILTER (WHERE d.repo IS NOT NULL AND d.repo <> t.repo) AS needs_open_foreign
+       count(*) FILTER (WHERE NOT e.resolved) AS needs_unresolved,
+       count(*) FILTER (WHERE (d.repo IS NOT NULL AND d.repo <> t.repo) OR (d.gid IS NULL AND e.resolved)) AS needs_open_foreign
 FROM edges e JOIN tasks t ON t.gid = e.src_gid LEFT JOIN tasks d ON d.gid = e.dst_gid
 WHERE e.kind = 'needs' AND (d.status IS NULL OR d.status NOT IN ('done','dropped'))
 GROUP BY e.src_gid
@@ -499,15 +499,15 @@ SELECT repo,
 FROM facts GROUP BY repo
 """
 V["p_graph"] = """
-SELECT repo,
-       count(*) FILTER (WHERE ready) AS ready_n,
-       count(*) FILTER (WHERE unlock > 0) AS unlockers,
-       count(DISTINCT lane) FILTER (WHERE lane_size > 1) AS lanes_multi,
-       count(*) FILTER (WHERE needs_behind) AS needs_behind_n,
-       count(*) FILTER (WHERE status IN ('open','doing','blocked') AND needs_open_foreign > 0) AS blocked_foreign,
-       count(*) FILTER (WHERE status IN ('open','doing','blocked') AND needs_unresolved > 0) AS blocked_unresolved,
-       count(*) FILTER (WHERE status IN ('open','doing','blocked') AND needed_by_foreign > 0) AS owed_foreign
-FROM graph GROUP BY repo
+SELECT g.repo,
+       count(*) FILTER (WHERE g.ready AND t.addressed_to IS NULL) AS ready_n,
+       count(*) FILTER (WHERE g.unlock > 0) AS unlockers,
+       count(DISTINCT g.lane) FILTER (WHERE g.lane_size > 1) AS lanes_multi,
+       count(*) FILTER (WHERE g.needs_behind) AS needs_behind_n,
+       count(*) FILTER (WHERE g.status IN ('open','doing','blocked') AND g.needs_open_foreign > 0) AS blocked_foreign,
+       count(*) FILTER (WHERE g.status IN ('open','doing','blocked') AND g.needs_unresolved > 0) AS blocked_unresolved,
+       count(*) FILTER (WHERE g.status IN ('open','doing','blocked') AND g.needed_by_foreign > 0) AS owed_foreign
+FROM graph g JOIN tasks t ON t.gid = g.gid GROUP BY g.repo
 """
 V["p_asks_in"] = """
 SELECT to_repo AS repo, count(*) FILTER (WHERE unanswered) AS asks_in_open,

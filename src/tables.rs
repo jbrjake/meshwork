@@ -91,11 +91,14 @@ mod schema_tests {
 /// (DESIGN §4) — plus the `category_matches` UDF (MW-B4), so filtering
 /// stays plain SQL.
 ///
-/// `foreign` (mw-k7r5): registry-resolved cross-repo targets injected as
-/// thin task rows so the frozen dep predicate sees them. Callers pass
-/// TERMINAL statuses only — that is the one delta the predicate needs
-/// (done/dropped satisfies a dep); an injected open task would leak into
-/// listings, and NULL already blocks conservatively (MW-G5).
+/// `foreign` (mw-k7r5): every registry-resolved cross-repo target. Each
+/// one marks its edges `resolved`; only the terminal ones enter `tasks`
+/// as thin rows ([`ForeignTask::injects`]) — done/dropped satisfying a dep
+/// is the one delta the frozen predicate needs, an injected open task
+/// would leak into listings, and NULL already blocks conservatively
+/// (MW-G5).
+///
+/// [`ForeignTask::injects`]: crate::registry::ForeignTask::injects
 ///
 /// # Errors
 /// Only Arrow schema/registration failures — which would be a bug, not data.
@@ -325,7 +328,7 @@ fn tasks_batch(
             }
         }
     }
-    for f in foreign {
+    for f in foreign.iter().filter(|f| f.injects()) {
         cols.push_foreign(f);
     }
     Ok(RecordBatch::try_new(tasks_schema(), cols.into_columns())?)
@@ -354,8 +357,9 @@ fn edges_batch(
     ]));
 
     // `resolved` = dst present in the loaded set (invalid rows count: the
-    // file exists and its status blocks conservatively), plus registry-
-    // resolved foreign targets (mw-k7r5) — those rows exist in `tasks` too.
+    // file exists and its status blocks conservatively), plus every
+    // registry-resolved foreign target (mw-k7r5), open ones included —
+    // only the terminal ones also have a row in `tasks`.
     let known: BTreeSet<String> = stores
         .iter()
         .flat_map(|s| {

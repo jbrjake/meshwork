@@ -17,6 +17,9 @@ use std::collections::BTreeSet;
 pub const STALE_DOING_H: f64 = 72.0;
 /// Age hours past which a live task counts as past triage.
 pub const TRIAGE_H: f64 = 14.0 * 24.0;
+/// The same threshold in whole days — the inbox measures an ask's wait in
+/// days, and one past it leads `prime`'s next block.
+pub const TRIAGE_DAYS: i64 = 14;
 
 /// One task's lifecycle scalars. Instants are epoch seconds; durations
 /// hours, `None` where the SQL is NULL (no conforming stamp to measure).

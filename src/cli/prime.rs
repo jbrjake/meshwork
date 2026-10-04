@@ -92,9 +92,9 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     let store = load_repo(&root).map_err(|e| e.to_string())?;
 
     // Ready via the normative SQL (single source of queue truth), over the
-    // session a query would see: this store plus its terminal foreign
-    // rows — the same inputs the Rust-side pulse reads (MW-S7).
-    let foreign = super::query::terminal_foreign(&store)?;
+    // session a query would see: this store plus its resolved foreign
+    // targets — the same inputs the Rust-side pulse reads (MW-S7).
+    let foreign = super::query::resolved_foreign(&store)?;
     let ctx = crate::tables::session_for(std::slice::from_ref(&store), &foreign)
         .map_err(|e| e.to_string())?;
     let (_, batches) = super::query::run_query(&ctx, super::query::READY_SQL)?;
@@ -130,20 +130,13 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         .as_deref()
         .map_or_else(Vec::new, |s| crate::addressed::inbox_of(s, &store.repo));
     let asks_out = crate::addressed::outbound(&store, union.as_deref());
-    let mut pulse =
-        crate::pulse::compute(std::slice::from_ref(&store), &foreign, &clock, &store.repo);
-    if let Some(stores) = &union {
-        let (a, b, c, d) = crate::pulse::asks(stores, &clock, &store.repo);
-        pulse.asks_in_open = a;
-        pulse.asks_in_oldest_d = b;
-        pulse.asks_out_open = c;
-        pulse.asks_out_oldest_d = d;
-    }
+    let pulse = pulse_for(&store, &foreign, &clock, union.as_deref());
     let next_task = ready
         .first()
         .and_then(|r| tasks.iter().find(|t| t.id == r[0]).copied());
     let cited = cited_by_next(&store, &foreign, next_task);
-    let next_block = next_block_lines(&tasks, &ready, &cited, &store.repo);
+    let lead_ask = lead_ask(&inbox, &today);
+    let next_block = next_block_lines(&tasks, &ready, &cited, &store.repo, lead_ask, &today);
     let also_ready = also_ready_lines(&tasks, &ready);
 
     if json {
@@ -154,6 +147,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
             weather: &weather,
             pulse: &pulse,
             next: next_task,
+            lead_ask,
             cites: &cited,
             dones: &dones,
             inbox: &inbox,
@@ -210,6 +204,38 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     Ok(())
 }
 
+/// The repo's pulse row. With a registry the asks half is the union's
+/// (MW-S6): only the union sees what other stores address here.
+fn pulse_for(
+    store: &crate::store::RepoStore,
+    foreign: &[crate::registry::ForeignTask],
+    clock: &crate::views::Clock,
+    union: Option<&[crate::store::RepoStore]>,
+) -> crate::pulse::Pulse {
+    let mut pulse = crate::pulse::compute(std::slice::from_ref(store), foreign, clock, &store.repo);
+    if let Some(stores) = union {
+        let (a, b, c, d) = crate::pulse::asks(stores, clock, &store.repo);
+        pulse.asks_in_open = a;
+        pulse.asks_in_oldest_d = b;
+        pulse.asks_out_open = c;
+        pulse.asks_out_oldest_d = d;
+    }
+    pulse
+}
+
+/// The inbound ask that leads the next block (MW-L4): the inbox's head —
+/// it is oldest first — when its wait is past the triage age. Computed
+/// every render; nothing records that it led.
+fn lead_ask<'a>(
+    inbox: &'a [crate::addressed::Ask],
+    today: &str,
+) -> Option<&'a crate::addressed::Ask> {
+    inbox.first().filter(|a| {
+        a.age_days(today)
+            .is_some_and(|d| d >= crate::facts::TRIAGE_DAYS)
+    })
+}
+
 /// The closed tasks the next task's handoff still names (MW-S6) — the
 /// mention pass over one block, resolved against every row the query
 /// session would carry.
@@ -233,6 +259,7 @@ struct PrimeJson<'a> {
     weather: &'a [String],
     pulse: &'a crate::pulse::Pulse,
     next: Option<&'a Task>,
+    lead_ask: Option<&'a crate::addressed::Ask>,
     cites: &'a [String],
     dones: &'a [(String, &'a str, &'a str)],
     inbox: &'a [crate::addressed::Ask],
@@ -261,6 +288,11 @@ fn emit_prime_json(v: &PrimeJson) {
         serde_json::json!({ "id": t.id, "title": t.title, "handoff": t.handoff,
             "verify": t.verify, "docs": t.docs, "category": t.category,
             "cites": v.cites })
+    });
+    let next_ask = v.lead_ask.map(|a| {
+        serde_json::json!({ "gid": a.gid, "title": a.title,
+            "from": a.gid.split('#').next().unwrap_or(&a.gid),
+            "age_days": a.age_days(v.today) })
     });
     let done_rows: Vec<_> = v
         .dones
@@ -296,7 +328,7 @@ fn emit_prime_json(v: &PrimeJson) {
             "ready_total": v.ready.len(), "ready": ready_rows,
             "rollup": rollup_rows, "rollup_total": v.rollup.len(),
             "weather": v.weather, "pulse": super::pulse::json(v.pulse),
-            "next": next_row, "recently_done": done_rows,
+            "next": next_row, "next_ask": next_ask, "recently_done": done_rows,
             "addressed": addressed, "asks_out": asks_out, "asks": asks,
         }),
     );

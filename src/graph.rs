@@ -8,8 +8,9 @@
 //! column, on every fixture store — a difference is a bug on one side.
 //!
 //! Inputs mirror the SQL session's exactly (`tables::session_for`): the
-//! loaded stores, plus the registry-resolved foreign thin rows the caller
-//! injects into `tasks`. A store minting one gid twice is damage the SQL
+//! loaded stores, plus every registry-resolved foreign target — the
+//! terminal ones as thin rows, the open ones as resolved edges with no
+//! row. A store minting one gid twice is damage the SQL
 //! answers with multiplied joins and this reader with whichever file it
 //! keeps — `lint`'s finding, not the view's.
 
@@ -154,7 +155,7 @@ fn project(stores: &[RepoStore], foreign: &[ForeignTask]) -> (BTreeMap<String, N
             }
         }
     }
-    for f in foreign {
+    for f in foreign.iter().filter(|f| f.injects()) {
         tasks.insert(
             f.gid.clone(),
             Node {
@@ -240,6 +241,7 @@ fn lanes<'a>(adjacent: &BTreeMap<&'a str, BTreeSet<&'a str>>) -> BTreeMap<&'a st
 #[must_use]
 pub fn compute(stores: &[RepoStore], foreign: &[ForeignTask]) -> Vec<GraphRow> {
     let (tasks, edges) = project(stores, foreign);
+    let resolved_foreign: BTreeSet<&str> = foreign.iter().map(|f| f.gid.as_str()).collect();
     let repos: BTreeSet<&str> = stores.iter().map(|s| s.repo.as_str()).collect();
     let is_live = |gid: &str| tasks.get(gid).is_some_and(|n| live(&n.status));
 
@@ -268,6 +270,11 @@ pub fn compute(stores: &[RepoStore], foreign: &[ForeignTask]) -> Vec<GraphRow> {
             Kind::Needs => {
                 let n = needs_open.entry(&e.src).or_default();
                 match dst {
+                    // No row, but the registry resolved it: open foreign work.
+                    None if resolved_foreign.contains(e.dst.as_str()) => {
+                        n.0 += 1;
+                        n.2 += 1;
+                    }
                     None => {
                         n.0 += 1;
                         n.1 += 1;

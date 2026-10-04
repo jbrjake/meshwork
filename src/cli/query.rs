@@ -106,7 +106,7 @@ fn local_session_inner() -> Result<(SessionContext, crate::store::RepoStore, i64
     let root = crate::cli::require_store_root()?;
     let store = crate::store::load_repo(&root).map_err(|e| e.to_string())?;
     let window_days = store.config.window_days();
-    let foreign = terminal_foreign(&store)?;
+    let foreign = resolved_foreign(&store)?;
     let ctx = crate::tables::session_for(std::slice::from_ref(&store), &foreign)
         .map_err(|e| e.to_string())?;
     Ok((ctx, store, window_days))
@@ -120,11 +120,11 @@ pub(crate) fn answer_json(answer: Option<&crate::addressed::Answer>) -> serde_js
     )
 }
 
-/// The foreign thin rows a single-repo session injects: the store's
-/// cross-repo `needs` targets the registry resolves, TERMINAL statuses
-/// only (mw-k7r5) — shared with `prime`, whose Rust-side pulse must see
-/// exactly what its query session sees.
-pub(crate) fn terminal_foreign(
+/// The store's cross-repo `needs` targets the registry resolves, every
+/// status (mw-k7r5): `session_for` injects the terminal ones as rows and
+/// resolves the edges of all of them. Shared with `prime`, whose
+/// Rust-side pulse must see exactly what its query session sees.
+pub(crate) fn resolved_foreign(
     store: &crate::store::RepoStore,
 ) -> Result<Vec<crate::registry::ForeignTask>, String> {
     let refs = crate::registry::foreign_refs(&[store]);
@@ -135,10 +135,7 @@ pub(crate) fn terminal_foreign(
         return Ok(Vec::new());
     };
     let loaded = std::iter::once(store.repo.as_str()).collect();
-    Ok(crate::registry::resolve_foreign(&registry, &refs, &loaded)
-        .into_iter()
-        .filter(|f| matches!(f.status.as_str(), "done" | "dropped"))
-        .collect())
+    Ok(crate::registry::resolve_foreign(&registry, &refs, &loaded))
 }
 
 /// Execute SQL, returning column names + batches (schema survives empty

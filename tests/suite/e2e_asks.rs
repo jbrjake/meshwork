@@ -262,3 +262,84 @@ fn asks_verb_in_and_out() {
     let err = stderr_of(&meshwork(&beta).arg("inbox").assert().failure());
     assert!(err.contains("did you mean `asks`"), "{err}");
 }
+
+/// The weather's ready count is the queue's: an open ask carries `to:`
+/// and is owed elsewhere (MW-L5), so `ready` never lists it and `prime`
+/// never counts it — and the SQL `pulse` row agrees with the Rust one.
+#[test]
+fn prime_ready_count_excludes_outbound_asks() {
+    let (_dir, repo) = git_repo("solo");
+    init_store(&repo);
+    meshwork(&repo)
+        .args(["add", "Do the work", "--verify", "true"])
+        .assert()
+        .success();
+    meshwork(&repo)
+        .args(["add", "Ask alpha for a ruling", "--verify", "true", "--to", "alpha"])
+        .assert()
+        .success();
+
+    let prime = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+    assert!(prime.contains("ready 1 of 2 open"), "{prime}");
+    assert!(prime.contains("asks out (1):"), "the ask lists apart, never lost:\n{prime}");
+    let v: serde_json::Value =
+        serde_json::from_str(&stdout_of(&meshwork(&repo).args(["ready", "--json"]).assert().success()))
+            .unwrap();
+    assert_eq!(v["data"]["rows"].as_array().map(Vec::len), Some(1), "{v}");
+    let row = stdout_of(
+        &meshwork(&repo)
+            .args(["q", "SELECT ready_n, open_n FROM pulse"])
+            .assert()
+            .success(),
+    );
+    assert!(row.contains("1 | 2"), "the SQL twin counts the same: {row}");
+}
+
+/// MW-L4: an inbound ask past the triage age leads prime's next block —
+/// its gid, its age, the asking repo, its title — and the local `next →`
+/// renders directly below it; a fresh ask does not lead. The order is
+/// computed per render: the ask still lists in the inbox, a second render
+/// says the same, and nothing is written.
+#[test]
+fn prime_leads_with_a_stale_ask() {
+    let (dir, portfolio) = portfolio_fixture();
+    let alpha = dir.path().join("alpha");
+    let beta = dir.path().join("beta");
+
+    // Six days old at the clock: the local queue leads as before.
+    write_ask(&alpha, "az-a5k050", "beta", "2026-09-01");
+    let prime = at(&beta, &portfolio, &["prime"]);
+    let nexts: Vec<&str> = prime.lines().filter(|l| l.starts_with("next \u{2192} ")).collect();
+    assert_eq!(nexts.len(), 1, "{prime}");
+    assert!(!nexts[0].contains("az-a5k050"), "a fresh ask does not lead:\n{prime}");
+    let v: serde_json::Value = serde_json::from_str(&at(&beta, &portfolio, &["prime", "--json"])).unwrap();
+    assert!(v["data"]["next_ask"].is_null(), "{v}");
+
+    // Twenty-one days old: the ask leads, the local next follows.
+    write_ask(&alpha, "az-a5k051", "beta", "2026-08-17");
+    let prime = at(&beta, &portfolio, &["prime"]);
+    let lines: Vec<&str> = prime.lines().collect();
+    let lead = lines
+        .iter()
+        .position(|l| {
+            *l == "next \u{2192} alpha#az-a5k051 (21d, asked by alpha) Ask az-a5k051 of beta"
+        })
+        .unwrap_or_else(|| panic!("the stale ask leads the next block:\n{prime}"));
+    assert!(
+        lines[lead + 1].starts_with("next \u{2192} bz-"),
+        "the local next renders below it:\n{prime}"
+    );
+    assert!(
+        prime.contains("- alpha#az-a5k051 Ask az-a5k051 of beta (21d)"),
+        "the ask still lists in the inbox:\n{prime}"
+    );
+    let v: serde_json::Value = serde_json::from_str(&at(&beta, &portfolio, &["prime", "--json"])).unwrap();
+    assert_eq!(v["data"]["next_ask"]["gid"], "alpha#az-a5k051", "{v}");
+    assert_eq!(v["data"]["next_ask"]["from"], "alpha", "{v}");
+    assert_eq!(v["data"]["next_ask"]["age_days"], 21, "{v}");
+    assert!(
+        v["data"]["next"]["id"].as_str().is_some_and(|id| id.starts_with("bz-")),
+        "the local next is still the local next: {v}"
+    );
+    assert_eq!(at(&beta, &portfolio, &["prime"]), prime, "computed per render, no state");
+}

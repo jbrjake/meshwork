@@ -154,7 +154,7 @@ pub fn statuses(stores: &[RepoStore], foreign: &[ForeignTask]) -> BTreeMap<Strin
             }
         }
     }
-    for f in foreign {
+    for f in foreign.iter().filter(|f| f.injects()) {
         out.insert(f.gid.clone(), f.status.clone());
     }
     out
@@ -276,8 +276,8 @@ fn triage_groups<'a>(past: impl Iterator<Item = &'a TaskFacts>) -> Vec<(String, 
 }
 
 /// The row for `repo` over these stores — the same inputs the query
-/// session sees (`tables::session_for`): loaded stores plus the foreign
-/// thin rows.
+/// session sees (`tables::session_for`): loaded stores plus every
+/// registry-resolved foreign target.
 #[must_use]
 pub fn compute(stores: &[RepoStore], foreign: &[ForeignTask], clock: &Clock, repo: &str) -> Pulse {
     let all = crate::facts::compute(stores, clock);
@@ -286,6 +286,17 @@ pub fn compute(stores: &[RepoStore], foreign: &[ForeignTask], clock: &Clock, rep
     let mine: Vec<&TaskFacts> = all.iter().filter(|f| f.repo == repo).collect();
     let rows: Vec<&GraphRow> = graph.iter().filter(|r| r.repo == repo).collect();
     let since = clock.now_secs - clock.window_days * 86_400;
+    // An ask is owed elsewhere: `ready` never lists it, so the weather
+    // never counts it — the count is the queue's, not the predicate's.
+    let addressed: BTreeSet<String> = stores
+        .iter()
+        .flat_map(|s| {
+            s.entries.iter().filter_map(move |e| match &e.parsed {
+                ParsedTask::Valid(t) if t.to.is_some() => Some(s.gid(&t.id)),
+                _ => None,
+            })
+        })
+        .collect();
 
     let by_status = |s: Status| count(&mine, |f| f.status == s);
     let mut open_ages: Vec<f64> = mine
@@ -348,7 +359,7 @@ pub fn compute(stores: &[RepoStore], foreign: &[ForeignTask], clock: &Clock, rep
         open_age_med_d: median(&mut open_ages).map(|h| round1(h / 24.0)),
         past_triage: count(&mine, past),
         past_triage_groups,
-        ready_n: count(&rows, |r| r.ready),
+        ready_n: count(&rows, |r| r.ready && !addressed.contains(&r.gid)),
         unlockers: count(&rows, |r| r.unlock > 0),
         lanes_multi: i64::try_from(lanes.len()).unwrap_or(i64::MAX),
         needs_behind_n: count(&rows, |r| r.needs_behind),

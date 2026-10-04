@@ -233,14 +233,29 @@ fn handoff_tag(t: &Task) -> String {
 }
 
 /// The next-task block: the `handoff:` voice first, mechanics after (§7b);
-/// `cited` names the closed tasks the voice still refers to (MW-S6).
+/// `cited` names the closed tasks the voice still refers to (MW-S6). An
+/// inbound ask past the triage age leads the block (MW-L4) — its gid, age
+/// and asking repo, then its title — and the local `next →` renders below
+/// it; the ask stays in the inbox above, and nothing records that it led.
 pub(super) fn next_block_lines(
     tasks: &[&Task],
     ready: &[Vec<String>],
     cited: &[String],
     repo: &str,
+    lead_ask: Option<&crate::addressed::Ask>,
+    today: &str,
 ) -> Vec<String> {
     let mut out = Vec::new();
+    if let Some(a) = lead_ask {
+        let from = a.gid.split('#').next().unwrap_or(&a.gid);
+        let age = a
+            .age_days(today)
+            .map_or(String::new(), |d| format!("{d}d, "));
+        out.push(clamp_bytes(
+            &format!("next \u{2192} {} ({age}asked by {from}) {}", a.gid, a.title),
+            LINE_CLAMP,
+        ));
+    }
     let Some(row) = ready.first() else {
         return out;
     };

@@ -92,6 +92,62 @@ fn crossrepo_resolution() {
     assert!(entry["unresolved"].is_null(), "resolved, not guessed: {entry}");
 }
 
+/// An open target the registry resolves is foreign work, not an unknown:
+/// prime's graph line and the `graph` view count it under blocked on
+/// foreign, and keep unresolved for the absent repo — while the open row
+/// itself still never enters `tasks`.
+#[test]
+fn open_foreign_need_counts_as_foreign() {
+    let (dir, portfolio) = portfolio_fixture();
+    let alpha = dir.path().join("alpha");
+    let id = add_id(
+        &alpha,
+        &[
+            "add",
+            "wait on beta retry policy",
+            "--verify",
+            "true",
+            "--needs",
+            "beta#bz-r34d",
+        ],
+    );
+    let run = |args: &[&str]| {
+        stdout_of(
+            &meshwork(&alpha)
+                .env("MESHWORK_PORTFOLIO", &portfolio)
+                .args(args)
+                .assert()
+                .success(),
+        )
+    };
+
+    let prime = run(&["prime"]);
+    assert!(
+        prime.contains("blocked on foreign 1 \u{b7} unresolved 1"),
+        "open beta need is foreign, absent gamma need unresolved: {prime}"
+    );
+
+    let row = run(&[
+        "q",
+        &format!("SELECT needs_open, needs_open_foreign, needs_unresolved FROM graph WHERE id = '{id}'"),
+    ]);
+    assert!(row.contains("1 | 1 | 0"), "{row}");
+    let gamma = run(&[
+        "q",
+        "SELECT needs_open_foreign, needs_unresolved FROM graph WHERE id = 'az-g4m8'",
+    ]);
+    assert!(gamma.contains("0 | 1"), "{gamma}");
+    assert!(
+        run(&["q", "SELECT resolved FROM edges WHERE dst_gid = 'beta#bz-r34d'"]).contains("true"),
+        "the registry resolves the open target"
+    );
+    assert!(
+        run(&["q", "SELECT count(*) AS n FROM tasks WHERE gid = 'beta#bz-r34d'"]).contains("\n0\n"),
+        "an open foreign row never enters tasks"
+    );
+    assert!(!run(&["ready"]).contains(&id), "the open need still blocks");
+}
+
 /// MW-G5 / §13 scenario 6: absent or unregistered repo → unresolved
 /// edges, reported, conservatively blocking — and always exit 0.
 #[test]

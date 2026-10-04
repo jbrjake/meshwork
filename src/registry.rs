@@ -228,6 +228,17 @@ pub struct ForeignTask {
     pub path: String,
 }
 
+impl ForeignTask {
+    /// Whether this target enters a session's `tasks` as a thin row: only
+    /// a terminal one does — done/dropped satisfying a dep is the one delta
+    /// the ready predicate needs, and an open row would leak into listings.
+    /// Every resolved target, open or not, still resolves its edges.
+    #[must_use]
+    pub fn injects(&self) -> bool {
+        matches!(self.status.as_str(), "done" | "dropped")
+    }
+}
+
 /// Quiet registry discovery for single-repo resolution (mw-k7r5): no
 /// registry anywhere is the normal state (`None`, today's conservative
 /// behavior); a FOUND but broken one is loud — never guessed around.

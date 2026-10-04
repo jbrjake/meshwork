@@ -299,9 +299,21 @@ fn prime_inbox_lists_all_or_names_the_verb() {
         out.contains("addressed to this repo: 40 asks, oldest 37d \u{2014} meshwork asks"),
         "{out}"
     );
+    // The oldest ask is past triage, so it leads the next block (MW-L4) —
+    // that one line is the only place the digest may still name an ask.
     assert!(
-        gids.iter().all(|g| !out.contains(g.as_str())),
-        "the collapsed inbox lists no ask: {out}"
+        out.lines()
+            .any(|l| l.starts_with("next \u{2192} alpha#az-ask0000 (37d, asked by alpha) Ask 00 ")),
+        "the stale ask leads the next block whatever the inbox's cut: {out}"
+    );
+    let named_elsewhere: Vec<&str> = out
+        .lines()
+        .filter(|l| !l.starts_with("next \u{2192} "))
+        .filter(|l| gids.iter().any(|g| l.contains(g.as_str())))
+        .collect();
+    assert!(
+        named_elsewhere.is_empty(),
+        "the collapsed inbox lists no ask: {named_elsewhere:?}\n{out}"
     );
 }
 
