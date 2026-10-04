@@ -243,12 +243,33 @@ fn anchored_section<'a>(content: &'a str, anchor: &str) -> Option<&'a str> {
     Some(content[start..end].trim_end())
 }
 
+/// Whether `line` opens or closes a fenced code block: three backticks
+/// after leading spaces, or after a list marker (`-`, `*`, `+`, `N.`,
+/// `N)`) and its space — `CommonMark` lets a list item open a fence on
+/// its marker line, and a scanner that misses the opener reads the
+/// indented closer as one and every later heading as code. The one fence
+/// rule for both heading scanners (docs anchors here, spec clauses).
+pub(crate) fn fence_toggle(line: &str) -> bool {
+    let rest = line.trim_start();
+    if rest.starts_with("```") {
+        return true;
+    }
+    let bullet = rest.strip_prefix(['-', '*', '+']);
+    let digits = rest.len() - rest.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+    let numbered = (digits > 0)
+        .then(|| rest[digits..].strip_prefix(['.', ')']))
+        .flatten();
+    bullet
+        .or(numbered)
+        .is_some_and(|after| after.starts_with(' ') && after.trim_start().starts_with("```"))
+}
+
 /// Every heading outside fenced code: (byte offset, level, text).
 fn headings(content: &str) -> Vec<(usize, usize, &str)> {
     let mut out = Vec::new();
     let mut in_fence = false;
     for (offset, line) in line_offsets(content) {
-        if line.trim_start().starts_with("```") {
+        if fence_toggle(line) {
             in_fence = !in_fence;
             continue;
         }
@@ -381,6 +402,33 @@ mod tests {
         let s = anchored_section(DOC, "§-1-one").unwrap();
         assert!(s.contains("body one.") && s.contains("sub body."));
         assert!(!s.contains("body two."));
+    }
+
+    /// A list item may open a fence on its marker line; its indented
+    /// closer then read as an opener and every later heading as code.
+    /// Both scanners share the fence rule, so the spec clause after such
+    /// a list survives too.
+    #[test]
+    fn list_item_fence_keeps_later_headings() {
+        let doc = "# T\n\n7. ```\n   code\n   ```\n- ```sh\n  more\n  ```\n\n\
+                   ## Later {#sp-later}\n\nbody later.\n\n## Last\n\nbody last.\n";
+        let heads: Vec<&str> = headings(doc).iter().map(|(_, _, t)| *t).collect();
+        assert_eq!(heads, ["T", "Later {#sp-later}", "Last"], "{heads:?}");
+        let s = anchored_section(doc, "later").unwrap();
+        assert!(
+            s.contains("body later.") && !s.contains("body last."),
+            "{s}"
+        );
+        let ids: Vec<String> = crate::spec::clauses(doc)
+            .into_iter()
+            .map(|c| c.id)
+            .collect();
+        assert_eq!(ids, ["sp-later"], "{ids:?}");
+        // Prose that merely mentions a marker is not a fence.
+        assert!(!fence_toggle("- a list item about ``` fences"));
+        assert!(!fence_toggle("7 ```"));
+        assert!(fence_toggle("   ```"));
+        assert!(fence_toggle("7) ```rust"));
     }
 
     #[test]

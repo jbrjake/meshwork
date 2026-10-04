@@ -367,7 +367,7 @@ fn headings(content: &str) -> Vec<(usize, usize, &str)> {
         let at = offset;
         offset += line.len();
         let text = line.trim_end_matches(['\n', '\r']);
-        if text.trim_start().starts_with("```") {
+        if crate::docs::fence_toggle(text) {
             in_fence = !in_fence;
             continue;
         }
