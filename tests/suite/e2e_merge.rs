@@ -49,6 +49,16 @@ fn append(path: &Path, text: &str) {
     std::fs::write(path, current).unwrap();
 }
 
+/// `add_id` with environment overrides on the minting call.
+fn add_id_env(repo: &Path, env: &[(&str, &str)], args: &[&str]) -> String {
+    let mut cmd = meshwork(repo);
+    for (k, v) in env {
+        cmd.env(k, v);
+    }
+    let out = cmd.args(args).assert().success();
+    stdout_of(&out).lines().next().unwrap().to_string()
+}
+
 /// Scenario 1 (MW-I1): two clones create tasks, close tasks, and append
 /// comments to the SAME task; merge produces zero conflict markers, both
 /// comments survive, lint stays clean.
@@ -255,4 +265,145 @@ fn merge_union_poison_status_from_log() {
         repaired.contains("from the log tail"),
         "derivation is logged:\n{repaired}"
     );
+}
+
+/// Post-merge both duplicates carry the id, so an inbound edge names the
+/// id and not a side; git history places it — a reference belongs to the
+/// side whose file was in the tree at the commit that introduced it. The
+/// side with fewer references so placed is re-slugged and its references
+/// are rewritten to the new id. Here A's side is older (the created/
+/// file-name rule would keep it) but B's clone authored two of the three
+/// references, so B keeps the id and A's one referencer follows A's new id.
+#[test]
+fn duplicate_id_fix_reslugs_fewer_inbound() {
+    let (dir, a) = origin_and_clone_a();
+    init_store(&a);
+    commit_push(&a, "base");
+    let b = clone_b(dir.path());
+
+    let dup = add_id_env(
+        &a,
+        &[
+            ("MESHWORK_ID_SEED", "99"),
+            ("MESHWORK_TODAY", "2026-10-01T09:00Z"),
+        ],
+        &["add", "Alpha side task", "--verify", "true"],
+    );
+    let ref_a = add_id(
+        &a,
+        &["add", "A references dup", "--needs", &dup, "--verify", "true"],
+    );
+    commit_push(&a, "a mints and references");
+
+    let dup_b = add_id_env(
+        &b,
+        &[
+            ("MESHWORK_ID_SEED", "99"),
+            ("MESHWORK_TODAY", "2026-10-02T09:00Z"),
+        ],
+        &["add", "Zulu side task", "--verify", "true"],
+    );
+    assert_eq!(dup, dup_b, "seeded clones mint the same id (the collision)");
+    let ref_b1 = add_id(
+        &b,
+        &["add", "B needs dup", "--needs", &dup, "--verify", "true"],
+    );
+    let ref_b2 = add_id(
+        &b,
+        &["add", "B relates dup", "--relates", &dup, "--verify", "true"],
+    );
+    commit_only(&b, "b mints and references twice");
+    merge_origin(&b);
+
+    let lint1 = stdout_of(&meshwork(&b).arg("lint").assert().code(1));
+    assert!(lint1.contains("duplicate-id"), "{lint1}");
+
+    meshwork(&b).args(["lint", "--fix"]).assert().success();
+    meshwork(&b).arg("lint").assert().success();
+
+    // B's side had more references by history: it keeps the id.
+    let shown = stdout_of(&meshwork(&b).args(["show", &dup]).assert().success());
+    assert!(shown.contains("Zulu side task"), "keeper: {shown}");
+
+    // A's side was re-slugged, and A's referencer now names the new id.
+    let alpha_id = stdout_of(
+        &meshwork(&b)
+            .args(["q", "SELECT id FROM tasks WHERE title = 'Alpha side task'"])
+            .assert()
+            .success(),
+    );
+    let alias = dup.split('-').next().unwrap();
+    let alpha_id = alpha_id
+        .lines()
+        .map(str::trim)
+        .find(|l| l.starts_with(&format!("{alias}-")))
+        .expect("alpha id row")
+        .to_string();
+    assert_ne!(alpha_id, dup, "the alpha side lost the id:\n{alpha_id}");
+    let ref_a_text = std::fs::read_to_string(task_file(&b, &ref_a)).unwrap();
+    assert!(
+        ref_a_text.contains(&format!("needs: [{alpha_id}]")),
+        "A's reference follows the re-slugged side:\n{ref_a_text}"
+    );
+    assert!(
+        ref_a_text.contains("lint --fix") && ref_a_text.contains(&dup),
+        "the rewrite is logged on the referencer:\n{ref_a_text}"
+    );
+
+    // B's references are untouched: they meant the keeper.
+    for r in [&ref_b1, &ref_b2] {
+        let text = std::fs::read_to_string(task_file(&b, r)).unwrap();
+        assert!(text.contains(&dup), "B's reference intact:\n{text}");
+        assert!(!text.contains(&alpha_id), "B's reference not rewritten:\n{text}");
+    }
+    let ids = stdout_of(
+        &meshwork(&b)
+            .args(["q", "SELECT count(DISTINCT id) FROM tasks"])
+            .assert()
+            .success(),
+    );
+    assert!(ids.contains('5'), "{ids}");
+}
+
+/// The reproduced case: a hand copy of a committed task, never committed,
+/// with an older `created:`. Neither side has references, so the history
+/// tie-break decides — a file git has never seen loses to one it has —
+/// and the original keeps the id it was approved under.
+#[test]
+fn duplicate_id_fix_untracked_copy_loses() {
+    let (_dir, repo) = git_repo("solo");
+    init_store(&repo);
+    let id = add_id_env(
+        &repo,
+        &[("MESHWORK_TODAY", "2026-10-02T09:00Z")],
+        &["add", "Original task", "--verify", "true"],
+    );
+    git(&repo, &["add", "-A"]);
+    git(&repo, &["commit", "-q", "-m", "original"]);
+
+    let original = task_file(&repo, &id);
+    let copy = original.with_file_name(format!("{id}-hand-copy.md"));
+    let text = std::fs::read_to_string(&original).unwrap();
+    std::fs::write(
+        &copy,
+        text.replace("created: 2026-10-02T09:00Z", "created: 2026-09-01T09:00Z"),
+    )
+    .unwrap();
+
+    let lint1 = stdout_of(&meshwork(&repo).arg("lint").assert().code(1));
+    assert!(lint1.contains("duplicate-id"), "{lint1}");
+    meshwork(&repo).args(["lint", "--fix"]).assert().success();
+    meshwork(&repo).arg("lint").assert().success();
+
+    let kept = std::fs::read_to_string(&original).expect("the committed file stays");
+    assert!(kept.contains(&format!("id: {id}\n")), "original keeps the id:\n{kept}");
+    assert!(!copy.exists(), "the copy was re-slugged away from {}", copy.display());
+    let reslugged: Vec<_> = std::fs::read_dir(original.parent().unwrap())
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .filter(|n| n.ends_with("-hand-copy.md"))
+        .collect();
+    assert_eq!(reslugged.len(), 1, "one re-slugged copy: {reslugged:?}");
+    assert!(!reslugged[0].starts_with(&id), "the copy carries a new id: {reslugged:?}");
 }

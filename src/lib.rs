@@ -17,6 +17,7 @@ pub mod graph;
 pub mod id;
 pub mod lint;
 pub mod lint_covers;
+pub mod lint_dupes;
 pub mod lint_prose;
 pub mod lint_shim;
 pub mod lint_tail;

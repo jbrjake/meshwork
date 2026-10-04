@@ -7,7 +7,6 @@
 
 use crate::archive::Located;
 use crate::edit::{append_section_entry, set_scalar};
-use crate::id::{mint_unique, IdGen};
 use crate::lint::{lint_store, Finding, Severity};
 use crate::parse::{ParsedTask, Status};
 use crate::store::{load_repo, RepoStore};
@@ -635,96 +634,14 @@ fn status_from_log(text: &str) -> Option<Status> {
     best.map(|(_, status)| status)
 }
 
-/// Post-merge duplicate IDs (MW-A4): the earliest side (created date, then
-/// file name) keeps the id — references made before the collision resolve
-/// to it — later sides get fresh ids. Inbound refs are reported, since no
-/// file content can say which side a reference meant.
+/// Post-merge duplicate IDs (MW-A4): the side git history shows the
+/// references meant keeps the id, the rest are re-slugged and their
+/// references rewritten — `crate::lint_dupes` is the rule; this prints
+/// its notes.
 fn fix_duplicate_ids(store: &RepoStore) -> Result<usize, String> {
-    let tasks_dir = store.root.join("docs").join("meshwork");
-    let today = crate::clock::stamp();
-    let seed = std::env::var("MESHWORK_ID_SEED").ok();
-    let mut gen = IdGen::from_seed_str(seed.as_deref());
-
-    let mut groups: std::collections::BTreeMap<String, Vec<(&String, Option<String>)>> =
-        std::collections::BTreeMap::new();
-    for entry in &store.entries {
-        if let ParsedTask::Valid(t) = &entry.parsed {
-            groups
-                .entry(t.id.clone())
-                .or_default()
-                .push((&entry.file_name, t.created.clone()));
-        }
+    let repaired = crate::lint_dupes::fix_duplicate_ids(store)?;
+    for note in &repaired.notes {
+        eprintln!("note: {}", crate::cli::sanitize(note));
     }
-
-    let mut fixed = 0;
-    for (old_id, mut files) in groups {
-        if files.len() < 2 {
-            continue;
-        }
-        files.sort_by(|a, b| {
-            let key_a = (a.1.clone().unwrap_or_else(|| "9999".into()), a.0.clone());
-            let key_b = (b.1.clone().unwrap_or_else(|| "9999".into()), b.0.clone());
-            key_a.cmp(&key_b)
-        });
-        for (file_name, _) in files.iter().skip(1) {
-            if crate::archive::is_bundle_path(file_name) {
-                eprintln!(
-                    "note: `{old_id}` is also inside {file_name} — a bundled duplicate is \
-                     not re-slugged; reopen and drop the copy you do not want"
-                );
-                continue;
-            }
-            let new_id = mint_unique(&store.config.alias, &tasks_dir, &mut gen)
-                .map_err(|e| e.to_string())?;
-            reslug(&tasks_dir, file_name, &old_id, &new_id, &today)?;
-            fixed += 1;
-        }
-        let inbound = count_inbound(store, &old_id);
-        if inbound > 0 {
-            eprintln!(
-                "note: {inbound} same-repo reference(s) to `{old_id}` now resolve to the \
-                 keeper file — review that they meant it"
-            );
-        }
-    }
-    Ok(fixed)
-}
-
-fn reslug(
-    tasks_dir: &Path,
-    file_name: &str,
-    old_id: &str,
-    new_id: &str,
-    today: &str,
-) -> Result<(), String> {
-    let old_path = tasks_dir.join(file_name);
-    let text = std::fs::read_to_string(&old_path).map_err(|e| e.to_string())?;
-    let text = set_scalar(&text, "id", Some(new_id))?;
-    let text = append_section_entry(
-        &text,
-        "log",
-        &format!("{today} lint --fix: re-slugged from {old_id} (post-merge duplicate)"),
-    );
-    let new_name = file_name.replacen(old_id, new_id, 1);
-    std::fs::write(tasks_dir.join(&new_name), text).map_err(|e| e.to_string())?;
-    std::fs::remove_file(&old_path).map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-fn count_inbound(store: &RepoStore, id: &str) -> usize {
-    store
-        .entries
-        .iter()
-        .filter_map(|e| match &e.parsed {
-            ParsedTask::Valid(t) if t.id != id => Some(t),
-            _ => None,
-        })
-        .map(|t| {
-            let one = |v: &Option<String>| usize::from(v.as_deref() == Some(id));
-            t.needs.iter().filter(|n| *n == id).count()
-                + t.relates.iter().filter(|n| *n == id).count()
-                + one(&t.parent)
-                + one(&t.discovered_from)
-        })
-        .sum()
+    Ok(repaired.files)
 }

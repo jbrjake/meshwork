@@ -7,7 +7,7 @@ Machine-checked by `verify_meshwork.sh` §6: every MW-* MUST must have a row; `d
 | MW-A1 | `parse::roundtrip_hand_edited`, `e2e::add_show_roundtrip`, `e2e::archive_compact` | done |
 | MW-A2 | `tables::memtable_no_disk`, `e2e::cache_delete_safe` | done |
 | MW-A3 | `e2e::init_layout` (nothing written outside repo, no hooks) | done |
-| MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id` | done |
+| MW-A4 | `id::collision_reroll`, `e2e::merge_duplicate_id`, `e2e::duplicate_id_fix_reslugs_fewer_inbound`, `e2e::duplicate_id_fix_untracked_copy_loses` | done |
 | MW-A5 | `lint::description_size_warn`, `e2e::show_caps` | done |
 | MW-A6 | `parse::unknown_field_warns` | done |
 | MW-B1 | `tables::edge_kinds`, `e2e::dep_edit`, `e2e::dep_add_block_style_needs` | done |
