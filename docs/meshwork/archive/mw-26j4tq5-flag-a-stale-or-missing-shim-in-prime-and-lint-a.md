@@ -6,7 +6,7 @@ seq: 140
 needs: [mw-x5yn4rg]
 docs: [.claude/skills/meshwork/SKILL.md#meshwork, CLAUDE.md#hard-boundaries]
 verify: run cargo test package=meshwork target=suite e2e::shim_stale_flagged_and_fixed
-status: open
+status: done
 created: 2026-09-28T13:54Z
 ---
 The binary has no idea what shim it runs through. The backstop for when
@@ -26,3 +26,5 @@ does not cover lint codes, so check by hand).
 
 ## log
 - 2026-09-28T13:54Z created
+- 2026-10-04T15:46Z open→doing — claimed by claude (5566559a-b6fd-4780-8c73-3214f8c33f5d)
+- 2026-10-04T15:54Z doing→done — verify exit 0 @ a025a0a+2
