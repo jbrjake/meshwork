@@ -124,7 +124,7 @@ fn grammar_legacy_shell_fallback() {
 // byte-capped output. DSL verifies bypass the MW-E5 trust gate because
 // this module makes them safe by construction.
 
-use meshwork::verify_exec::{execute, run_argv};
+use meshwork::verify_exec::{execute, run_argv, spawn_capped};
 use std::time::Duration;
 
 fn dsl(text: &str) -> Vec<meshwork::verify_dsl::Predicate> {
@@ -431,6 +431,20 @@ fn exec_timeout_kills() {
         started.elapsed() < Duration::from_secs(10),
         "the kill must not wait out the child"
     );
+}
+
+/// The cap landing inside a multibyte stderr character cuts at the
+/// character before it — a boundary, never a panic.
+#[test]
+fn spawn_capped_cap_on_multibyte_boundary() {
+    let dir = tempfile::tempdir().unwrap();
+    // stdout leaves three spare bytes under the cap; stderr's tail is two
+    // 2-byte characters, so the byte index falls inside the second.
+    let argv = ["sh", "-c", "printf 'abcde'; printf '\u{e9}\u{e9}' >&2"].map(String::from);
+    let (status, out) = spawn_capped(dir.path(), &argv, Duration::from_secs(5), 8).unwrap();
+    assert!(status.success(), "{status}");
+    assert!(out.len() <= 8, "cap held: {out:?}");
+    assert_eq!(out, "abcde\u{e9}", "whole characters only");
 }
 
 /// Output is byte-capped; the child still runs to completion.

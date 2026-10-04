@@ -280,8 +280,10 @@ pub fn spawn_capped(
     let mut out = stdout.join().unwrap_or_default();
     let err_tail = stderr.join().unwrap_or_default();
     if out.len() < out_cap {
-        let spare = out_cap - out.len();
-        out.push_str(&err_tail[..err_tail.len().min(spare)]);
+        // Cut at a character boundary: the spare byte count can land
+        // inside a multibyte character of the lossy-decoded tail.
+        let spare = err_tail.floor_char_boundary(out_cap - out.len());
+        out.push_str(&err_tail[..spare]);
     }
     Ok((status, out))
 }
