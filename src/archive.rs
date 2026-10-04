@@ -508,16 +508,20 @@ fn bump_format(tasks_dir: &Path) -> Result<(), String> {
     if current >= 2 {
         return Ok(());
     }
+    let is_format_key = |line: &str| line.trim_start().starts_with("format") && line.contains('=');
+    let has_key = text.lines().any(is_format_key);
     let mut out = String::new();
     let mut placed = false;
     for line in text.lines() {
-        if line.trim_start().starts_with("format") && line.contains('=') {
-            out.push_str("format = 2\n");
-            placed = true;
+        if is_format_key(line) {
+            if !placed {
+                out.push_str("format = 2\n");
+                placed = true;
+            }
         } else {
             out.push_str(line);
             out.push('\n');
-            if !placed && line.trim_start().starts_with("alias") {
+            if !has_key && !placed && line.trim_start().starts_with("alias") {
                 out.push_str("format = 2\n");
                 placed = true;
             }
@@ -565,6 +569,32 @@ mod tests {
         assert!(!is_bundle_name("zz-bundle-0001.md"));
         assert!(is_bundle_path("archive/bundle-0001.md"));
         assert!(!is_bundle_path("bundle-0001.md"));
+    }
+
+    #[test]
+    fn bump_format_keeps_one_format_key() {
+        let dir = tempfile::tempdir().unwrap();
+        let tasks = dir.path().to_path_buf();
+        let cases = [
+            "alias = \"zz\"\nformat = 1\n",
+            "format = 1\nalias = \"zz\"\n",
+            "alias = \"zz\"\n",
+            "# format = 1 in a comment\nalias = \"zz\"\nformat = 1 # explicit\n",
+        ];
+        for text in cases {
+            std::fs::write(tasks.join("config.toml"), text).unwrap();
+            bump_format(&tasks).unwrap();
+            let cfg = std::fs::read_to_string(tasks.join("config.toml")).unwrap();
+            let keys = cfg
+                .lines()
+                .filter(|l| l.trim_start().starts_with("format"))
+                .count();
+            assert_eq!(keys, 1, "input {text:?} gave {cfg:?}");
+            assert!(cfg.contains("format = 2"), "{cfg}");
+            assert!(cfg.contains("alias = \"zz\""), "{cfg}");
+            cfg.parse::<toml::Table>()
+                .unwrap_or_else(|e| panic!("input {text:?} gave unparsable {cfg:?}: {e}"));
+        }
     }
 
     #[test]
