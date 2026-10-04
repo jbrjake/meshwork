@@ -18,6 +18,7 @@ pub mod id;
 pub mod lint;
 pub mod lint_covers;
 pub mod lint_prose;
+pub mod lint_shim;
 pub mod lint_tail;
 pub mod lint_verify;
 pub mod lint_views;

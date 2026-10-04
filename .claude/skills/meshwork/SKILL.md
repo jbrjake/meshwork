@@ -143,7 +143,8 @@ step by step.
   work orders ("Fix the door check"); every task carries `verify:` and
   `docs:` (`path#anchor`, GitHub slug rules; `repo#path#anchor` crosses
   repos), and lint warns.
-- A hand-edit is followed by `lint` (`--fix` mends mechanical damage and
+- A hand-edit is followed by `lint` (`--fix` mends mechanical damage,
+  rewrites a stale or missing shim — `shim-stale`, `shim-missing` — and
   bundles a loose archive; `--explain <code>` prints one code's rows alone).
   Codes that want an agent's hand: `needs-behind`, `spec-drift`,
   `handoff-cites-closed`, `verify-path-missing`, `verify-shell`. A block

@@ -14,9 +14,10 @@ const CACHE_GITIGNORE: &str = "*\n!.gitignore\n";
 
 /// The shim every call goes through, `docs/meshwork/meshwork`: the one
 /// canonical text, shipped with the plugin (`hooks/meshwork`) and embedded
-/// here so a fresh store carries it byte-identical. The plugin's
-/// `SessionStart` hook keeps it that way across releases.
-const SHIM: &str = include_str!("../../hooks/meshwork");
+/// in `lint_shim` so a fresh store carries it byte-identical. The plugin's
+/// `SessionStart` hook keeps it that way across releases, and `lint` names
+/// it when the hook could not.
+const SHIM: &str = crate::lint_shim::CANONICAL;
 
 pub(crate) fn run(json: bool) -> Result<(), String> {
     let cwd = std::env::current_dir().map_err(|e| e.to_string())?;
@@ -76,7 +77,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
             None => std::fs::create_dir_all(&path).map_err(|e| e.to_string())?,
         }
     }
-    mark_executable(&root.join("docs/meshwork/meshwork"))?;
+    crate::lint_shim::mark_executable(&root.join("docs/meshwork/meshwork"))?;
 
     if json {
         crate::cli::emit_json(
@@ -96,19 +97,6 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
             "edit docs/meshwork/config.toml (alias `{alias}`) before the first `add`, then commit."
         );
     }
-    Ok(())
-}
-
-/// The shim is run, not sourced: `chmod 755` where the platform has modes.
-fn mark_executable(path: &Path) -> Result<(), String> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755))
-            .map_err(|e| e.to_string())?;
-    }
-    #[cfg(not(unix))]
-    let _ = path;
     Ok(())
 }
 

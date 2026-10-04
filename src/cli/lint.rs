@@ -42,6 +42,13 @@ const EXPLAINED: &[(&str, &str)] = &[
          words, and a paraphrase wears the authority without the evidence. Lexical — a quote \
          of anything satisfies it.",
     ),
+    (
+        "shim-stale",
+        "the committed shim `docs/meshwork/meshwork` is not the canonical text the plugin \
+         ships, or is not executable, and every verb in a pinned project runs through it. \
+         `lint --fix` rewrites it; the plugin's session-start hook does the same at every \
+         session start. The lines below are the shim's (-) against the canonical ones (+).",
+    ),
 ];
 
 /// Findings the text report folds into one line — noise by volume, not
@@ -72,7 +79,8 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
             + fix_misplaced(&store)?
             + fix_gitattributes(&store)?
             + fix_stray_tail(&store)?
-            + fix_crossrepo_docs(&store)?;
+            + fix_crossrepo_docs(&store)?
+            + fix_shim(&store, json)?;
         if repairs > 0 && !json {
             println!("fixed {repairs} file(s)");
         }
@@ -134,6 +142,11 @@ pub(crate) fn run(args: &LintArgs, json: bool) -> Result<(), String> {
         );
     } else if let Some(code) = args.explain.as_deref() {
         explain_report(&findings, code, errors, warnings);
+        if code == "shim-stale" && findings.iter().any(|f| f.code == code) {
+            for line in crate::lint_shim::diff_lines(&store.root) {
+                println!("{}", crate::cli::sanitize(&line));
+            }
+        }
     } else {
         // The legacy-shell rows fold (mw-4n00yte): 274 identical lines
         // on the busiest store buried every other signal.
@@ -268,6 +281,20 @@ fn fix_gitattributes(store: &RepoStore) -> Result<usize, String> {
         text.push('\n');
     }
     std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    Ok(1)
+}
+
+/// The committed shim, canonical and executable again (mw-26j4tq5) — the
+/// repair the plugin's session-start hook makes when it runs, here for the
+/// session whose hook could not. Says what it did: the file is not a task,
+/// so no log line records the repair, and it wants a commit.
+fn fix_shim(store: &RepoStore, json: bool) -> Result<usize, String> {
+    let Some(what) = crate::lint_shim::repair(&store.root)? else {
+        return Ok(0);
+    };
+    if !json {
+        println!("{}: {what} \u{2014} commit it", crate::lint_shim::SHIM);
+    }
     Ok(1)
 }
 

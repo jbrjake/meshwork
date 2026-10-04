@@ -414,3 +414,78 @@ fn lint_explain_one_code() {
     assert!(none.contains("verify-path-missing") && none.contains("verify-shell"), "{none}");
     assert!(!none.contains("[verify-shell]"), "rows of other codes stay out: {none}");
 }
+
+/// mw-26j4tq5: the binary is the backstop for a session whose plugin hook
+/// could not run. In a pinned project a shim that is stale (not the
+/// canonical bytes), missing, or not executable is a lint warning by name,
+/// the first line of prime, and `lint --fix`'s repair; `--explain
+/// shim-stale` shows the line diff. A project without a pin builds from
+/// source, and its shim is its own business — this repo's execs
+/// target/debug/meshwork on purpose.
+#[test]
+fn shim_stale_flagged_and_fixed() {
+    use std::os::unix::fs::PermissionsExt;
+    let (_g, repo) = git_repo("adopter");
+    init_store(&repo);
+    add_id(&repo, &["add", "Some work", "--verify", "true"]);
+    let shim = repo.join("docs/meshwork/meshwork");
+    let canonical =
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("hooks/meshwork")).unwrap();
+    assert_eq!(std::fs::read_to_string(&shim).unwrap(), canonical, "init writes the canonical shim");
+    let lint = |args: &[&str]| stdout_of(&meshwork(&repo).arg("lint").args(args).assert().success());
+    let prime_first = || {
+        let out = stdout_of(&meshwork(&repo).arg("prime").assert().success());
+        out.lines().next().unwrap_or_default().to_string()
+    };
+    let mode = |path: &Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o111;
+
+    // Unpinned: a source build runs however it likes — no finding, no line.
+    std::fs::write(&shim, "#!/bin/sh\nexec target/debug/meshwork \"$@\"\n").unwrap();
+    assert!(!lint(&[]).contains("shim-"), "{}", lint(&[]));
+    assert!(!prime_first().starts_with("! docs/meshwork/meshwork"), "{}", prime_first());
+
+    // Pinned, stale text: a warning by name, prime leads with it, the diff
+    // is one --explain away, and --fix rewrites it canonical.
+    std::fs::write(repo.join(".meshwork-version"), "v0.1.0\n").unwrap();
+    let out = lint(&[]);
+    assert!(
+        out.contains("warning[shim-stale] docs/meshwork/meshwork: not the canonical shim (first difference at line 2)"),
+        "{out}"
+    );
+    assert!(out.contains("lint --fix"), "{out}");
+    let first = prime_first();
+    assert!(
+        first.starts_with("! docs/meshwork/meshwork: not the canonical shim") && first.contains("lint --fix"),
+        "prime leads with it: {first}"
+    );
+    let explain = lint(&["--explain", "shim-stale"]);
+    assert!(explain.contains("[shim-stale] docs/meshwork/meshwork"), "{explain}");
+    assert!(
+        explain.contains("-2 exec target/debug/meshwork \"$@\"") && explain.contains("+2 # agent sessions"),
+        "the diff names the shim's line and the canonical one: {explain}"
+    );
+    let v: serde_json::Value = serde_json::from_str(&lint(&["--json"])).unwrap();
+    let codes: Vec<&str> = v["data"]["findings"].as_array().unwrap().iter().map(|f| f["code"].as_str().unwrap()).collect();
+    assert!(codes.contains(&"shim-stale"), "{codes:?}");
+    let fixed = lint(&["--fix"]);
+    assert!(fixed.contains("docs/meshwork/meshwork: rewritten to the canonical text"), "{fixed}");
+    assert_eq!(std::fs::read_to_string(&shim).unwrap(), canonical);
+    assert_ne!(mode(&shim), 0, "executable after the fix");
+    assert!(!lint(&[]).contains("shim-"), "{}", lint(&[]));
+    assert!(!prime_first().starts_with("! docs/meshwork/meshwork"), "{}", prime_first());
+
+    // Missing: the same shape, and --fix writes it.
+    std::fs::remove_file(&shim).unwrap();
+    assert!(lint(&[]).contains("warning[shim-missing] docs/meshwork/meshwork: missing in a pinned project"), "{}", lint(&[]));
+    assert!(prime_first().starts_with("! docs/meshwork/meshwork: missing in a pinned project"), "{}", prime_first());
+    assert!(lint(&["--fix"]).contains("docs/meshwork/meshwork: written"));
+    assert_eq!(std::fs::read_to_string(&shim).unwrap(), canonical);
+    assert_ne!(mode(&shim), 0);
+
+    // Canonical bytes, mode lost: still shim-stale, and --fix sets the mode.
+    std::fs::set_permissions(&shim, std::fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(lint(&[]).contains("warning[shim-stale] docs/meshwork/meshwork: the canonical shim, but not executable"), "{}", lint(&[]));
+    assert!(lint(&["--fix"]).contains("docs/meshwork/meshwork: made executable"));
+    assert_ne!(mode(&shim), 0);
+    assert!(!lint(&[]).contains("shim-"), "{}", lint(&[]));
+}

@@ -138,9 +138,11 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
     let lead_ask = lead_ask(&inbox, &today);
     let next_block = next_block_lines(&tasks, &ready, &cited, &store.repo, lead_ask, &today);
     let also_ready = also_ready_lines(&tasks, &ready);
+    let shim = crate::lint_shim::drift(&root);
 
     if json {
         emit_prime_json(&PrimeJson {
+            shim: shim.as_ref(),
             counts: &counts,
             ready: &ready,
             rollup: &ranked,
@@ -167,6 +169,7 @@ pub(crate) fn run(json: bool) -> Result<(), String> {
         let _ = write!(headline, " \u{b7} {tail}");
     }
     let digest = Digest {
+        shim: shim.map(|d| format!("! {}: {}", crate::lint_shim::SHIM, d.message())),
         headline,
         provenance: provenance_line(&root).map(|p| clamp_bytes(&p, LINE_CLAMP)),
         rollup: rollup_line.map(|r| clamp_bytes(&r, LINE_CLAMP)),
@@ -253,6 +256,7 @@ fn cited_by_next(
 
 /// The digest's sections, bundled for the JSON emitter — one view, one arg.
 struct PrimeJson<'a> {
+    shim: Option<&'a crate::lint_shim::Drift>,
     counts: &'a BTreeMap<&'a str, usize>,
     ready: &'a [Vec<String>],
     rollup: &'a [(&'a str, i64, usize)],
@@ -321,10 +325,13 @@ fn emit_prime_json(v: &PrimeJson) {
         "unanswered": v.inbox.len(),
         "oldest_days": crate::addressed::oldest_age_days(v.inbox, v.today),
     });
+    let shim = v.shim.map(|d| {
+        serde_json::json!({ "path": crate::lint_shim::SHIM, "code": d.code(), "message": d.message() })
+    });
     crate::cli::emit_json(
         "prime",
         &serde_json::json!({
-            "counts": v.counts, "provenance": v.provenance,
+            "shim": shim, "counts": v.counts, "provenance": v.provenance,
             "ready_total": v.ready.len(), "ready": ready_rows,
             "rollup": rollup_rows, "rollup_total": v.rollup.len(),
             "weather": v.weather, "pulse": super::pulse::json(v.pulse),

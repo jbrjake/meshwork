@@ -504,6 +504,10 @@ pub(super) fn invalid_ids(store: &crate::store::RepoStore) -> Vec<&str> {
 
 /// The digest's rendered pieces, assembled once per budget cut.
 pub(super) struct Digest<'a> {
+    /// The shim's drift, when a pinned project's shim is not canonical:
+    /// the one line that precedes even the headline, because every verb
+    /// the session is about to run goes through that file.
+    pub(super) shim: Option<String>,
     pub(super) headline: String,
     pub(super) provenance: Option<String>,
     pub(super) rollup: Option<String>,
@@ -523,7 +527,9 @@ pub(super) struct Digest<'a> {
 /// Every line of the digest in order, under the given cuts: the pulse
 /// leads the weather; also-ready shows what the cut allows and says so.
 pub(super) fn assemble(d: &Digest, cuts: &super::pulse::Cuts) -> Vec<String> {
-    let mut lines: Vec<String> = vec![d.headline.clone()];
+    let mut lines: Vec<String> = Vec::new();
+    lines.extend(d.shim.clone());
+    lines.push(d.headline.clone());
     lines.extend(d.provenance.clone());
     lines.extend(d.rollup.clone());
     let mut pulse_lines = super::pulse::lines(d.pulse, d.window_days, cuts);
