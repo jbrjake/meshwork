@@ -208,6 +208,48 @@ fn import_title_unwrapped() {
     );
 }
 
+/// A column-zero line right under a wrapped headline is prose no item
+/// owns, never more title: a wrapped continuation sits indented under
+/// its marker, so the headline ends at the margin and the prose carries.
+#[test]
+fn import_column_zero_prose_not_in_title() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    std::fs::write(
+        repo.join("TODO.md"),
+        "# TODO\n\n## Later\n\n\
+         - [ ] Wrapped headline that\n\
+         \x20 continues here\n\
+         Column-zero prose under Later that no item owns.\n",
+    )
+    .unwrap();
+    let out = stdout_of(
+        &meshwork(&repo)
+            .args(["import", "todo", "TODO.md"])
+            .assert()
+            .success(),
+    );
+    assert!(out.contains("2 imported"), "{out}");
+    assert!(out.contains("1 prose line(s) carried"), "{out}");
+    let titles = stdout_of(
+        &meshwork(&repo)
+            .args(["q", "SELECT title FROM tasks"])
+            .assert()
+            .success(),
+    );
+    assert!(titles.contains("Wrapped headline that continues here"), "{titles}");
+    assert!(!titles.contains("Column-zero"), "the margin ends the title: {titles}");
+    let triage = std::fs::read_to_string(task_file(
+        &repo,
+        &first_id_titled(&repo, "Imported prose needing triage (TODO.md)"),
+    ))
+    .unwrap();
+    assert!(
+        triage.contains("Column-zero prose under Later that no item owns."),
+        "{triage}"
+    );
+}
+
 // mw-gsgh8s7: column-0 prose outside any checkbox — preambles,
 // interstitial section notes, trailing ledgers — vanished with exit 0.
 // A whole asks-section disappeared that way in a real migration. Now it

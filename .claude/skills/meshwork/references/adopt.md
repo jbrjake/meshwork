@@ -21,12 +21,13 @@ the adopter's repo root.
    config and writes the shim; it never installs git hooks and never writes
    outside the store. Commit `.meshwork-version` with `docs/meshwork/`.
 3. For each TODO found: `docs/meshwork/meshwork import todo <path>` — checkboxes
-   become task files. import absorbs all prose between checkboxes into the
-   preceding task's body — a section-structured TODO turns whole ledgers
-   into one task's body. Triage every generated body: split section prose
-   into its own tasks. Review every generated file before committing
-   (import is a one-shot migration, not a sync). Then
-   `docs/meshwork/meshwork lint`.
+   become task files. Prose indented under a checkbox lands in that task's
+   body (a long block is absorbed whole, counted by id); prose at column
+   zero that no checkbox owns — preambles, section notes, ledgers — carries
+   into one triage task, counted. Triage every generated body and the
+   triage task: split section prose into its own tasks. Review every
+   generated file before committing (import is a one-shot migration, not a
+   sync). Then `docs/meshwork/meshwork lint`.
 4. Prove the session-start digest arrives. The plugin's SessionStart hook
    injects `prime` in every project that carries `docs/meshwork/` and
    `.meshwork-version` — nothing is added to the repo's

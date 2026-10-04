@@ -284,6 +284,13 @@ fn continue_line(
         }
     }
     match cont {
+        // A wrapped continuation sits indented under its marker; a line
+        // at column zero is prose no item owns, so it ends the headline
+        // and carries instead of gluing onto the title.
+        Cont::Headline if indent == 0 => {
+            *cont = Cont::Body;
+            carry(carried, heading_emitted, heading, line);
+        }
         Cont::Headline => {
             last.title.push(' ');
             last.title.push_str(line.trim_end());
