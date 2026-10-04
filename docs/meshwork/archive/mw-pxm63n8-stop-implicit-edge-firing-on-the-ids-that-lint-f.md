@@ -1,7 +1,7 @@
 ---
 id: mw-pxm63n8
 title: Stop implicit-edge firing on the ids that lint --fix's own log lines mention
-status: open
+status: done
 category: core/hygiene
 discovered-from: mw-6k73vyj
 verify: run cargo test implicit_edge_ignores_fix_log_lines
@@ -16,3 +16,5 @@ Two places the exclusion could live. The `mentions` view is FORMAT.md contract �
 
 ## log
 - 2026-10-04T16:29Z created
+- 2026-10-04T16:35Z open→doing — claimed by claude (2a6ba2e9-aa96-4775-b0f1-2a5cd137c964)
+- 2026-10-04T16:42Z doing→done — verify exit 0 @ 78d8447+2
