@@ -208,6 +208,42 @@ fn batch_rejects_unknown_keys() {
     assert!(!child.contains("from: @"), "{child}");
 }
 
+/// `close` is the only door to done, `drop` to dropped, `start` and
+/// `block` to the rest: a batch document carrying any status but open
+/// is refused whole, nothing written — otherwise a task lands done with
+/// no verify run and no log line, and lint reports the corpse.
+#[test]
+fn batch_refuses_terminal_status() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let before = crate::common::file_inventory(&repo);
+    for status in ["done", "dropped", "doing", "blocked"] {
+        let assert = meshwork(&repo)
+            .args(["add", "--batch", "-"])
+            .write_stdin(format!(
+                "---\ntitle: Fine\nverify: \"true\"\n---\n\
+                 ---\ntitle: Arrives {status}\nstatus: {status}\nverify: \"true\"\n---\n"
+            ))
+            .assert()
+            .code(1);
+        let err = stderr_of(&assert);
+        assert!(err.contains("batch task 2"), "{status}: {err}");
+        assert!(err.contains(status), "names the status: {err}");
+        assert!(err.contains("close"), "names the door: {err}");
+        assert_eq!(
+            before,
+            crate::common::file_inventory(&repo),
+            "{status}: nothing written"
+        );
+    }
+    // An explicit open passes, exactly as the injected default does.
+    meshwork(&repo)
+        .args(["add", "--batch", "-"])
+        .write_stdin("---\ntitle: Arrives open\nstatus: open\nverify: \"true\"\n---\n")
+        .assert()
+        .success();
+}
+
 /// mw-3gpdbbh: a `---` separator inside a fenced code block is body
 /// content, not a document boundary. Observed live: a bug report whose
 /// repro quoted a task document produced a phantom task carrying the

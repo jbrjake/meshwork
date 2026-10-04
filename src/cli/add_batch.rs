@@ -271,6 +271,18 @@ fn parse_entry(fm: &str, body: &str) -> Result<Entry, String> {
             }
             if line.chars().next().is_some_and(|c| c.is_ascii_alphabetic()) {
                 let key = line.split(':').next().unwrap_or_default();
+                // A batch files open tasks: close is the one door to done,
+                // drop to dropped, start and block to the rest — each
+                // writes the log line a bare status never gets.
+                if key == "status" {
+                    let value = line["status:".len()..].trim().trim_matches(['"', '\'']);
+                    if value != "open" {
+                        return Err(format!(
+                            "status: {value} — a batch files open tasks; start, block, \
+                             close and drop are the only ways to any other status"
+                        ));
+                    }
+                }
                 // `from:` is the slot name the --batch help teaches; the
                 // canonical file key is what `add --from` writes (mw-16pyc5g).
                 if key == "from" {
