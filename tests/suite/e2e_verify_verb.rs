@@ -114,6 +114,48 @@ fn verify_verb_gates_like_close() {
     assert!(!marker.exists(), "nothing executed");
 }
 
+/// close's shell verify runs under the same bounds as start's red-check
+/// of the same text: the wall clock, the output cap and the env scrub —
+/// a hang dies at the clock and the close stays open, a flood is cut,
+/// and the caller's environment never reaches the child.
+#[test]
+fn close_shell_verify_is_capped_and_timed() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+
+    let slow = add_id(&repo, &["add", "Hangs", "--verify", "sleep 30"]);
+    let started = std::time::Instant::now();
+    let assert = meshwork(&repo)
+        .env("MESHWORK_RUN_TIMEOUT", "1")
+        .args(["close", &slow])
+        .assert()
+        .code(1);
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(20),
+        "the clock must cut the hang, not wait it out"
+    );
+    let err = stderr_of(&assert);
+    assert!(err.contains("did not finish within 1s"), "{err}");
+    let text = std::fs::read_to_string(task_file(&repo, &slow)).unwrap();
+    assert!(text.contains("status: open"), "stays open: {text}");
+    assert!(text.contains("close attempt"), "the attempt is logged: {text}");
+
+    let flood = add_id(&repo, &["add", "Floods", "--verify", "seq 1 200000"]);
+    let out = stdout_of(&meshwork(&repo).args(["close", &flood]).assert().success());
+    assert!(out.len() <= 262_144 + 256, "output capped: {} bytes", out.len());
+    assert!(out.starts_with("1\n"), "the head survives: {}", &out[..20]);
+
+    let probe = add_id(
+        &repo,
+        &["add", "Scrubbed", "--verify", "test -z \"$MESHWORK_LEAK_PROBE\""],
+    );
+    meshwork(&repo)
+        .env("MESHWORK_LEAK_PROBE", "leaked")
+        .args(["close", &probe])
+        .assert()
+        .success();
+}
+
 /// mw-bzzq8yc: a `run` verify passing on an uncommitted tree vouches for
 /// nothing beyond its own scope — two tasks closed on a red gate that
 /// way. close names the code paths only its verify has seen. Advisory:

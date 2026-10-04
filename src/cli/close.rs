@@ -74,7 +74,9 @@ fn head_anchor(root: &std::path::Path) -> String {
     let Some(sha) = git(&["rev-parse", "--short", "HEAD"]) else {
         return String::new();
     };
-    let dirty = git(&["status", "--porcelain"]).map_or(0, |s| s.lines().count());
+    // Every file, never one line per untracked directory.
+    let dirty =
+        git(&["status", "--porcelain", "--untracked-files=all"]).map_or(0, |s| s.lines().count());
     if dirty > 0 {
         format!(" @ {sha}+{dirty}")
     } else {
@@ -324,15 +326,30 @@ pub(crate) fn routed_verdict(
 /// are written repo-relative. The outer error is "could not run at all";
 /// the inner `Verdict` is what the run said.
 fn run_shell(root: &std::path::Path, verify: &str, json: bool) -> Result<Verdict, String> {
-    let output = std::process::Command::new("sh")
-        .args(["-c", verify])
-        .current_dir(root)
-        .output()
-        .map_err(|e| format!("running verify: {e}"))?;
-    let exit = output.status.code().unwrap_or(-1);
+    // The same wall clock, output cap and env scrub as a DSL run and as
+    // start's red-check of this very text: a hang dies at the clock and
+    // the close stays open, a flood is cut, the caller's env stays out.
+    let argv = ["sh", "-c", verify].map(String::from);
+    let timeout = crate::verify_exec::run_timeout();
+    let (status, out) = match crate::verify_exec::spawn_capped(
+        root,
+        &argv,
+        timeout,
+        crate::verify_exec::OUTPUT_CAP,
+    ) {
+        Ok(ran) => ran,
+        Err(crate::verify_exec::SpawnError::Timeout(_)) => {
+            let secs = timeout.as_secs();
+            return Ok(Err((
+                format!("verify did not finish within {secs}s"),
+                format!("verify did not finish within {secs}s (`{verify}`)"),
+            )));
+        }
+        Err(e) => return Err(format!("running verify: {e}")),
+    };
+    let exit = status.code().unwrap_or(-1);
     if !json {
-        print!("{}", String::from_utf8_lossy(&output.stdout));
-        eprint!("{}", String::from_utf8_lossy(&output.stderr));
+        print!("{out}");
     }
     if exit == 0 {
         Ok(Ok(()))
