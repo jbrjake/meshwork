@@ -13,6 +13,22 @@ fn override_stamp() -> Option<String> {
     (!fixed.is_empty()).then(|| fixed.to_string())
 }
 
+/// The `MESHWORK_TODAY` override, checked before anything is minted: a
+/// set value must be a conforming stamp — the same guard the derived
+/// views apply — so a typo never lands in a file.
+///
+/// # Errors
+/// The override is set and is neither `YYYY-MM-DD` nor `YYYY-MM-DDTHH:MMZ`.
+pub fn check_override() -> Result<(), String> {
+    match override_stamp() {
+        Some(fixed) if crate::views::stamp_secs(&fixed).is_none() => Err(format!(
+            "MESHWORK_TODAY must be YYYY-MM-DD or YYYY-MM-DDTHH:MMZ, got `{fixed}` — \
+             nothing minted"
+        )),
+        _ => Ok(()),
+    }
+}
+
 fn epoch_secs() -> i64 {
     let secs = SystemTime::now()
         .duration_since(UNIX_EPOCH)

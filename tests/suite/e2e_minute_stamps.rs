@@ -67,6 +67,42 @@ fn minute_stamps_override_stays_verbatim() {
     assert!(text.contains("- 2026-08-04 created"), "{text}");
 }
 
+/// A malformed `MESHWORK_TODAY` is refused before anything is minted —
+/// the same guard the derived views apply, so a typo never reaches a file.
+#[test]
+fn mint_refuses_malformed_today() {
+    let (_g, repo) = git_repo("work");
+    init_store(&repo);
+    let id = add_task(&repo, "stamped");
+    let before = crate::common::file_inventory(&repo);
+    let path = task_file(&repo, &id);
+    let text = std::fs::read_to_string(&path).unwrap();
+    for (args, bad) in [
+        (vec!["add", "pinned", "--verify", "true"], "banana"),
+        (vec!["start", id.as_str()], "2026-13-40"),
+        (vec!["comment", id.as_str(), "--as", "maya", "noted"], "2026-08-04T25:61Z"),
+    ] {
+        let assert = meshwork(&repo)
+            .args(&args)
+            .env("MESHWORK_TODAY", bad)
+            .assert()
+            .code(1);
+        let err = stderr_of(&assert);
+        assert!(
+            err.contains("MESHWORK_TODAY must be YYYY-MM-DD or YYYY-MM-DDTHH:MMZ"),
+            "{args:?}: {err}"
+        );
+        assert!(err.contains(bad), "names the value: {err}");
+        assert_eq!(
+            before,
+            crate::common::file_inventory(&repo),
+            "{args:?} wrote a file"
+        );
+        assert_eq!(text, std::fs::read_to_string(&path).unwrap(), "{args:?}");
+    }
+    assert!(!text.contains("banana"), "{text}");
+}
+
 #[test]
 fn minute_stamps_date_only_files_still_parse() {
     let (_g, repo) = git_repo("work");

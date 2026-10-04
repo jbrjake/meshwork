@@ -322,6 +322,12 @@ pub fn run() -> i32 {
             return code;
         }
     };
+    // A malformed clock override is refused before any verb runs: every
+    // minted stamp, log line and comment would carry it.
+    if let Err(msg) = crate::clock::check_override() {
+        eprintln!("meshwork: {msg}");
+        return 1;
+    }
     let result = match &cli.cmd {
         Cmd::Init => init::run(cli.json),
         Cmd::Add(args) => add::run(args, cli.json),
