@@ -156,6 +156,8 @@ fn validate_task(
             .iter()
             .map(|f| ("discovered-from", f.as_str())),
     );
+    targets.extend(task.relates.iter().map(|r| ("relates", r.as_str())));
+    targets.extend(task.answers.iter().map(|a| ("answers", a.as_str())));
     super::add::check_edge_targets(tasks_dir, &targets, batch_ids)?;
     super::add::warn_docs(root, &task.docs);
     Ok(())

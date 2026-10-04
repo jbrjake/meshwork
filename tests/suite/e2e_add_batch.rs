@@ -208,6 +208,43 @@ fn batch_rejects_unknown_keys() {
     assert!(!child.contains("from: @"), "{child}");
 }
 
+/// The batch runs add's target checks on every edge: a same-repo relates
+/// target that does not exist refuses the whole batch, and an answers gid
+/// naming no registered repo warns, exactly as the flags do.
+#[test]
+fn batch_checks_relates_and_answers_targets() {
+    let (dir, portfolio) = portfolio_fixture();
+    let beta = dir.path().join("beta");
+    let before = crate::common::file_inventory(&beta);
+    let assert = meshwork(&beta)
+        .args(["add", "--batch", "-"])
+        .write_stdin(
+            "---\ntitle: Fine\nverify: \"true\"\n---\n\
+             ---\ntitle: Dangling\nrelates: [zz-zzzzzzz]\nverify: \"true\"\n---\n",
+        )
+        .assert()
+        .code(1);
+    let err = stderr_of(&assert);
+    assert!(err.contains("batch task 2"), "{err}");
+    assert!(
+        err.contains("relates target `zz-zzzzzzz` does not exist"),
+        "{err}"
+    );
+    assert_eq!(before, crate::common::file_inventory(&beta), "nothing written");
+
+    let assert = meshwork(&beta)
+        .env("MESHWORK_PORTFOLIO", &portfolio)
+        .args(["add", "--batch", "-"])
+        .write_stdin("---\ntitle: Answers nowhere\nanswers: nowhere#zz-1\nverify: \"true\"\n---\n")
+        .assert()
+        .success();
+    let err = stderr_of(&assert);
+    assert!(
+        err.contains("nowhere#zz-1") && err.contains("no registered repo"),
+        "{err}"
+    );
+}
+
 /// `close` is the only door to done, `drop` to dropped, `start` and
 /// `block` to the rest: a batch document carrying any status but open
 /// is refused whole, nothing written — otherwise a task lands done with
