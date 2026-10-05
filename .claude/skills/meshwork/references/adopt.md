@@ -44,8 +44,8 @@ the adopter's repo root.
 5. Retire the old ritual **in the same commit**, working the step-1 list to
    zero: delete TODO.md (its content now lives in `docs/meshwork/`), delete
    check-todo.sh and every reference to it, and DELETE HANDOFF.md outright —
-   `prime` is the handoff (meshwork DESIGN §7b). Two task systems is worse
-   than one; a hand-written handoff is a second one.
+   `prime` is the handoff. Two task systems is worse than one; a
+   hand-written handoff is a second one.
 6. Last of all, recast and red-check the migrated verifies — after the
    retirement commit, not before. Recast each into the DSL where it fits
    (`run cargo test <filter>`, `exists <path>`, `contains <path>

@@ -13,7 +13,7 @@ It's a mesh twice over: because tasks are modeled as a graph with edges to relat
 /plugin install meshwork@jbrjake
 ```
 
-That installs the skill into Claude Code. Ask a session to "adopt meshwork in this repo" and it handles the rest ([getting it](#getting-it) has the manual path).
+That installs the skill and a session-start hook into Claude Code. Ask Claude to "adopt meshwork in this repo" and it handles the rest, like downloading the cli (or you can [install manually](#getting-it)).
 
 ## quick-start
 
@@ -413,7 +413,7 @@ The format has a spec, [FORMAT.md](FORMAT.md), that's versioned and self-contain
 
 When a task reaches `done` or `dropped`, to de-clutter, its file moves to `docs/meshwork/archive/` automatically (and moves back on `reopen`). Archived tasks stay loaded and queryable. Dependency resolution, SQL, and the digest are location-blind. Once a hundred archived files have piled up, `lint` says so and `lint --fix` concatenates them into a few bundle files. Once bundled, tasks still `show`, can be queried, and split back out upon `reopen`.
 
-Because tasks are files in git, concurrency is git's problem. Two sessions in separate worktrees can create tasks, comment on the *same* task, and close tasks, then merge without manual conflict resolution. The one merge artifact git can produce (a duplicated frontmatter key from union-merge) is repaired by `lint --fix`. Tasks record when they're claimed by someone as active work, but it's not enforced.
+Because tasks are files in git, concurrency is git's problem. Two sessions in separate worktrees can create tasks, comment on the *same* task, and close tasks, then merge without manual conflict resolution. The merge artifacts git can lead to (a duplicated frontmatter key from union-merge, or meshwork's random task ids colliding) get repaired by `lint --fix`. (Tasks also record when they're claimed by someone as active work, but it's not enforced.)
 
 The `seq` field is the priority: integers with gaps of 10, lower runs sooner.
 
@@ -430,7 +430,7 @@ docs | 1
 (3 rows)
 ```
 
-The `## log` lines are a table too, with every status transition timestamped. On top of the six raw tables sits a derived layer of thirteen views that's computed from the files on every query. `spans` is a row per stint in a state, so 'how long was that blocked?' is a `SELECT`. `facts` is a row per task with its queue, service and cycle hours. `graph` knows the structure:
+The `## log` lines are a table too, with every status transition timestamped. On top of the seven raw tables sits a derived layer of thirteen views that's computed from the files on every query. `spans` is a row per stint in a state, so 'how long was that blocked?' is a `SELECT`. `facts` is a row per task with its queue, service and cycle hours. `graph` knows the structure:
 
 ```
 $ meshwork q "SELECT id, unlock, depth FROM graph WHERE unlock > 0 ORDER BY unlock DESC"
@@ -541,8 +541,10 @@ Both sides watched that happen and nobody sent a message. Each verify checks its
 
 ## boundaries
 
+- **Never stores your data outside your repo, never requires custom config.** meshwork is intended to be light, portable, easy to use, and setup-free. It doesn't rely on a bunch of dependencies or services being carefully maintained in a delicate ecosystem.
+  - No databases, no LLMs, no API tokens. No git hooks. No hidden .caches of your data or your configuration. And that means no anxiety migrating to a different environment or adding collaborators. There are no moving parts to break.
+  - The SessionStart Claude Code hook that injects `prime` ships with the plugin, not in your project's settings. The only thing meshwork writes outside your repos is a shared `~/.meshwork/versions/` cache of its binary releases.
 - **Zero network required.** A one-way, append-only GitHub mirror (issues created, comments appended, nothing ever edited or closed remotely) is planned at some point.
-- **Never installs git hooks, never writes outside the repo.** The SessionStart hook that injects `prime` and other Claude Code configuration gets added when you adopt meshwork in a project.
 - **`verify:` is untrusted input.** Anything arriving by merge or hand-edit doesn't shell out until the checkout's operator approves the exact text (`close --approve`; `MESHWORK_TRUST=1` for checkouts reviewed before the runner touched them).
 - **The CLI surface is frozen.** Anything not in the design doc's verb table is a non-goal, enforced by a test that diffs `--help` against the spec. Feature ideas default to the rejection list so this doesn't turn into Jira.
 - **meshwork tracks meshwork.** This repo's own store holds its remaining roadmap, the repo's gate runs `lint` + `prime` against it on every push, and the digest you get when you open a session here is the one described above.
@@ -565,6 +567,8 @@ curl -fsSL "https://github.com/jbrjake/meshwork/releases/download/$VER/meshwork-
 ```
 
 Two repos can pin different versions and disagree. A small `docs/meshwork/meshwork` shim lets humans, hooks, and homunculi all reach the pinned version with consistent configuration.
+
+Even when curling yourself instead of letting Claude handle it, you only have to fetch by hand that one time, to run `init`. After that, on macOS and Linux, if you use the Claude Code plugin, the session-start hook syncs the binary, the pin, and the shim to the plugin's release and tells you or your agent what to commit. Upgrading the plugin upgrades the repo using it the next time a session opens in it.
 
 Building from source works too: `cargo install --git https://github.com/jbrjake/meshwork` (or `cargo build --release` in a clone).
 

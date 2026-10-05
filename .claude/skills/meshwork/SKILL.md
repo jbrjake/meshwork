@@ -116,6 +116,8 @@ step by step.
   dropped one puts the ask back. Your own asks leave your `ready` for its
   `asks out` line. `asks` is the whole inbox, both directions, uncapped,
   each with its answer's state and age.
+- The addressee's half: `add --answers <gid>` takes an ask on. Once 14 days
+  old, the oldest inbound ask leads `prime`'s `next →`, above your own.
 - The asker's half: `dep add <dependent> --needs <ask-id>` holds the work
   that needs the ask out of `ready` until the ask is done (`why` names it).
   The ask's `verify:` is YOUR check, run in your tree; close the ask once
@@ -172,11 +174,12 @@ run cargo test|build|fmt <args…>         argv-spawned, no leading dashes;
 all(<pred>, <pred>, …)
 ```
 Paths are repo-relative. A verify FAILS while the work is undone — `start`
-red-checks it, and "already green" means it is blind to the work. `run cargo
-test` must observe `ok. N passed`, N ≥ 1, and runs approval-free while the
-task's git history is store-only: commit task files apart from code. Read
-`references/verifies.md` for umbrellas, owner-gated holds, deliverable
-files, regexes that span lines, and legacy shell.
+red-checks it, and "already green" means it is blind to the work; `verify
+<id>` runs it and writes nothing. `run cargo test` must observe `ok. N
+passed`, N ≥ 1, and runs approval-free while the task's git history is
+store-only: commit task files apart from code. Read `references/verifies.md`
+for umbrellas, owner-gated holds, deliverable files, regexes that span
+lines, and legacy shell.
 
 ## Rationalizations seen in transcripts
 
@@ -192,6 +195,6 @@ files, regexes that span lines, and legacy shell.
 ## Boundaries, and done
 
 The CLI surface is frozen; a missing verb is a non-goal to raise with the
-owner. meshwork touches no network, no GitHub, no git hooks. Done means:
+owner. The binary touches no network, no GitHub, no git hooks. Done means:
 `close <id>` printed `verify exit 0` in this session, `handoff:` sits on the
 next task and on no closed one, and every fact you learned is in the store.

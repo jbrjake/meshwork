@@ -84,13 +84,13 @@ target the committed shim path instead.
 
 The pinned binary runs `verify:` DSL — `run cargo test <filter>`,
 `exists <path>`, `absent <path>`, `contains <path> <lit|/regex/>`,
-`all(p, …)` — and gates legacy shell text per-clone: text this clone did
-not author prompts before it runs, and `lint` warns `verify-shell`. A
-pre-DSL store's verifies are all shell, so sweep every open task: recast
-each verify into the DSL where it fits (adopt.md step 6 is the
-recast-and-red-check ritual); a check only shell can express gets
-re-authored on this clone via `set --verify` — that mints this clone's
-approval — and keeps the lint warning as its price.
+`lacks <path> <lit|/regex/>`, `all(p, …)` — and gates legacy shell text
+per-clone: text this clone did not author prompts before it runs, and
+`lint` warns `verify-shell`. A pre-DSL store's verifies are all shell, so
+sweep every open task: recast each verify into the DSL where it fits
+(adopt.md step 6 is the recast-and-red-check ritual); a check only shell
+can express gets re-authored on this clone via `set --verify` — that mints
+this clone's approval — and keeps the lint warning as its price.
 
 Land the recasts as their own store-only commit, never mixed into the
 migration commit below: `run cargo test` stays approval-free only while
